@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: binance-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    envVars:
+      - key: BINANCE_API_KEY
+        sync: false          # set manually in Render dashboard
+      - key: BINANCE_SECRET_KEY
+        sync: false          # set manually in Render dashboard
