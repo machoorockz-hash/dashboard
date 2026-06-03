@@ -46,6 +46,7 @@ def binance_get(path: str, params: dict = None, signed: bool = False):
 
     if signed:
         params["timestamp"] = int(time.time() * 1000)
+        params["recvWindow"] = 5000   # <-- FIX ADDED HERE
         query = urllib.parse.urlencode(params)
         query += "&signature=" + _sign(secret_key, query)
     else:
@@ -99,7 +100,6 @@ def balance():
                 "usdtValue": f"{usdt_val:.2f}",
             })
 
-        # Only assets worth more than $3
         filtered = [b for b in balances if float(b["usdtValue"]) >= 3]
         filtered.sort(key=lambda x: float(x["usdtValue"]), reverse=True)
 
@@ -258,7 +258,6 @@ def ticker():
             and b["asset"] not in ("USDT", "BUSD", "USDC")
         ]
 
-        # Sort by USDT value descending
         with_value = []
         for b in non_zero:
             total = float(b["free"]) + float(b["locked"])
