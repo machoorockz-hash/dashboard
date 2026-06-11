@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Activity } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 
 interface BotData {
@@ -11,6 +12,7 @@ interface BotData {
   speed: number;
   volatility: number;
   status: string;
+  trade_mode?: string;
 }
 
 interface Snapshot {
@@ -20,10 +22,10 @@ interface Snapshot {
 }
 
 const STAGE_CONFIG: Record<string, { bg: string; text: string; border: string; dot: string; label: string }> = {
-  SAFE:       { bg: "bg-emerald-500/10",  text: "text-emerald-400",  border: "border-emerald-500/30",  dot: "bg-emerald-400",         label: "🟢 SAFE — OK TO TRADE ALTS" },
-  WATCH:      { bg: "bg-yellow-500/10",   text: "text-yellow-400",   border: "border-yellow-500/30",   dot: "bg-yellow-400",          label: "🟡 WATCH — BE SELECTIVE" },
-  RISK:       { bg: "bg-orange-500/10",   text: "text-orange-400",   border: "border-orange-500/30",   dot: "bg-orange-400",          label: "🟠 RISK — HOLD OFF NEW BUYS" },
-  SELL_ALERT: { bg: "bg-red-500/10",      text: "text-red-400",      border: "border-red-500/30",      dot: "bg-red-400",             label: "🔴 SELL ALERT — PAUSE BUYING" },
+  SAFE:       { bg: "bg-emerald-500/10",  text: "text-emerald-400",  border: "border-emerald-500/30",  dot: "bg-emerald-400",           label: "🟢 SAFE — OK TO TRADE ALTS" },
+  WATCH:      { bg: "bg-yellow-500/10",   text: "text-yellow-400",   border: "border-yellow-500/30",   dot: "bg-yellow-400",            label: "🟡 WATCH — BE SELECTIVE" },
+  RISK:       { bg: "bg-orange-500/10",   text: "text-orange-400",   border: "border-orange-500/30",   dot: "bg-orange-400",            label: "🟠 RISK — HOLD OFF NEW BUYS" },
+  SELL_ALERT: { bg: "bg-red-500/10",      text: "text-red-400",      border: "border-red-500/30",      dot: "bg-red-400",               label: "🔴 SELL ALERT — PAUSE BUYING" },
   DANGER:     { bg: "bg-red-600/15",      text: "text-red-400",      border: "border-red-600/40",      dot: "bg-red-500 animate-pulse", label: "🚨 DANGER — CONSIDER SELLING" },
 };
 
@@ -64,7 +66,33 @@ function timeSince(iso: string) {
 export function BtcCrashCard() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [age, setAge] = useState<string>("");
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+  const [flash, setFlash] = useState<"up" | "down" | null>(null);
 
+  // Live BTC price via WebSocket
+  useEffect(() => {
+    const ws = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@trade");
+    ws.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        const p = parseFloat(d.p);
+        setLivePrice((prev) => {
+          if (prev !== null && p !== prev) setFlash(p > prev ? "up" : "down");
+          return p;
+        });
+      } catch {}
+    };
+    return () => ws.close();
+  }, []);
+
+  // Clear flash after 500ms
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 500);
+    return () => clearTimeout(t);
+  }, [flash]);
+
+  // Bot data polling
   useEffect(() => {
     let alive = true;
     async function poll() {
@@ -90,10 +118,17 @@ export function BtcCrashCard() {
   const d = snapshot?.data;
   const stage = d?.status ?? "SAFE";
   const cfg = STAGE_CONFIG[stage] ?? STAGE_CONFIG["SAFE"]!;
-  const fmtPrice = (p: number) => p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const isPaused = d?.trade_mode === "Pause";
+
+  const fmtLive = (p: number) =>
+    p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden ${cfg.border}`}>
+      {/* top shimmer line */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+      {/* header row */}
       <div className="relative flex items-center justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-3">
           <CoinIcon symbol="BTC" size={36} />
@@ -104,7 +139,7 @@ export function BtcCrashCard() {
             </div>
             <div className="text-[11px] text-muted-foreground mt-0.5">
               {d ? (
-                <><span className="font-mono font-bold">${fmtPrice(d.price)}</span><span className="mx-1.5">·</span><span>updated {age}</span></>
+                <><span>updated {age}</span></>
               ) : "Waiting for bot data…"}
             </div>
           </div>
@@ -115,6 +150,35 @@ export function BtcCrashCard() {
           </div>
         )}
       </div>
+
+      {/* ── LIVE PRICE DISPLAY ── */}
+      <div className={`relative mb-4 rounded-xl border px-4 py-3 flex items-center justify-between transition-all duration-300 bg-gradient-to-r from-primary/5 to-transparent ${
+        flash === "up"   ? "border-bull/60 bg-bull/10"  :
+        flash === "down" ? "border-bear/60 bg-bear/10"  :
+        "border-border"
+      }`}>
+        <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
+          <Activity className="h-3 w-3" /> BTC Live Price
+        </span>
+        <span className={`text-3xl md:text-4xl font-black tabular-nums tracking-tight transition-colors duration-300 ${
+          flash === "up"   ? "text-bull"  :
+          flash === "down" ? "text-bear"  :
+          ""
+        }`} style={!flash ? { color: "#F7931A" } : {}}>
+          {livePrice ? `$${fmtLive(livePrice)}` : "…"}
+        </span>
+      </div>
+
+      {/* trade paused banner */}
+      {isPaused && (
+        <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3">
+          <span className="text-lg">⏸</span>
+          <div>
+            <div className="text-xs font-black text-yellow-400 uppercase tracking-widest">Trading Paused</div>
+            <div className="text-[11px] text-yellow-400/70 mt-0.5">BTC dropped ≥ 2.6% — avoid new alt buys until drop recovers below 2.3%</div>
+          </div>
+        </div>
+      )}
 
       {!d ? (
         <div className="py-8 text-center text-muted-foreground text-sm">
