@@ -12,6 +12,7 @@ interface BotData {
   speed: number;
   volatility: number;
   status: string;
+  trade_mode?: string;
 }
 
 const store = new Map<string, { data: BotData; updatedAt: string }>();
