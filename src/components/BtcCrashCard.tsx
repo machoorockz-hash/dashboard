@@ -44,14 +44,14 @@ function dropColor(pct: number) {
   return "text-emerald-400";
 }
 
-function IntensityBar({ pct }: { pct: number }) {
-  const filled = Math.round(Math.min(pct / 6.0, 1.0) * 10);
+function IntensityBar({ pct, inactive = false }: { pct: number; inactive?: boolean }) {
+  const filled = inactive ? 0 : Math.round(Math.min(pct / 6.0, 1.0) * 10);
   const empty = 10 - filled;
   const color = pct >= 4 ? "bg-red-500" : pct >= 2 ? "bg-orange-500" : pct >= 1 ? "bg-yellow-400" : "bg-emerald-400";
   return (
     <div className="flex items-center gap-px">
       {Array.from({ length: filled }).map((_, i) => <div key={`f${i}`} className={`h-2.5 w-1.5 rounded-[1px] ${color}`} />)}
-      {Array.from({ length: empty }).map((_, i) => <div key={`e${i}`} className="h-2.5 w-1.5 rounded-[1px] bg-muted/50" />)}
+      {Array.from({ length: empty }).map((_, i) => <div key={`e${i}`} className={`h-2.5 w-1.5 rounded-[1px] ${inactive ? "bg-red-400/30" : "bg-muted/50"}`} />)}
     </div>
   );
 }
@@ -144,11 +144,11 @@ export function BtcCrashCard() {
             </div>
           </div>
         </div>
-        {d && (
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-            {cfg.label}
-          </div>
-        )}
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold ${
+          d ? `${cfg.bg} ${cfg.text} ${cfg.border}` : "bg-red-500/10 text-red-400 border-red-500/30"
+        }`}>
+          {d ? cfg.label : "BOT IS NOT ACTIVE"}
+        </div>
       </div>
 
       {/* ── LIVE PRICE DISPLAY ── */}
@@ -180,47 +180,43 @@ export function BtcCrashCard() {
         </div>
       )}
 
-      {!d ? (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-muted/40 bg-muted/10">
-          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
-          <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground/60">Bot Not Active</span>
+      <div className="rounded-xl border border-border bg-muted/20 p-3 mb-3">
+        <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">Drop from Peak</div>
+        <div className="space-y-1.5">
+          {TIMEFRAMES.map(({ key, label }) => {
+            const pct = d ? d[key] : 0;
+            const inactive = !d;
+            return (
+              <div key={key} className="flex items-center gap-3 text-xs">
+                <span className="w-8 text-right text-muted-foreground font-bold tabular-nums">{label}</span>
+                <span className={`w-16 text-right font-black tabular-nums ${inactive ? "text-red-400" : dropColor(pct)}`}>
+                  -{pct.toFixed(2)}%
+                </span>
+                <IntensityBar pct={pct} inactive={inactive} />
+              </div>
+            );
+          })}
         </div>
-      ) : (
-        <>
-          <div className="rounded-xl border border-border bg-muted/20 p-3 mb-3">
-            <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-2">Drop from Peak</div>
-            <div className="space-y-1.5">
-              {TIMEFRAMES.map(({ key, label }) => {
-                const pct = d[key];
-                return (
-                  <div key={key} className="flex items-center gap-3 text-xs">
-                    <span className="w-8 text-right text-muted-foreground font-bold tabular-nums">{label}</span>
-                    <span className={`w-16 text-right font-black tabular-nums ${dropColor(pct)}`}>-{pct.toFixed(2)}%</span>
-                    <IntensityBar pct={pct} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
-              <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">⚡ Speed (10s)</div>
-              <span className={`font-black tabular-nums ${d.speed > 0 ? "text-emerald-400" : d.speed < 0 ? "text-red-400" : "text-muted-foreground"}`}>
-                {d.speed > 0 ? "+" : ""}{d.speed.toFixed(2)}%
-              </span>
-            </div>
-            <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
-              <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">🌪 Vol (10s)</div>
-              <span className={`font-black tabular-nums ${d.volatility >= 4 ? "text-red-400" : d.volatility >= 2.5 ? "text-orange-400" : "text-emerald-400"}`}>
-                {d.volatility.toFixed(2)}%
-              </span>
-            </div>
-          </div>
-          <div className={`w-full text-center rounded-xl border py-3 font-black text-sm tracking-wide ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-            {cfg.label}
-          </div>
-        </>
-      )}
+      </div>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
+          <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">⚡ Speed (10s)</div>
+          <span className={`font-black tabular-nums ${!d ? "text-red-400" : d.speed > 0 ? "text-emerald-400" : d.speed < 0 ? "text-red-400" : "text-muted-foreground"}`}>
+            {!d ? "-0.00%" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%`}
+          </span>
+        </div>
+        <div className="rounded-xl border border-border bg-muted/20 px-3 py-2">
+          <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">🌪 Vol (10s)</div>
+          <span className={`font-black tabular-nums ${!d ? "text-red-400" : d.volatility >= 4 ? "text-red-400" : d.volatility >= 2.5 ? "text-orange-400" : "text-emerald-400"}`}>
+            {!d ? "0.00%" : `${d.volatility.toFixed(2)}%`}
+          </span>
+        </div>
+      </div>
+      <div className={`w-full text-center rounded-xl border py-3 font-black text-sm tracking-wide ${
+        d ? `${cfg.bg} ${cfg.text} ${cfg.border}` : "bg-red-500/10 text-red-400 border-red-500/30"
+      }`}>
+        {d ? cfg.label : "BOT IS NOT ACTIVE"}
+      </div>
     </section>
   );
 }
