@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": "20" },
   "scripts": {
     "build": "vite build && node build.mjs",
     "start": "node dist/server.mjs",
