@@ -181,9 +181,9 @@ export function BtcCrashCard() {
       )}
 
       {!d ? (
-        <div className="py-8 text-center text-muted-foreground text-sm">
-          <div className="mb-2 text-2xl">📡</div>
-          Bot is offline. Run <code className="bg-muted/40 px-1.5 py-0.5 rounded text-xs font-mono">BTCCRASHBOT.py</code> to push live data.
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-muted/40 bg-muted/10">
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+          <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground/60">Bot Not Active</span>
         </div>
       ) : (
         <>
