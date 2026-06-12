@@ -45,6 +45,7 @@ export default function PumpScannerCard() {
   const [data, setData] = useState<PumpData | null>(null);
   const [stale, setStale] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
+  const [latestKey, setLatestKey] = useState<string | null>(null);
   const seenRef = useRef<Set<string>>(new Set());
   const lastFetchRef = useRef<number>(0);
 
@@ -59,16 +60,23 @@ export default function PumpScannerCard() {
         setStale(false);
 
         const incoming = new Set<string>();
-        json.signals.forEach((s) => {
+        let newestKey: string | null = null;
+
+        json.signals.forEach((s, i) => {
           const k = `${s.symbol}-${s.timestamp}`;
           if (!seenRef.current.has(k)) {
             incoming.add(k);
             seenRef.current.add(k);
+            if (i === 0) newestKey = k;
           }
         });
 
         if (incoming.size > 0) {
           setNewKeys(incoming);
+          if (newestKey) {
+            setLatestKey(newestKey);
+            setTimeout(() => setLatestKey(null), 6000);
+          }
           setTimeout(() => setNewKeys(new Set()), 2000);
         }
 
@@ -90,22 +98,60 @@ export default function PumpScannerCard() {
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-3">
       <style>{`
         @keyframes pump-slide-in {
-          from { opacity: 0; transform: translateX(18px); }
-          to   { opacity: 1; transform: translateX(0); }
+          from { opacity: 0; transform: translateX(22px) scale(0.97); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
         }
-        .pump-new { animation: pump-slide-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes pump-latest-in {
+          0%   { opacity: 0; transform: translateX(22px) scale(0.96); box-shadow: none; }
+          40%  { opacity: 1; transform: translateX(0) scale(1.012); }
+          60%  { transform: scale(1); }
+          100% { transform: scale(1); }
+        }
+        @keyframes pump-glow-pulse {
+          0%, 100% { box-shadow: 0 0 0px 0px color-mix(in oklab, var(--primary) 0%, transparent); }
+          50%      { box-shadow: 0 0 18px 4px color-mix(in oklab, var(--primary) 28%, transparent); }
+        }
+        @keyframes pump-shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes pump-icon-glow {
+          0%, 100% { box-shadow: 0 0 0px 0px color-mix(in oklab, var(--primary) 0%, transparent); }
+          50%      { box-shadow: 0 0 14px 3px color-mix(in oklab, var(--primary) 40%, transparent); }
+        }
+        .pump-new {
+          animation: pump-slide-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        .pump-latest {
+          animation:
+            pump-latest-in 0.5s cubic-bezier(0.22,1,0.36,1) both,
+            pump-glow-pulse 1.8s ease-in-out 0.5s 3;
+        }
+        .pump-latest-shimmer::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: linear-gradient(
+            105deg,
+            transparent 30%,
+            color-mix(in oklab, var(--primary) 18%, transparent) 50%,
+            transparent 70%
+          );
+          background-size: 200% 100%;
+          animation: pump-shimmer 1.4s ease-in-out 0.3s 2;
+          pointer-events: none;
+        }
+        .pump-icon-wrap {
+          animation: pump-icon-glow 2.5s ease-in-out infinite;
+        }
 
         .pump-scroll {
           scrollbar-width: thin;
           scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent) transparent;
         }
-        .pump-scroll::-webkit-scrollbar {
-          width: 3px;
-        }
-        .pump-scroll::-webkit-scrollbar-track {
-          background: transparent;
-          border-radius: 9999px;
-        }
+        .pump-scroll::-webkit-scrollbar { width: 3px; }
+        .pump-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 9999px; }
         .pump-scroll::-webkit-scrollbar-thumb {
           background: color-mix(in oklab, var(--primary) 35%, transparent);
           border-radius: 9999px;
@@ -118,8 +164,9 @@ export default function PumpScannerCard() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary/15 border border-primary/25">
-            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+          <div className="pump-icon-wrap relative flex items-center justify-center h-8 w-8 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent">
+            <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
+            <TrendingUp className="relative h-4 w-4 text-primary drop-shadow-[0_0_4px_color-mix(in_oklab,var(--primary)_80%,transparent)]" strokeWidth={2.5} />
           </div>
           <span className="font-black text-sm tracking-wide uppercase">Pump Scanner</span>
         </div>
@@ -148,21 +195,38 @@ export default function PumpScannerCard() {
           {data.signals.map((sig) => {
             const k = `${sig.symbol}-${sig.timestamp}`;
             const { date, time } = toUAE(sig.timestamp);
-            const isNew = newKeys.has(k);
+            const isLatest = latestKey === k;
+            const isNew = newKeys.has(k) && !isLatest;
+
             return (
               <div
                 key={k}
-                className={`flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 ${
-                  isNew
+                className={`relative flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 overflow-hidden ${
+                  isLatest
+                    ? "pump-latest pump-latest-shimmer border-primary/50 bg-gradient-to-r from-primary/10 to-primary/5"
+                    : isNew
                     ? "pump-new border-emerald-500/40 bg-emerald-500/[0.08]"
                     : "border-border bg-muted/20"
                 }`}
               >
+                {isLatest && (
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+                )}
                 <div className="flex items-center gap-2.5">
-                  <div className={`h-2 w-2 rounded-full shrink-0 ${isNew ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground/30"}`} />
+                  <div className={`h-2 w-2 rounded-full shrink-0 ${
+                    isLatest ? "bg-primary animate-pulse" : isNew ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground/30"
+                  }`} />
                   <div>
-                    <div className="font-black text-sm tracking-wide text-foreground">
-                      {sig.symbol.replace("USDT", "")}<span className="text-muted-foreground font-normal text-xs">/USDT</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
+                        {sig.symbol.replace("USDT", "")}
+                      </span>
+                      <span className="text-muted-foreground font-normal text-xs">/USDT</span>
+                      {isLatest && (
+                        <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md bg-primary/20 text-primary border border-primary/30">
+                          NEW
+                        </span>
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                       {date} · {time}
@@ -170,7 +234,7 @@ export default function PumpScannerCard() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-black text-xs tabular-nums text-emerald-400">
+                  <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
                     ${formatPrice(sig.price)}
                   </div>
                   <div className="text-[9px] uppercase tracking-widest text-muted-foreground/60 mt-0.5">
@@ -183,7 +247,7 @@ export default function PumpScannerCard() {
         </div>
       ) : active ? (
         <div className="flex flex-col items-center justify-center py-6 gap-2">
-          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary/10 border border-primary/20">
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
             <TrendingUp className="h-5 w-5 text-primary/60" />
           </div>
           <span className="text-xs text-muted-foreground text-center">
