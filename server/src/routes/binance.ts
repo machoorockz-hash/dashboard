@@ -55,7 +55,6 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-/** Fire promises in batches with a delay between batches to avoid rate limits */
 async function batchSettled<T>(
   fns: Array<() => Promise<T>>,
   batchSize = 3,
@@ -71,20 +70,90 @@ async function batchSettled<T>(
   return results;
 }
 
-// ── In-memory cache for allTrades (avoids hammering the API on every page load) ──
+// ── Generic in-memory cache ────────────────────────────────────────────────
+
 interface CacheEntry<T> { data: T; expiresAt: number; }
 const cache = new Map<string, CacheEntry<unknown>>();
 
-function getCache<T>(key: string): T | null {
+function getCache<T>(key: string): T | undefined {
   const entry = cache.get(key);
-  if (!entry || Date.now() > entry.expiresAt) { cache.delete(key); return null; }
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) { cache.delete(key); return undefined; }
   return entry.data as T;
 }
 function setCache<T>(key: string, data: T, ttlMs: number) {
   cache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
 
-// ── Routes ─────────────────────────────────────────────────────────────────
+// ── Coin logo resolver (CoinGecko → cached server-side) ────────────────────
+
+// Deduplicates concurrent requests for the same symbol so we only call
+// CoinGecko once even if 20 img tags fire at the same time.
+const logoInFlight = new Map<string, Promise<string | null>>();
+
+async function resolveCoinLogo(symbol: string): Promise<string | null> {
+  const key = `logo:${symbol}`;
+  const cached = getCache<string | null>(key);
+  if (cached !== undefined) return cached;
+
+  const existing = logoInFlight.get(symbol);
+  if (existing) return existing;
+
+  const promise: Promise<string | null> = (async () => {
+    try {
+      // CoinGecko free-tier search — no API key required, ~30 req/min
+      const resp = await fetch(
+        `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(symbol)}`,
+        {
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(6000),
+        },
+      );
+      if (!resp.ok) return null;
+
+      const body = await resp.json() as {
+        coins?: Array<{ symbol: string; thumb?: string; large?: string }>;
+      };
+
+      // Prefer an exact symbol match; fall back to the first result
+      const exact = body.coins?.find(
+        (c) => c.symbol.toUpperCase() === symbol.toUpperCase(),
+      );
+      const coin = exact ?? body.coins?.[0];
+      const url = coin?.large ?? coin?.thumb ?? null;
+
+      // Cache the result for 24 h (logo URLs almost never change)
+      setCache(key, url, 24 * 60 * 60 * 1000);
+      return url;
+    } catch {
+      setCache(key, null, 5 * 60 * 1000); // cache "not found" for 5 min
+      return null;
+    } finally {
+      logoInFlight.delete(symbol);
+    }
+  })();
+
+  logoInFlight.set(symbol, promise);
+  return promise;
+}
+
+// GET /api/coin-logo/:symbol
+// Resolves to a 302 redirect to the actual image URL (cached for 24 h).
+// The browser follows the redirect transparently for <img> tags.
+router.get("/coin-logo/:symbol", async (req, res) => {
+  const symbol = (req.params["symbol"] ?? "").toUpperCase();
+  if (!symbol) { res.status(400).json({ error: "symbol required" }); return; }
+
+  const url = await resolveCoinLogo(symbol);
+  if (url) {
+    res.setHeader("Cache-Control", "public, max-age=86400, immutable");
+    res.redirect(302, url);
+  } else {
+    res.status(404).json({ error: "logo not found" });
+  }
+});
+
+// ── Binance signed routes ──────────────────────────────────────────────────
 
 router.get("/binance/account", async (_req, res) => {
   try {
@@ -131,19 +200,11 @@ router.get("/binance/myTrades", async (req, res) => {
   }
 });
 
-/**
- * Fetch trades for ALL account assets.
- * Batches requests 3 at a time with 400 ms delays between batches so we never
- * blow through Binance's rate limits and break unrelated API calls.
- * Results are cached server-side for 3 minutes.
- */
 router.get("/binance/allTrades", async (_req, res) => {
   try {
-    // Return cached result if still fresh
     const cached = getCache<unknown[]>("allTrades");
     if (cached) { res.json(cached); return; }
 
-    // 1. Get account balances (1 signed request)
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
     }>("/api/v3/account");
@@ -153,7 +214,6 @@ router.get("/binance/allTrades", async (_req, res) => {
       .map((b) => b.asset)
       .filter((a) => !["USDT", "BUSD", "FDUSD", "USDC"].includes(a));
 
-    // 2. Fetch trades in batches of 3, 400 ms apart
     type RawTrade = {
       symbol: string; id: number; orderId: number; price: string; qty: string;
       quoteQty: string; commission: string; commissionAsset: string;
@@ -171,9 +231,7 @@ router.get("/binance/allTrades", async (_req, res) => {
       .flatMap((r) => r.value)
       .sort((a, b) => b.time - a.time);
 
-    // Cache for 3 minutes
     setCache("allTrades", allTrades, 3 * 60 * 1000);
-
     res.json(allTrades);
   } catch (err) {
     res.status(502).json({ error: String(err) });
