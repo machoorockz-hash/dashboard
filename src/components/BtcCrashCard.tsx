@@ -51,13 +51,6 @@ function dropColor(pct: number) {
   return "text-emerald-400";
 }
 
-function dropBg(pct: number) {
-  if (pct >= 4) return "bg-red-500/10 border-red-500/20";
-  if (pct >= 2) return "bg-orange-500/10 border-orange-500/20";
-  if (pct >= 1) return "bg-yellow-500/10 border-yellow-500/20";
-  return "bg-emerald-500/10 border-emerald-500/20";
-}
-
 function IntensityBar({ pct, inactive = false }: { pct: number; inactive?: boolean }) {
   const filled = inactive ? 0 : Math.round(Math.min(pct / 6.0, 1.0) * 10);
   const empty = 10 - filled;
@@ -95,7 +88,6 @@ export function BtcCrashCard() {
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [flash, setFlash]       = useState<"up" | "down" | null>(null);
 
-  // Live BTC price via Binance WebSocket
   useEffect(() => {
     const ws = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@trade");
     ws.onmessage = (e) => {
@@ -117,7 +109,6 @@ export function BtcCrashCard() {
     return () => clearTimeout(t);
   }, [flash]);
 
-  // Poll bot data every 3s
   useEffect(() => {
     let alive = true;
     async function poll() {
@@ -233,19 +224,17 @@ export function BtcCrashCard() {
                 key={label}
                 className="grid grid-cols-[40px_1fr_80px_68px] gap-x-2 items-center px-3 py-2 hover:bg-muted/20 transition-colors"
               >
-                {/* timeframe label */}
+                {/* timeframe label — muted-foreground */}
                 <span className="text-[10px] font-black text-muted-foreground text-right tabular-nums">
                   {label}
                 </span>
 
-                {/* peak price chip */}
-                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-black tabular-nums w-fit ${
-                  inactive
-                    ? "bg-muted/30 border-border text-muted-foreground/50"
-                    : "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                {/* peak price — same muted-foreground color as the TF label */}
+                <span className={`text-[11px] font-black tabular-nums ${
+                  inactive ? "text-muted-foreground/30" : "text-muted-foreground"
                 }`}>
                   {inactive ? "—" : `$${fmtPrice(peak ?? 0)}`}
-                </div>
+                </span>
 
                 {/* drop % */}
                 <div className={`text-right text-xs font-black tabular-nums ${inactive ? "text-red-400/50" : dropColor(pct)}`}>
