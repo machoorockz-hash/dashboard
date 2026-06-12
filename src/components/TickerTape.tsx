@@ -5,9 +5,15 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 const POLL_MS = 5_000;
 const STALE_MS = 12_000;
 
+interface DelistSymbol {
+  symbol: string;
+  date: string;
+  time: string;
+}
+
 interface DelistData {
   active: boolean;
-  symbols: string[];
+  symbols: DelistSymbol[];
   lastUpdated: string | null;
   lastHeartbeat: string | null;
 }
@@ -40,18 +46,27 @@ export function TickerTape() {
 
   const active = !stale && data?.active === true && data.symbols.length > 0;
 
-  // Bot offline or no symbols → show nothing at all
   if (!active) return null;
 
   const symbols = data!.symbols;
 
   const row = (
-    <div className="flex items-center gap-10 px-6 py-2 shrink-0">
-      {symbols.map((sym) => (
-        <div key={sym} className="flex items-center gap-2 text-xs whitespace-nowrap">
-          <CoinIcon symbol={sym} size={20} />
-          <span className="font-bold text-muted-foreground">{sym}/USDT</span>
-          <span className="font-black text-bear">▼ DELIST</span>
+    <div className="flex items-center gap-8 px-6 py-1.5 shrink-0">
+      {symbols.map((item) => (
+        <div key={item.symbol} className="flex items-center gap-2.5 text-xs whitespace-nowrap">
+          <CoinIcon symbol={item.symbol} size={18} />
+          <span className="font-bold text-foreground">{item.symbol}/USDT</span>
+          <span className="font-black text-bear text-[11px]">▼ DELIST</span>
+          {(item.date || item.time) && (
+            <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/70 tabular-nums border-l border-border/50 pl-2.5">
+              <span className="text-muted-foreground/50">📅</span>
+              {item.date}
+              {item.date && item.time && (
+                <span className="text-muted-foreground/40 mx-0.5">·</span>
+              )}
+              {item.time}
+            </span>
+          )}
         </div>
       ))}
     </div>
