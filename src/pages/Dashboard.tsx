@@ -6,6 +6,7 @@ import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard from "../components/PumpScannerCard";
+import TradeHistoryCard from "../components/TradeHistoryCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 function fmt(n: number, max = 2, min = max) {
@@ -226,38 +227,7 @@ export default function Dashboard() {
 
         <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
 
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold">Open Orders</h3>
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">{allOrders.length} active</span>
-          </div>
-          {allOrders.length > 0 ? (
-            <ul className="space-y-2.5">
-              {allOrders.map((o) => {
-                const b = o.symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
-                const p = parseFloat(o.price);
-                const sp = parseFloat(o.stopPrice || "0");
-                return (
-                  <li key={o.orderId} className="flex items-center justify-between gap-3 min-w-0 rounded-lg hover:bg-muted/30 px-2 py-1.5 transition-colors">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CoinIcon symbol={b} size={28} />
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold truncate">{o.symbol}</div>
-                        <div className="text-[10px] text-muted-foreground">{o.side} · {o.type}{sp > 0 ? ` · stop $${fmtPrice(sp)}` : ""}</div>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm font-bold tabular-nums">${fmtPrice(p)}</div>
-                      <div className="text-[10px] text-muted-foreground tabular-nums">{fmt(parseFloat(o.origQty), 4)}</div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <div className="text-sm text-muted-foreground py-6 text-center">No open orders.</div>
-          )}
-        </section>
+        <TradeHistoryCard defaultSymbol={orderSymbol} />
       </div>
     </AppLayout>
   );
