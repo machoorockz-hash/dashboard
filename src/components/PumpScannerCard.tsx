@@ -75,7 +75,6 @@ export default function PumpScannerCard() {
           setNewKeys(incoming);
           if (newestKey) {
             setLatestKey(newestKey);
-            setTimeout(() => setLatestKey(null), 6000);
           }
           setTimeout(() => setNewKeys(new Set()), 2000);
         }
@@ -115,17 +114,13 @@ export default function PumpScannerCard() {
           0%   { background-position: -200% center; }
           100% { background-position: 200% center; }
         }
-        @keyframes pump-icon-glow {
-          0%, 100% { box-shadow: 0 0 0px 0px color-mix(in oklab, var(--primary) 0%, transparent); }
-          50%      { box-shadow: 0 0 14px 3px color-mix(in oklab, var(--primary) 40%, transparent); }
-        }
         .pump-new {
           animation: pump-slide-in 0.45s cubic-bezier(0.22,1,0.36,1) both;
         }
         .pump-latest {
           animation:
             pump-latest-in 0.5s cubic-bezier(0.22,1,0.36,1) both,
-            pump-glow-pulse 1.8s ease-in-out 0.5s 3;
+            pump-glow-pulse 1.8s ease-in-out 0.5s infinite;
         }
         .pump-latest-shimmer::after {
           content: "";
@@ -164,7 +159,7 @@ export default function PumpScannerCard() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="pump-icon-wrap relative flex items-center justify-center h-8 w-8 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent">
+          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent">
             <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
             <TrendingUp className="relative h-4 w-4 text-primary drop-shadow-[0_0_4px_color-mix(in_oklab,var(--primary)_80%,transparent)]" strokeWidth={2.5} />
           </div>
