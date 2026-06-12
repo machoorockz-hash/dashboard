@@ -3,7 +3,7 @@ import {
   createChart, CandlestickSeries, LineSeries,
   type IChartApi, type ISeriesApi, type CandlestickData,
   type LineData, type UTCTimestamp, type IPriceLine,
-  CrosshairMode, LineStyle,
+  CrosshairMode, LineStyle, LastPriceAnimationMode,
 } from "lightweight-charts";
 import { Search } from "lucide-react";
 import { getKlines } from "../lib/binance";
@@ -37,6 +37,14 @@ function precisionFor(price: number) {
   return { precision: 8, minMove: 0.00000001 };
 }
 
+function fmtPrice(p: number) {
+  if (!p || !isFinite(p)) return "…";
+  if (p >= 1000) return p.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  if (p >= 1) return p.toFixed(4);
+  if (p >= 0.01) return p.toFixed(5);
+  return p.toFixed(6);
+}
+
 interface PriceLineSpec { price: number; label: string; color: string; }
 interface Props {
   symbol: string; interval?: Interval; height?: number;
@@ -53,8 +61,11 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
   const ema9Ref = useRef<ISeriesApi<"Line"> | null>(null);
   const candlesRef = useRef<CandlestickData[]>([]);
   const linesRef = useRef<IPriceLine[]>([]);
+  const prevPriceRef = useRef<number | null>(null);
   const [iv, setIv] = useState<Interval>(interval);
   const [search, setSearch] = useState("");
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+  const [flash, setFlash] = useState<"up" | "down" | null>(null);
   const base = symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
 
   useEffect(() => setIv(interval), [interval]);
@@ -63,10 +74,24 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
     if (!wrapRef.current) return;
     const chart = createChart(wrapRef.current, {
       autoSize: true,
-      layout: { background: { color: "transparent" }, textColor: "#a3b1c2", fontFamily: "ui-sans-serif,system-ui" },
-      grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
+      layout: {
+        background: { color: "transparent" },
+        textColor: "#a3b1c2",
+        fontFamily: "ui-sans-serif,system-ui",
+      },
+      grid: {
+        vertLines: { color: "rgba(255,255,255,0.04)" },
+        horzLines: { color: "rgba(255,255,255,0.04)" },
+      },
       rightPriceScale: { borderColor: "rgba(255,255,255,0.06)", scaleMargins: { top: 0.08, bottom: 0.08 } },
-      timeScale: { borderColor: "rgba(255,255,255,0.06)", timeVisible: true, secondsVisible: false, rightOffset: 6, barSpacing: 7 },
+      timeScale: {
+        borderColor: "rgba(255,255,255,0.06)",
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: 8,
+        barSpacing: 12,
+        minBarSpacing: 4,
+      },
       crosshair: { mode: CrosshairMode.Normal },
     });
     chartRef.current = chart;
@@ -77,8 +102,9 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
       downColor:       "rgba(255, 45, 95, 0.55)",
       borderDownColor: "#ff2d5f",
       wickDownColor:   "#ff2d5f",
+      lastPriceAnimation: LastPriceAnimationMode.Continuous,
     });
-    ema200Ref.current = chart.addSeries(LineSeries, { color: "#ffffff", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     ema21Ref.current = chart.addSeries(LineSeries, { color: "#3b82f6", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     ema9Ref.current = chart.addSeries(LineSeries, { color: "#facc15", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     return () => { chart.remove(); chartRef.current = null; };
@@ -102,12 +128,21 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
     if (!priceLines) return;
     for (const spec of priceLines) {
       if (!spec.price || !isFinite(spec.price)) continue;
-      linesRef.current.push(series.createPriceLine({ price: spec.price, color: spec.color, lineWidth: 2, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: spec.label }));
+      linesRef.current.push(series.createPriceLine({
+        price: spec.price,
+        color: spec.color,
+        lineWidth: 2,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: spec.label,
+      }));
     }
   }, [priceLines]);
 
   useEffect(() => {
     let alive = true, ws: WebSocket | null = null;
+    setLivePrice(null);
+    prevPriceRef.current = null;
     (async () => {
       try {
         const data = await getKlines({ data: { symbol, interval: iv, limit: 1000 } });
@@ -118,6 +153,8 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
         candleRef.current?.applyOptions({ priceFormat: { type: "price", ...pf } });
         candleRef.current?.setData(candles); recomputeEMAs();
         chartRef.current?.timeScale().fitContent();
+        const lastClose = candles[candles.length - 1]?.close;
+        if (lastClose) { setLivePrice(lastClose); prevPriceRef.current = lastClose; }
         ws = new WebSocket(`wss://data-stream.binance.vision/ws/${symbol.toLowerCase()}@kline_${iv}`);
         ws.onmessage = (e) => {
           try {
@@ -127,12 +164,23 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
             if (arr.length && arr[arr.length - 1].time === c.time) arr[arr.length - 1] = c;
             else { arr.push(c); if (arr.length > 1200) arr.shift(); }
             candleRef.current?.update(c); recomputeEMAs();
+            const newPrice = c.close;
+            setLivePrice((prev) => {
+              if (prev !== null && newPrice !== prev) setFlash(newPrice > prev ? "up" : "down");
+              return newPrice;
+            });
           } catch {}
         };
       } catch (err) { console.error("chart error", err); }
     })();
     return () => { alive = false; if (ws) ws.close(); };
   }, [symbol, iv]);
+
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 600);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -142,14 +190,51 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
     onSymbolChange?.(q); setSearch("");
   }
 
+  const hasLines = priceLines && priceLines.some((l) => l.price > 0 && isFinite(l.price));
+
   return (
     <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden shadow-[0_0_40px_-15px_rgba(94,234,212,0.25)]">
+      <style>{`
+        @keyframes chart-price-up {
+          0%   { background: rgba(0,212,160,0.22); color: #00d4a0; }
+          100% { background: transparent; }
+        }
+        @keyframes chart-price-down {
+          0%   { background: rgba(255,45,95,0.22); color: #ff2d5f; }
+          100% { background: transparent; }
+        }
+        @keyframes chart-line-pulse {
+          0%,100% { opacity: 1; }
+          50%     { opacity: 0.45; }
+        }
+        @keyframes chart-border-glow {
+          0%,100% { box-shadow: 0 0 40px -15px rgba(94,234,212,0.25); }
+          50%     { box-shadow: 0 0 55px -10px rgba(94,234,212,0.40); }
+        }
+        .chart-price-flash-up   { animation: chart-price-up   0.6s ease-out both; }
+        .chart-price-flash-down { animation: chart-price-down 0.6s ease-out both; }
+        .chart-line-entry { animation: chart-line-pulse 2s ease-in-out infinite; }
+        .chart-line-tp    { animation: chart-line-pulse 2s ease-in-out 0.4s infinite; }
+        .chart-line-sl    { animation: chart-line-pulse 2s ease-in-out 0.8s infinite; }
+        .chart-glow       { animation: chart-border-glow 3s ease-in-out infinite; }
+      `}</style>
+
+      {/* ── HEADER ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center gap-3 min-w-0">
           <CoinIcon symbol={base} size={28} />
-          <span className="font-black text-sm md:text-base truncate">{symbol}</span>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="font-black text-sm md:text-base truncate leading-none">{symbol}</span>
+            {livePrice && (
+              <span className={`text-xs font-black tabular-nums leading-none transition-colors rounded px-1 -mx-1 ${
+                flash === "up" ? "chart-price-flash-up text-[#00d4a0]" : flash === "down" ? "chart-price-flash-down text-[#ff2d5f]" : "text-muted-foreground"
+              }`}>
+                {flash === "up" ? "▲" : flash === "down" ? "▼" : ""} ${fmtPrice(livePrice)}
+              </span>
+            )}
+          </div>
           <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[3px] bg-white"></span>EMA 200</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[3px] bg-white/70"></span>EMA 200</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-blue-500"></span>EMA 21</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-yellow-400"></span>EMA 9</span>
           </div>
@@ -171,6 +256,28 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
           )}
         </div>
       </div>
+
+      {/* ── ENTRY / TP / SL ANIMATED STRIP ── */}
+      {hasLines && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-muted/10 flex-wrap">
+          {priceLines!.map((spec, i) => {
+            if (!spec.price || !isFinite(spec.price)) return null;
+            const isEntry = spec.label.toLowerCase().includes("entry");
+            const isTp = spec.label.toLowerCase().includes("tp");
+            const isSl = spec.label.toLowerCase().includes("sl");
+            const animClass = isEntry ? "chart-line-entry" : isTp ? "chart-line-tp" : isSl ? "chart-line-sl" : "";
+            return (
+              <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${animClass}`}
+                style={{ borderColor: `${spec.color}40`, backgroundColor: `${spec.color}12`, color: spec.color }}>
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: spec.color }} />
+                {spec.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── CHART ── */}
       <div ref={wrapRef} style={{ height }} />
     </div>
   );
