@@ -94,4 +94,39 @@ router.get("/binance/myTrades", async (req, res) => {
   }
 });
 
+// Fetch trades across ALL account assets in one call
+router.get("/binance/allTrades", async (_req, res) => {
+  try {
+    // 1. Get account to discover non-zero assets
+    const acc = await signedGet<{
+      balances: Array<{ asset: string; free: string; locked: string }>;
+    }>("/api/v3/account");
+
+    const assets = acc.balances
+      .filter((b) => parseFloat(b.free) + parseFloat(b.locked) > 0)
+      .map((b) => b.asset)
+      .filter((a) => a !== "USDT" && a !== "BUSD" && a !== "FDUSD");
+
+    // 2. Fetch up to 500 trades per symbol in parallel
+    const results = await Promise.allSettled(
+      assets.map((asset) =>
+        signedGet<Array<{
+          symbol: string; id: number; orderId: number; price: string; qty: string;
+          quoteQty: string; commission: string; commissionAsset: string;
+          time: number; isBuyer: boolean; isMaker: boolean;
+        }>>("/api/v3/myTrades", { symbol: `${asset}USDT`, limit: 500 })
+      )
+    );
+
+    const allTrades = results
+      .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
+      .flatMap((r) => r.value)
+      .sort((a, b) => b.time - a.time);
+
+    res.json(allTrades);
+  } catch (err) {
+    res.status(502).json({ error: String(err) });
+  }
+});
+
 export default router;
