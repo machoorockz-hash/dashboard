@@ -21,7 +21,7 @@ async function getAllTrades(): Promise<Trade[]> {
 function fmtPrice(p: number) {
   if (!isFinite(p)) return "—";
   if (p >= 1000) return p.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-  if (p >= 1) return p.toFixed(4);
+  if (p >= 1)    return p.toFixed(4);
   if (p >= 0.01) return p.toFixed(5);
   return p.toFixed(6);
 }
@@ -50,9 +50,9 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
     refetchInterval: 60_000,
   });
 
-  const trades = filterSymbol ? symbolTrades : allTrades;
-  const loading = filterSymbol ? isLoadingSymbol : isLoading;
-  const sorted = trades ? [...trades].sort((a, b) => b.time - a.time) : [];
+  const trades    = filterSymbol ? symbolTrades : allTrades;
+  const loading   = filterSymbol ? isLoadingSymbol : isLoading;
+  const sorted    = trades ? [...trades].sort((a, b) => b.time - a.time) : [];
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -105,7 +105,7 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
       {loading && (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-14 rounded-xl bg-muted/30 animate-pulse" />
+            <div key={i} className="h-16 rounded-xl bg-muted/30 animate-pulse" />
           ))}
         </div>
       )}
@@ -132,22 +132,44 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
               const { date, time } = fmtTime(t.time);
               const total = parseFloat(t.quoteQty);
               const price = parseFloat(t.price);
-              const qty = parseFloat(t.qty);
-              const tradingBase = t.symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
+              const qty   = parseFloat(t.qty);
+
+              // Strip the quote asset to get the base coin (e.g. SOLUSDT → SOL)
+              const tradingBase = t.symbol
+                .replace(/USDT$|BUSD$|FDUSD$|USDC$|BTC$|ETH$|BNB$/, "");
+
+              const isBuy = t.isBuyer;
+
               return (
                 <div
                   key={`${t.symbol}-${t.id}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/20 px-3 py-2.5 hover:border-primary/20 transition-colors"
+                  className={`flex items-center justify-between gap-3 rounded-xl border bg-muted/20 px-3 py-2.5 transition-colors ${
+                    isBuy
+                      ? "border-bull/20 hover:border-bull/40"
+                      : "border-bear/20 hover:border-bear/40"
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <CoinIcon symbol={tradingBase} size={28} />
+                  {/* ── LEFT: coin + meta ── */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Coin logo with coloured ring matching buy/sell */}
+                    <div className={`shrink-0 rounded-full p-[2px] ${isBuy ? "bg-bull/20" : "bg-bear/20"}`}>
+                      <CoinIcon symbol={tradingBase} size={32} />
+                    </div>
+
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-black text-sm truncate">{tradingBase}</span>
                         <span className="text-muted-foreground font-normal text-xs">/USDT</span>
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider ${t.isBuyer ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" : "bg-red-500/15 text-red-400 border border-red-500/20"}`}>
-                          {t.isBuyer ? "BUY" : "SELL"}
+
+                        {/* BUY / SELL badge */}
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
+                          isBuy
+                            ? "bg-bull/15 text-bull border border-bull/25"
+                            : "bg-bear/15 text-bear border border-bear/25"
+                        }`}>
+                          {isBuy ? "BUY" : "SELL"}
                         </span>
+
                         {t.isMaker && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border uppercase tracking-wider">
                             Maker
@@ -159,16 +181,26 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
                       </div>
                     </div>
                   </div>
+
+                  {/* ── RIGHT: price + qty ── */}
                   <div className="text-right shrink-0">
-                    <div className="font-black text-xs tabular-nums">${fmtPrice(price)}</div>
-                    <div className="text-[10px] text-muted-foreground tabular-nums">
-                      {qty.toFixed(4)} · ${total.toFixed(2)}
+                    {/* Price in green for BUY, red for SELL */}
+                    <div className={`font-black text-sm tabular-nums ${isBuy ? "text-bull" : "text-bear"}`}>
+                      ${fmtPrice(price)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                      <span>{qty.toFixed(4)} {tradingBase}</span>
+                      <span className="mx-1 opacity-40">·</span>
+                      <span className={`font-semibold ${isBuy ? "text-bull/70" : "text-bear/70"}`}>
+                        ${total.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
+
           <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
             {sorted.length} trade{sorted.length !== 1 ? "s" : ""} · most recent first
           </div>
