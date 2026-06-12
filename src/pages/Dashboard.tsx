@@ -23,28 +23,101 @@ function fmtPrice(p: number) {
 
 function StepSegments({ step, total }: { step: number; total: number }) {
   return (
-    <div className="flex items-center gap-1.5">
-      {Array.from({ length: total }).map((_, i) => {
-        const filled = i < step;
-        const isLast = i === step - 1;
-        return (
-          <div
-            key={i}
-            className={`relative h-2 rounded-full transition-all duration-700 flex-1 ${
-              filled
-                ? isLast
-                  ? "bg-primary shadow-[0_0_8px_2px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
-                  : "bg-primary/70"
-                : "bg-muted/50"
-            }`}
-          >
-            {isLast && (
-              <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-75" />
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <style>{`
+        @keyframes dca-shimmer {
+          0%   { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
+          20%  { opacity: 1; }
+          80%  { opacity: 1; }
+          100% { transform: translateX(250%) skewX(-12deg); opacity: 0; }
+        }
+        @keyframes dca-pulse-ring {
+          0%   { transform: scale(1);   opacity: 0.7; }
+          100% { transform: scale(2.2); opacity: 0; }
+        }
+        @keyframes dca-breathe {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.65; }
+        }
+        .dca-shimmer { animation: dca-shimmer 2s ease-in-out infinite; }
+        .dca-ring    { animation: dca-pulse-ring 1.2s ease-out infinite; }
+        .dca-breathe { animation: dca-breathe 1.8s ease-in-out infinite; }
+      `}</style>
+
+      <div className="flex items-end gap-2">
+        {Array.from({ length: total }).map((_, i) => {
+          const stepNum = i + 1;
+          const filled  = i < step;
+          const isActive = i === step - 1;
+          const isPast   = filled && !isActive;
+
+          return (
+            <div key={i} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+              {/* Segment pill */}
+              <div className="relative w-full" style={{ height: "10px" }}>
+                {/* Track */}
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: filled
+                      ? isPast
+                        ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent), color-mix(in oklab,var(--primary) 70%,transparent))"
+                        : "linear-gradient(90deg, color-mix(in oklab,var(--primary) 80%,white 5%), var(--primary))"
+                      : "color-mix(in oklab,var(--primary) 10%,var(--card))",
+                    boxShadow: isActive
+                      ? "0 0 12px 2px color-mix(in oklab,var(--primary) 55%,transparent), 0 0 4px 1px color-mix(in oklab,var(--primary) 40%,transparent)"
+                      : isPast
+                      ? "0 0 4px 0px color-mix(in oklab,var(--primary) 25%,transparent)"
+                      : "none",
+                    transition: "all 0.6s cubic-bezier(0.4,0,0.2,1)",
+                  }}
+                />
+
+                {/* Shimmer sweep on active segment */}
+                {isActive && (
+                  <div
+                    className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+                  >
+                    <div
+                      className="dca-shimmer absolute inset-y-0 w-1/3 rounded-full"
+                      style={{
+                        background: "linear-gradient(90deg, transparent, color-mix(in oklab,white 55%,transparent), transparent)",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Pulse ring on active segment */}
+                {isActive && (
+                  <div
+                    className="dca-ring absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      border: "1.5px solid color-mix(in oklab,var(--primary) 70%,transparent)",
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Step number */}
+              <span
+                className="text-[9px] font-bold tabular-nums leading-none"
+                style={{
+                  color: isActive
+                    ? "var(--primary)"
+                    : isPast
+                    ? "color-mix(in oklab,var(--primary) 50%,var(--muted-foreground))"
+                    : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
+                  transition: "color 0.4s",
+                  ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 60%,transparent))" } : {}),
+                }}
+              >
+                {stepNum}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -261,26 +334,53 @@ export default function Dashboard() {
 
               {/* ── DCA STEP — inline inside active trade card ── */}
               {showDca && (
-                <div className="relative mt-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-primary/80">
-                      <Layers className="h-3 w-3" />
-                      DCA Step
+                <div
+                  className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 8%,var(--card)) 0%, color-mix(in oklab,var(--primary) 4%,var(--card)) 100%)",
+                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
+                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
+                  }}
+                >
+                  {/* Top accent line */}
+                  <div
+                    className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
+                  />
+                  {/* Radial glow top-left */}
+                  <div
+                    className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
+                  />
+
+                  <div className="relative flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
+                      <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "color-mix(in oklab,var(--primary) 80%,var(--muted-foreground))" }}>
+                        DCA Step
+                      </span>
                     </div>
                     <div className="flex items-baseline gap-1">
                       <span
-                        className="text-xl font-black tabular-nums text-primary leading-none"
-                        style={{ textShadow: "0 0 20px color-mix(in oklab, var(--primary) 50%, transparent)" }}
+                        className="text-2xl font-black tabular-nums leading-none"
+                        style={{
+                          color: "var(--primary)",
+                          textShadow: "0 0 16px color-mix(in oklab,var(--primary) 70%,transparent)",
+                          letterSpacing: "-0.02em",
+                        }}
                       >
                         {dcaStep}
                       </span>
-                      <span className="text-sm font-black text-muted-foreground/50">/ {dcaTotal}</span>
+                      <span
+                        className="text-base font-black leading-none"
+                        style={{ color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)" }}
+                      >
+                        /{dcaTotal}
+                      </span>
                     </div>
                   </div>
+
                   <StepSegments step={dcaStep} total={dcaTotal} />
-                  <div className="mt-1.5 text-[9px] text-muted-foreground/50 tabular-nums">
-                    {dcaStep} of {dcaTotal} DCA steps executed
-                  </div>
                 </div>
               )}
 
