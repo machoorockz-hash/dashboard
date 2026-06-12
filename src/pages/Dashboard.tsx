@@ -25,93 +25,84 @@ function StepSegments({ step, total }: { step: number; total: number }) {
   return (
     <>
       <style>{`
-        @keyframes dca-shimmer {
-          0%   { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
-          20%  { opacity: 1; }
-          80%  { opacity: 1; }
-          100% { transform: translateX(250%) skewX(-12deg); opacity: 0; }
+        @keyframes dca-glow-breathe {
+          0%, 100% {
+            box-shadow:
+              0 0 6px 1px color-mix(in oklab,var(--primary) 45%,transparent),
+              0 0 18px 4px color-mix(in oklab,var(--primary) 22%,transparent),
+              0 0 40px 8px color-mix(in oklab,var(--primary) 10%,transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 12px 3px color-mix(in oklab,var(--primary) 75%,transparent),
+              0 0 28px 8px color-mix(in oklab,var(--primary) 38%,transparent),
+              0 0 55px 14px color-mix(in oklab,var(--primary) 18%,transparent);
+          }
         }
-        @keyframes dca-pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.7; }
-          100% { transform: scale(2.2); opacity: 0; }
+        @keyframes dca-shimmer-sweep {
+          0%   { transform: translateX(-180%) skewX(-15deg); opacity: 0; }
+          15%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { transform: translateX(280%) skewX(-15deg); opacity: 0; }
         }
-        @keyframes dca-breathe {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.65; }
-        }
-        .dca-shimmer { animation: dca-shimmer 2s ease-in-out infinite; }
-        .dca-ring    { animation: dca-pulse-ring 1.2s ease-out infinite; }
-        .dca-breathe { animation: dca-breathe 1.8s ease-in-out infinite; }
+        .dca-glow-breathe  { animation: dca-glow-breathe  2.2s ease-in-out infinite; }
+        .dca-shimmer-sweep { animation: dca-shimmer-sweep 2.4s ease-in-out infinite; }
       `}</style>
 
-      <div className="flex items-end gap-2">
+      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
         {Array.from({ length: total }).map((_, i) => {
-          const stepNum = i + 1;
-          const filled  = i < step;
+          const filled   = i < step;
           const isActive = i === step - 1;
           const isPast   = filled && !isActive;
 
           return (
-            <div key={i} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
-              {/* Segment pill */}
-              <div className="relative w-full" style={{ height: "10px" }}>
-                {/* Track */}
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
+              {/* Pill */}
+              <div style={{ position: "relative", width: "100%", height: "7px" }}>
                 <div
-                  className="absolute inset-0 rounded-full"
+                  className={isActive ? "dca-glow-breathe" : ""}
                   style={{
-                    background: filled
-                      ? isPast
-                        ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent), color-mix(in oklab,var(--primary) 70%,transparent))"
-                        : "linear-gradient(90deg, color-mix(in oklab,var(--primary) 80%,white 5%), var(--primary))"
-                      : "color-mix(in oklab,var(--primary) 10%,var(--card))",
-                    boxShadow: isActive
-                      ? "0 0 12px 2px color-mix(in oklab,var(--primary) 55%,transparent), 0 0 4px 1px color-mix(in oklab,var(--primary) 40%,transparent)"
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "999px",
+                    background: isActive
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 85%,white), var(--primary))"
                       : isPast
-                      ? "0 0 4px 0px color-mix(in oklab,var(--primary) 25%,transparent)"
-                      : "none",
-                    transition: "all 0.6s cubic-bezier(0.4,0,0.2,1)",
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent), color-mix(in oklab,var(--primary) 68%,transparent))"
+                      : "color-mix(in oklab,var(--primary) 9%,var(--card))",
+                    transition: "background 0.5s ease",
                   }}
                 />
-
-                {/* Shimmer sweep on active segment */}
+                {/* Shimmer sweep on active only */}
                 {isActive && (
-                  <div
-                    className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
-                  >
+                  <div style={{ position: "absolute", inset: 0, borderRadius: "999px", overflow: "hidden" }}>
                     <div
-                      className="dca-shimmer absolute inset-y-0 w-1/3 rounded-full"
+                      className="dca-shimmer-sweep"
                       style={{
-                        background: "linear-gradient(90deg, transparent, color-mix(in oklab,white 55%,transparent), transparent)",
+                        position: "absolute",
+                        top: 0, bottom: 0,
+                        width: "40%",
+                        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)",
+                        borderRadius: "999px",
                       }}
                     />
                   </div>
                 )}
-
-                {/* Pulse ring on active segment */}
-                {isActive && (
-                  <div
-                    className="dca-ring absolute inset-0 rounded-full pointer-events-none"
-                    style={{
-                      border: "1.5px solid color-mix(in oklab,var(--primary) 70%,transparent)",
-                    }}
-                  />
-                )}
               </div>
-
               {/* Step number */}
-              <span
-                className="text-[9px] font-bold tabular-nums leading-none"
-                style={{
-                  color: isActive
-                    ? "var(--primary)"
-                    : isPast
-                    ? "color-mix(in oklab,var(--primary) 50%,var(--muted-foreground))"
-                    : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
-                  transition: "color 0.4s",
-                  ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 60%,transparent))" } : {}),
-                }}
-              >
-                {stepNum}
+              <span style={{
+                fontSize: "9px",
+                fontWeight: 700,
+                lineHeight: 1,
+                transition: "color 0.4s",
+                color: isActive
+                  ? "var(--primary)"
+                  : isPast
+                  ? "color-mix(in oklab,var(--primary) 45%,var(--muted-foreground))"
+                  : "color-mix(in oklab,var(--muted-foreground) 35%,transparent)",
+                ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 70%,transparent))" } : {}),
+              }}>
+                {i + 1}
               </span>
             </div>
           );
