@@ -5,6 +5,7 @@ import pino from "pino";
 import pinoHttp from "pino-http";
 import botRouter from "./routes/bot.js";
 import binanceRouter from "./routes/binance.js";
+import pumpRouter from "./routes/pump.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +25,7 @@ app.use(express.json({ limit: "1mb" }));
 
 app.use("/api", botRouter);
 app.use("/api", binanceRouter);
+app.use("/api", pumpRouter);
 
 app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
 
