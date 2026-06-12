@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { TrendingUp } from "lucide-react";
+import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 const PUMP_KEY = import.meta.env.VITE_PUMP_KEY ?? "pump";
@@ -208,9 +209,12 @@ export default function PumpScannerCard() {
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
                 )}
                 <div className="flex items-center gap-2.5">
-                  <div className={`h-2 w-2 rounded-full shrink-0 ${
-                    isLatest ? "bg-primary animate-pulse" : isNew ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground/30"
-                  }`} />
+                  <div className="relative shrink-0">
+                    <CoinIcon symbol={sig.symbol.replace("USDT", "")} size={32} />
+                    {(isLatest || isNew) && (
+                      <span className={`absolute -inset-0.5 rounded-full ring-2 animate-ping opacity-40 ${isLatest ? "ring-primary" : "ring-emerald-400"}`} />
+                    )}
+                  </div>
                   <div>
                     <div className="flex items-center gap-1.5">
                       <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
