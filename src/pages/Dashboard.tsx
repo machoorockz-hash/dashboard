@@ -19,73 +19,6 @@ function fmtPrice(p: number) {
   return fmt(p, 6);
 }
 
-function useUAETime() {
-  const [time, setTime] = useState({ hhmm: "00:00", colon: true, ampm: "am" });
-
-  useEffect(() => {
-    function tick() {
-      const now = new Date();
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Asia/Dubai",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }).formatToParts(now);
-
-      let hh = "", mm = "", ampm = "am";
-      for (const p of parts) {
-        if (p.type === "hour")   hh = p.value.padStart(2, "0");
-        if (p.type === "minute") mm = p.value.padStart(2, "0");
-        if (p.type === "dayPeriod") ampm = p.value.toLowerCase();
-      }
-      setTime((prev) => ({ hhmm: `${hh}:${mm}`, colon: !prev.colon, ampm }));
-    }
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  return time;
-}
-
-function UAEClock() {
-  const { hhmm, colon, ampm } = useUAETime();
-  const [hh, mm] = hhmm.split(":");
-
-  return (
-    <div className="flex flex-col items-end gap-0.5 select-none">
-      <style>{`
-        @keyframes clock-glow {
-          0%, 100% { text-shadow: 0 0 8px color-mix(in oklab, var(--primary) 60%, transparent); }
-          50%       { text-shadow: 0 0 18px color-mix(in oklab, var(--primary) 90%, transparent),
-                                  0 0 32px color-mix(in oklab, var(--primary) 40%, transparent); }
-        }
-        @keyframes clock-colon-blink {
-          0%, 49% { opacity: 1; }
-          50%, 100% { opacity: 0.15; }
-        }
-        .clock-digits { animation: clock-glow 2s ease-in-out infinite; }
-        .clock-colon  { animation: clock-colon-blink 1s step-start infinite; }
-      `}</style>
-      <div className="flex items-baseline gap-[1px]">
-        <span className="clock-digits font-black tabular-nums text-xl leading-none tracking-tight text-primary">
-          {hh}
-        </span>
-        <span className="clock-colon font-black text-xl leading-none text-primary/80 mx-[1px]">:</span>
-        <span className="clock-digits font-black tabular-nums text-xl leading-none tracking-tight text-primary">
-          {mm}
-        </span>
-        <span className="ml-1 self-end text-[10px] font-black uppercase tracking-widest text-primary/60 mb-0.5">
-          {ampm}
-        </span>
-      </div>
-      <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">
-        UAE · Dubai
-      </div>
-    </div>
-  );
-}
-
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
   const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
@@ -192,21 +125,13 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-5">
-
-        {/* ── WALLET CARD ── */}
         <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
-
-          {/* Header row: Wallet label + Clock */}
-          <div className="relative flex items-start justify-between">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
-              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-              <WalletIcon className="h-3.5 w-3.5" />
-              Wallet
-            </div>
-            <UAEClock />
+          <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <WalletIcon className="h-3.5 w-3.5" />
+            Wallet
           </div>
-
           <div className="relative mt-3">
             <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-primary/70 bg-clip-text text-transparent">
               ${account.isLoading ? "…" : fmt(totalUsdt)}
@@ -227,7 +152,6 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* ── ACTIVE TRADE CARD ── */}
         <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
