@@ -49,7 +49,44 @@ async function signedGet<T>(path: string, params: Record<string, string | number
   throw new Error(`Binance ${path} failed: ${lastError}`);
 }
 
-router.get("/binance/account", async (req, res) => {
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+/** Fire promises in batches with a delay between batches to avoid rate limits */
+async function batchSettled<T>(
+  fns: Array<() => Promise<T>>,
+  batchSize = 3,
+  delayMs = 400,
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = [];
+  for (let i = 0; i < fns.length; i += batchSize) {
+    const batch = fns.slice(i, i + batchSize);
+    const batchResults = await Promise.allSettled(batch.map((fn) => fn()));
+    results.push(...batchResults);
+    if (i + batchSize < fns.length) await sleep(delayMs);
+  }
+  return results;
+}
+
+// ── In-memory cache for allTrades (avoids hammering the API on every page load) ──
+interface CacheEntry<T> { data: T; expiresAt: number; }
+const cache = new Map<string, CacheEntry<unknown>>();
+
+function getCache<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (!entry || Date.now() > entry.expiresAt) { cache.delete(key); return null; }
+  return entry.data as T;
+}
+function setCache<T>(key: string, data: T, ttlMs: number) {
+  cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+// ── Routes ─────────────────────────────────────────────────────────────────
+
+router.get("/binance/account", async (_req, res) => {
   try {
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
@@ -94,10 +131,19 @@ router.get("/binance/myTrades", async (req, res) => {
   }
 });
 
-// Fetch trades across ALL account assets in one call
+/**
+ * Fetch trades for ALL account assets.
+ * Batches requests 3 at a time with 400 ms delays between batches so we never
+ * blow through Binance's rate limits and break unrelated API calls.
+ * Results are cached server-side for 3 minutes.
+ */
 router.get("/binance/allTrades", async (_req, res) => {
   try {
-    // 1. Get account to discover non-zero assets
+    // Return cached result if still fresh
+    const cached = getCache<unknown[]>("allTrades");
+    if (cached) { res.json(cached); return; }
+
+    // 1. Get account balances (1 signed request)
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
     }>("/api/v3/account");
@@ -105,23 +151,28 @@ router.get("/binance/allTrades", async (_req, res) => {
     const assets = acc.balances
       .filter((b) => parseFloat(b.free) + parseFloat(b.locked) > 0)
       .map((b) => b.asset)
-      .filter((a) => a !== "USDT" && a !== "BUSD" && a !== "FDUSD");
+      .filter((a) => !["USDT", "BUSD", "FDUSD", "USDC"].includes(a));
 
-    // 2. Fetch up to 500 trades per symbol in parallel
-    const results = await Promise.allSettled(
-      assets.map((asset) =>
-        signedGet<Array<{
-          symbol: string; id: number; orderId: number; price: string; qty: string;
-          quoteQty: string; commission: string; commissionAsset: string;
-          time: number; isBuyer: boolean; isMaker: boolean;
-        }>>("/api/v3/myTrades", { symbol: `${asset}USDT`, limit: 500 })
-      )
+    // 2. Fetch trades in batches of 3, 400 ms apart
+    type RawTrade = {
+      symbol: string; id: number; orderId: number; price: string; qty: string;
+      quoteQty: string; commission: string; commissionAsset: string;
+      time: number; isBuyer: boolean; isMaker: boolean;
+    };
+
+    const fns = assets.map((asset) => () =>
+      signedGet<RawTrade[]>("/api/v3/myTrades", { symbol: `${asset}USDT`, limit: 500 })
     );
 
+    const results = await batchSettled(fns, 3, 400);
+
     const allTrades = results
-      .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
+      .filter((r): r is PromiseFulfilledResult<RawTrade[]> => r.status === "fulfilled")
       .flatMap((r) => r.value)
       .sort((a, b) => b.time - a.time);
+
+    // Cache for 3 minutes
+    setCache("allTrades", allTrades, 3 * 60 * 1000);
 
     res.json(allTrades);
   } catch (err) {
