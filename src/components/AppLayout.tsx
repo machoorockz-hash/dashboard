@@ -1,11 +1,10 @@
 import { type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutGrid, ArrowLeftRight, Wallet, Activity } from "lucide-react";
+import { LayoutGrid, Wallet, Activity } from "lucide-react";
 import { TickerTape } from "./TickerTape";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutGrid },
-  { to: "/trade", label: "Trade", icon: ArrowLeftRight },
   { to: "/assets", label: "Assets", icon: Wallet },
   { to: "/live-chart", label: "Live Chart", icon: Activity },
 ] as const;
@@ -49,7 +48,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-sidebar/95 backdrop-blur">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-3">
             {NAV.map((item) => {
               const active = pathname === item.to;
               const Icon = item.icon;
