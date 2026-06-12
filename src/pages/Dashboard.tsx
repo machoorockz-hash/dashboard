@@ -5,6 +5,7 @@ import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
+import PumpScannerCard from "../components/PumpScannerCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 function fmt(n: number, max = 2, min = max) {
@@ -220,6 +221,8 @@ export default function Dashboard() {
         </section>
 
         <BtcCrashCard />
+
+        <PumpScannerCard />
 
         <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
 
