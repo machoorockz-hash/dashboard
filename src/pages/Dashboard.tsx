@@ -81,19 +81,24 @@ export default function Dashboard() {
     else setChartSymbol("BTCUSDT");
   }, [orderSymbol]);
 
-  const walletAssets = useMemo(() => {
+  // All assets mapped to USD — used for the accurate total (includes dust)
+  const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
-    return account.data.balances
-      .map((b) => {
-        const total = b.free + b.locked;
-        const usd = b.asset === "USDT" ? total : total * (prices.data?.[`${b.asset}USDT`] ?? 0);
-        return { ...b, total, usd };
-      })
-      .filter((b) => b.usd >= 2)
-      .sort((a, b) => b.usd - a.usd);
+    return account.data.balances.map((b) => {
+      const total = b.free + b.locked;
+      const usd = b.asset === "USDT" ? total : total * (prices.data?.[`${b.asset}USDT`] ?? 0);
+      return { ...b, total, usd };
+    });
   }, [account.data, prices.data]);
 
-  const totalUsdt = walletAssets.reduce((s, a) => s + a.usd, 0);
+  // Only assets worth $2+ shown as chips (keeps UI clean)
+  const walletAssets = useMemo(
+    () => allAssets.filter((b) => b.usd >= 2).sort((a, b) => b.usd - a.usd),
+    [allAssets],
+  );
+
+  // Total includes every asset, including dust
+  const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
 
   const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
   const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
