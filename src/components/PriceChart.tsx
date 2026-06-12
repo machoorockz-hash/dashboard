@@ -195,13 +195,14 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
   return (
     <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden shadow-[0_0_40px_-15px_rgba(94,234,212,0.25)]">
       <style>{`
+        /* ── Flash animations (on price change) ── */
         @keyframes chart-price-up {
-          0%   { background: rgba(0,212,160,0.22); color: #00d4a0; }
-          100% { background: transparent; }
+          0%   { background: rgba(0,212,160,0.22); color: #00d4a0; text-shadow: 0 0 16px rgba(0,212,160,0.8); }
+          100% { background: transparent; text-shadow: none; }
         }
         @keyframes chart-price-down {
-          0%   { background: rgba(255,45,95,0.22); color: #ff2d5f; }
-          100% { background: transparent; }
+          0%   { background: rgba(255,45,95,0.22); color: #ff2d5f; text-shadow: 0 0 16px rgba(255,45,95,0.8); }
+          100% { background: transparent; text-shadow: none; }
         }
         @keyframes chart-line-pulse {
           0%,100% { opacity: 1; }
@@ -211,12 +212,44 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
           0%,100% { box-shadow: 0 0 40px -15px rgba(94,234,212,0.25); }
           50%     { box-shadow: 0 0 55px -10px rgba(94,234,212,0.40); }
         }
+        /* ── Persistent live price glow ── */
+        @keyframes live-price-glow {
+          0%, 100% {
+            box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 0%, transparent);
+          }
+          50% {
+            box-shadow: 0 0 16px 3px color-mix(in oklab, var(--primary) 20%, transparent);
+          }
+        }
+        /* ── Blinking live dot ── */
+        @keyframes live-dot-beat {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50%       { transform: scale(1.6); opacity: 0.5; }
+        }
+        /* ── Scanning line sweep across price display ── */
+        @keyframes scan-sweep {
+          0%   { transform: translateX(-120%); opacity: 0; }
+          20%  { opacity: 1; }
+          80%  { opacity: 1; }
+          100% { transform: translateX(120%); opacity: 0; }
+        }
+
         .chart-price-flash-up   { animation: chart-price-up   0.6s ease-out both; }
         .chart-price-flash-down { animation: chart-price-down 0.6s ease-out both; }
         .chart-line-entry { animation: chart-line-pulse 2s ease-in-out infinite; }
         .chart-line-tp    { animation: chart-line-pulse 2s ease-in-out 0.4s infinite; }
         .chart-line-sl    { animation: chart-line-pulse 2s ease-in-out 0.8s infinite; }
         .chart-glow       { animation: chart-border-glow 3s ease-in-out infinite; }
+        .live-price-wrap  { animation: live-price-glow 2s ease-in-out infinite; }
+        .live-dot         { animation: live-dot-beat 1.4s ease-in-out infinite; }
+        .scan-line {
+          position: absolute;
+          top: 0; bottom: 0;
+          width: 40%;
+          background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 18%, transparent), transparent);
+          animation: scan-sweep 3s ease-in-out infinite;
+          pointer-events: none;
+        }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -225,20 +258,43 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
           <CoinIcon symbol={base} size={28} />
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="font-black text-sm md:text-base truncate leading-none">{symbol}</span>
+
+            {/* ── ENHANCED LIVE PRICE ── */}
             {livePrice && (
-              <span className={`text-xs font-black tabular-nums leading-none transition-colors rounded px-1 -mx-1 ${
-                flash === "up" ? "chart-price-flash-up text-[#00d4a0]" : flash === "down" ? "chart-price-flash-down text-[#ff2d5f]" : "text-muted-foreground"
+              <div className={`live-price-wrap relative inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 -mx-2 overflow-hidden transition-colors duration-300 ${
+                flash === "up"   ? "bg-emerald-500/15 border border-emerald-500/30" :
+                flash === "down" ? "bg-red-500/15 border border-red-500/30" :
+                "bg-primary/8 border border-primary/15"
               }`}>
-                {flash === "up" ? "▲" : flash === "down" ? "▼" : ""} ${fmtPrice(livePrice)}
-              </span>
+                {/* Scanning shimmer — only when idle */}
+                {!flash && <span className="scan-line" />}
+                {/* Blinking live dot */}
+                <span className={`live-dot relative h-1.5 w-1.5 rounded-full shrink-0 ${
+                  flash === "up" ? "bg-emerald-400" : flash === "down" ? "bg-red-400" : "bg-primary"
+                }`} />
+                <span
+                  key={String(livePrice)}
+                  className={`relative text-xs font-black tabular-nums leading-none transition-colors rounded px-0.5 ${
+                    flash === "up"
+                      ? "chart-price-flash-up text-emerald-400"
+                      : flash === "down"
+                      ? "chart-price-flash-down text-red-400"
+                      : "text-primary"
+                  }`}
+                >
+                  {flash === "up" ? "▲" : flash === "down" ? "▼" : ""} ${fmtPrice(livePrice)}
+                </span>
+              </div>
             )}
           </div>
+
           <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[3px] bg-white/70"></span>EMA 200</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-blue-500"></span>EMA 21</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-yellow-400"></span>EMA 9</span>
           </div>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           {searchable && (
             <form onSubmit={submitSearch} className="flex items-center gap-1 bg-muted/40 rounded-lg px-2 py-1">
@@ -265,11 +321,14 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
             const isEntry = spec.label.toLowerCase().includes("entry");
             const isTp = spec.label.toLowerCase().includes("tp");
             const isSl = spec.label.toLowerCase().includes("sl");
-            const animClass = isEntry ? "chart-line-entry" : isTp ? "chart-line-tp" : isSl ? "chart-line-sl" : "";
             return (
-              <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${animClass}`}
-                style={{ borderColor: `${spec.color}40`, backgroundColor: `${spec.color}12`, color: spec.color }}>
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: spec.color }} />
+              <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${
+                isEntry ? "chart-line-entry border-border/80 bg-muted/30 text-muted-foreground"
+                : isTp   ? "chart-line-tp border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : isSl   ? "chart-line-sl border-red-500/30 bg-red-500/10 text-red-400"
+                :           "border-border/60 bg-muted/20 text-muted-foreground"
+              }`}>
+                <span className="inline-block w-3 h-[2px] rounded" style={{ background: spec.color }} />
                 {spec.label}
               </div>
             );
