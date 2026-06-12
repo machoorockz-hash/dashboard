@@ -71,12 +71,12 @@ export function PriceChart({ symbol, interval = "1m", height = 460, onIntervalCh
     });
     chartRef.current = chart;
     candleRef.current = chart.addSeries(CandlestickSeries, {
-      upColor: "#089981",
-      downColor: "#f23645",
-      borderUpColor: "#089981",
-      borderDownColor: "#f23645",
-      wickUpColor: "#089981",
-      wickDownColor: "#f23645",
+      upColor:         "rgba(0, 208, 160, 0.55)",
+      borderUpColor:   "#00d4a0",
+      wickUpColor:     "#00d4a0",
+      downColor:       "rgba(255, 45, 95, 0.55)",
+      borderDownColor: "#ff2d5f",
+      wickDownColor:   "#ff2d5f",
     });
     ema200Ref.current = chart.addSeries(LineSeries, { color: "#ffffff", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
     ema21Ref.current = chart.addSeries(LineSeries, { color: "#3b82f6", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
