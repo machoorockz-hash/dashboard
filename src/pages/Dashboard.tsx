@@ -6,6 +6,7 @@ import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard from "../components/PumpScannerCard";
+import DcaStepCard from "../components/DcaStepCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 function fmt(n: number, max = 2, min = max) {
@@ -81,7 +82,6 @@ export default function Dashboard() {
     else setChartSymbol("BTCUSDT");
   }, [orderSymbol]);
 
-  // All assets mapped to USD — used for the accurate total (includes dust)
   const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
     return account.data.balances.map((b) => {
@@ -91,13 +91,11 @@ export default function Dashboard() {
     });
   }, [account.data, prices.data]);
 
-  // Only assets worth $2+ shown as chips (keeps UI clean)
   const walletAssets = useMemo(
     () => allAssets.filter((b) => b.usd >= 2).sort((a, b) => b.usd - a.usd),
     [allAssets],
   );
 
-  // Total includes every asset, including dust
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
 
   const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
@@ -130,6 +128,8 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-5">
+
+        {/* ── WALLET ── */}
         <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
           <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
@@ -157,6 +157,7 @@ export default function Dashboard() {
           )}
         </section>
 
+        {/* ── ACTIVE TRADE ── */}
         <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
@@ -224,6 +225,9 @@ export default function Dashboard() {
             </div>
           )}
         </section>
+
+        {/* ── DCA STEP CARD — shown when trading bot is active ── */}
+        <DcaStepCard />
 
         <BtcCrashCard />
 
