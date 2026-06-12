@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { History, Search, TrendingUp, TrendingDown, ChevronDown, ChevronUp } from "lucide-react";
+import { History, Search } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 import { getMyTrades } from "../lib/binance";
 
@@ -18,48 +18,12 @@ async function getAllTrades(): Promise<Trade[]> {
   return res.json();
 }
 
-// Realized P&L per symbol:
-// net = sum(sell quoteQty) - sum(buy quoteQty)
-// Positive = profited overall, Negative = still in loss
-function calcPnlBySymbol(trades: Trade[]): Array<{
-  symbol: string;
-  base: string;
-  buys: number;
-  sells: number;
-  net: number;
-  tradeCount: number;
-}> {
-  const map = new Map<string, { buys: number; sells: number; tradeCount: number }>();
-  for (const t of trades) {
-    const entry = map.get(t.symbol) ?? { buys: 0, sells: 0, tradeCount: 0 };
-    const q = parseFloat(t.quoteQty);
-    if (t.isBuyer) entry.buys += q;
-    else entry.sells += q;
-    entry.tradeCount += 1;
-    map.set(t.symbol, entry);
-  }
-  return Array.from(map.entries())
-    .map(([symbol, { buys, sells, tradeCount }]) => ({
-      symbol,
-      base: symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, ""),
-      buys,
-      sells,
-      net: sells - buys,
-      tradeCount,
-    }))
-    .sort((a, b) => b.net - a.net);
-}
-
 function fmtPrice(p: number) {
   if (!isFinite(p)) return "—";
   if (p >= 1000) return p.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
   if (p >= 1) return p.toFixed(4);
   if (p >= 0.01) return p.toFixed(5);
   return p.toFixed(6);
-}
-
-function fmtUsd(n: number) {
-  return n.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 }
 
 function fmtTime(ms: number) {
@@ -72,16 +36,13 @@ function fmtTime(ms: number) {
 export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: string }) {
   const [filterSymbol, setFilterSymbol] = useState("");
   const [input, setInput] = useState("");
-  const [showPnl, setShowPnl] = useState(true);
 
-  // Auto-load ALL trades
   const { data: allTrades, isLoading, isError } = useQuery({
     queryKey: ["allTrades"],
     queryFn: getAllTrades,
     refetchInterval: 60_000,
   });
 
-  // Per-symbol drill-down
   const { data: symbolTrades, isLoading: isLoadingSymbol } = useQuery({
     queryKey: ["tradeHistory", filterSymbol],
     queryFn: () => getMyTrades({ data: { symbol: filterSymbol.toUpperCase(), limit: 500 } }),
@@ -92,11 +53,6 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
   const trades = filterSymbol ? symbolTrades : allTrades;
   const loading = filterSymbol ? isLoadingSymbol : isLoading;
   const sorted = trades ? [...trades].sort((a, b) => b.time - a.time) : [];
-
-  const pnlRows = useMemo(() => calcPnlBySymbol(allTrades ?? []), [allTrades]);
-  const totalNet = pnlRows.reduce((s, r) => s + r.net, 0);
-  const totalBuys = pnlRows.reduce((s, r) => s + r.buys, 0);
-  const totalSells = pnlRows.reduce((s, r) => s + r.sells, 0);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -144,107 +100,6 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
           )}
         </form>
       </div>
-
-      {/* ── P&L SUMMARY SECTION ── */}
-      {!isLoading && !isError && pnlRows.length > 0 && (
-        <div className="rounded-xl border border-border bg-muted/10 overflow-hidden">
-          {/* Collapsible header */}
-          <button
-            onClick={() => setShowPnl((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors"
-          >
-            <div className="flex items-center gap-2.5">
-              {totalNet >= 0
-                ? <TrendingUp className="h-4 w-4 text-emerald-400" />
-                : <TrendingDown className="h-4 w-4 text-red-400" />
-              }
-              <span className="text-xs font-black uppercase tracking-widest">Realized P&amp;L Summary</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className={`text-sm font-black tabular-nums ${totalNet >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {totalNet >= 0 ? "+" : ""}${fmtUsd(totalNet)}
-                </div>
-                <div className="text-[9px] text-muted-foreground">
-                  {totalNet >= 0 ? "net profit" : "net loss"} · {pnlRows.length} symbol{pnlRows.length !== 1 ? "s" : ""}
-                </div>
-              </div>
-              {showPnl ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </div>
-          </button>
-
-          {showPnl && (
-            <>
-              {/* Overall totals bar */}
-              <div className="grid grid-cols-3 gap-px bg-border mx-4 mb-3 rounded-lg overflow-hidden">
-                <div className="bg-card px-3 py-2 text-center">
-                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Total Bought</div>
-                  <div className="text-xs font-black text-red-400 tabular-nums mt-0.5">${fmtUsd(totalBuys)}</div>
-                </div>
-                <div className="bg-card px-3 py-2 text-center">
-                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Total Sold</div>
-                  <div className="text-xs font-black text-emerald-400 tabular-nums mt-0.5">${fmtUsd(totalSells)}</div>
-                </div>
-                <div className="bg-card px-3 py-2 text-center">
-                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Net P&amp;L</div>
-                  <div className={`text-xs font-black tabular-nums mt-0.5 ${totalNet >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    {totalNet >= 0 ? "+" : ""}${fmtUsd(totalNet)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Per-symbol rows */}
-              <div
-                className="flex flex-col gap-1.5 px-4 pb-3 overflow-y-auto"
-                style={{
-                  maxHeight: "14rem",
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "color-mix(in oklab, var(--primary) 35%, transparent) transparent",
-                }}
-              >
-                {pnlRows.map((row) => {
-                  const pct = row.buys > 0 ? (row.net / row.buys) * 100 : 0;
-                  const barWidth = Math.min(100, Math.abs(pct) * 2);
-                  return (
-                    <div
-                      key={row.symbol}
-                      className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 hover:border-primary/20 transition-colors cursor-pointer"
-                      onClick={() => setFilterSymbol(row.symbol)}
-                      title={`Click to filter trades for ${row.symbol}`}
-                    >
-                      <CoinIcon symbol={row.base} size={24} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="text-xs font-black">{row.base}</span>
-                          <span className={`text-xs font-black tabular-nums ${row.net >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {row.net >= 0 ? "+" : ""}${fmtUsd(row.net)}
-                          </span>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="h-1 rounded-full bg-muted/40 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${row.net >= 0 ? "bg-emerald-500" : "bg-red-500"}`}
-                            style={{ width: `${barWidth}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-[9px] text-muted-foreground">{row.tradeCount} trade{row.tradeCount !== 1 ? "s" : ""}</span>
-                          <span className={`text-[9px] font-bold ${row.net >= 0 ? "text-emerald-400/70" : "text-red-400/70"}`}>
-                            {pct >= 0 ? "+" : ""}{pct.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="px-4 pb-3 text-[9px] text-muted-foreground/40 text-center">
-                P&amp;L = total sold − total bought · click a symbol to filter trades below
-              </div>
-            </>
-          )}
-        </div>
-      )}
 
       {/* ── LOADING ── */}
       {loading && (
