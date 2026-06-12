@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard from "../components/PumpScannerCard";
-import DcaStepCard from "../components/DcaStepCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
@@ -20,10 +21,65 @@ function fmtPrice(p: number) {
   return fmt(p, 6);
 }
 
+function StepSegments({ step, total }: { step: number; total: number }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: total }).map((_, i) => {
+        const filled = i < step;
+        const isLast = i === step - 1;
+        return (
+          <div
+            key={i}
+            className={`relative h-2 rounded-full transition-all duration-700 flex-1 ${
+              filled
+                ? isLast
+                  ? "bg-primary shadow-[0_0_8px_2px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
+                  : "bg-primary/70"
+                : "bg-muted/50"
+            }`}
+          >
+            {isLast && (
+              <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-75" />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+interface DcaData {
+  dca_step?: number;
+  dca_total_steps?: number;
+  status?: string;
+}
+
+function useDcaData() {
+  const [data, setData] = useState<DcaData | null>(null);
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const r = await fetch(`${API_BASE}/api/bot/data?key=dca`);
+        if (r.ok) {
+          const json = await r.json();
+          if (alive && json?.data) setData(json.data as DcaData);
+        }
+      } catch {}
+      timer = setTimeout(poll, 3000);
+    }
+    poll();
+    return () => { alive = false; clearTimeout(timer); };
+  }, []);
+  return data;
+}
+
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
   const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
   const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const dcaData = useDcaData();
 
   const allOrders = orders.data ?? [];
   const primary = allOrders[0];
@@ -115,6 +171,10 @@ export default function Dashboard() {
   const tpProgress = cur && entry && tpPrice && tpPrice !== entry ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry))) : 0;
   const slProgress = cur && entry && slPrice && entry !== slPrice ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice))) : 0;
 
+  const dcaStep = dcaData?.dca_step ?? 0;
+  const dcaTotal = dcaData?.dca_total_steps ?? 6;
+  const showDca = !!primary && dcaStep > 0 && dcaData?.status !== "COMPLETED";
+
   const chartLines = useMemo(() => {
     const out: Array<{ price: number; label: string; color: string }> = [];
     if (orderSymbol && chartSymbol === orderSymbol) {
@@ -199,6 +259,31 @@ export default function Dashboard() {
                 </span>
               </div>
 
+              {/* ── DCA STEP — inline inside active trade card ── */}
+              {showDca && (
+                <div className="relative mt-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-primary/80">
+                      <Layers className="h-3 w-3" />
+                      DCA Step
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span
+                        className="text-xl font-black tabular-nums text-primary leading-none"
+                        style={{ textShadow: "0 0 20px color-mix(in oklab, var(--primary) 50%, transparent)" }}
+                      >
+                        {dcaStep}
+                      </span>
+                      <span className="text-sm font-black text-muted-foreground/50">/ {dcaTotal}</span>
+                    </div>
+                  </div>
+                  <StepSegments step={dcaStep} total={dcaTotal} />
+                  <div className="mt-1.5 text-[9px] text-muted-foreground/50 tabular-nums">
+                    {dcaStep} of {dcaTotal} DCA steps executed
+                  </div>
+                </div>
+              )}
+
               <div className="relative mt-4 grid sm:grid-cols-2 gap-3">
                 <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
                   fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={tpPrice ? `TP $${fmtPrice(tpPrice)}` : "—"}
@@ -225,9 +310,6 @@ export default function Dashboard() {
             </div>
           )}
         </section>
-
-        {/* ── DCA STEP CARD — shown when trading bot is active ── */}
-        <DcaStepCard />
 
         <BtcCrashCard />
 
