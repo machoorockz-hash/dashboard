@@ -2,8 +2,14 @@ import { Router } from "express";
 
 const router = Router();
 
+interface DelistSymbol {
+  symbol: string;
+  date: string;
+  time: string;
+}
+
 interface DelistStore {
-  symbols: string[];
+  symbols: DelistSymbol[];
   lastUpdated: string | null;
   lastHeartbeat: string | null;
 }
@@ -15,10 +21,10 @@ const store: DelistStore = {
 };
 
 const DELIST_KEY = process.env.DELIST_KEY ?? "delist";
-const ACTIVE_THRESHOLD_MS = 20 * 60 * 1000; // 20 min (bot runs every 10 min)
+const ACTIVE_THRESHOLD_MS = 20 * 60 * 1000;
 
 // POST /api/delist/push?key=delist
-// Body: { symbols?: string[], heartbeat?: boolean }
+// Body: { symbols?: Array<{ symbol: string; date: string; time: string }>, heartbeat?: boolean }
 router.post("/delist/push", (req, res) => {
   const key = (req.query["key"] as string | undefined) ?? "";
   if (key !== DELIST_KEY) {
@@ -26,15 +32,22 @@ router.post("/delist/push", (req, res) => {
     return;
   }
 
-  const body = req.body as { symbols?: string[]; heartbeat?: boolean };
+  const body = req.body as {
+    symbols?: Array<{ symbol: string; date?: string; time?: string }>;
+    heartbeat?: boolean;
+  };
   const now = new Date().toISOString();
 
   store.lastHeartbeat = now;
 
   if (!body.heartbeat && Array.isArray(body.symbols)) {
     store.symbols = body.symbols
-      .map((s) => String(s).toUpperCase().trim())
-      .filter(Boolean);
+      .filter((s) => s && typeof s.symbol === "string" && s.symbol.trim())
+      .map((s) => ({
+        symbol: s.symbol.toUpperCase().trim(),
+        date: s.date ?? "",
+        time: s.time ?? "",
+      }));
     store.lastUpdated = now;
   }
 
