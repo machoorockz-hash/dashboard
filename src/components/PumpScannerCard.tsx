@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { TrendingUp } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 const PUMP_KEY = import.meta.env.VITE_PUMP_KEY ?? "pump";
@@ -93,12 +94,33 @@ export default function PumpScannerCard() {
           to   { opacity: 1; transform: translateX(0); }
         }
         .pump-new { animation: pump-slide-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+
+        .pump-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent) transparent;
+        }
+        .pump-scroll::-webkit-scrollbar {
+          width: 3px;
+        }
+        .pump-scroll::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 9999px;
+        }
+        .pump-scroll::-webkit-scrollbar-thumb {
+          background: color-mix(in oklab, var(--primary) 35%, transparent);
+          border-radius: 9999px;
+        }
+        .pump-scroll::-webkit-scrollbar-thumb:hover {
+          background: color-mix(in oklab, var(--primary) 65%, transparent);
+        }
       `}</style>
 
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🚀</span>
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary/15 border border-primary/25">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+          </div>
           <span className="font-black text-sm tracking-wide uppercase">Pump Scanner</span>
         </div>
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
@@ -122,7 +144,7 @@ export default function PumpScannerCard() {
 
       {/* ── SIGNAL LIST ── */}
       {data && data.signals.length > 0 ? (
-        <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-0.5">
+        <div className="pump-scroll flex flex-col gap-2 overflow-y-auto pr-2" style={{ maxHeight: "19rem" }}>
           {data.signals.map((sig) => {
             const k = `${sig.symbol}-${sig.timestamp}`;
             const { date, time } = toUAE(sig.timestamp);
@@ -130,9 +152,9 @@ export default function PumpScannerCard() {
             return (
               <div
                 key={k}
-                className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${
+                className={`flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 ${
                   isNew
-                    ? "pump-new border-emerald-500/40 bg-emerald-500/8"
+                    ? "pump-new border-emerald-500/40 bg-emerald-500/[0.08]"
                     : "border-border bg-muted/20"
                 }`}
               >
@@ -161,7 +183,9 @@ export default function PumpScannerCard() {
         </div>
       ) : active ? (
         <div className="flex flex-col items-center justify-center py-6 gap-2">
-          <span className="text-2xl">🔍</span>
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary/10 border border-primary/20">
+            <TrendingUp className="h-5 w-5 text-primary/60" />
+          </div>
           <span className="text-xs text-muted-foreground text-center">
             Scanning markets…<br />No pumps detected yet
           </span>
@@ -171,7 +195,7 @@ export default function PumpScannerCard() {
       {/* ── SIGNAL COUNT FOOTER ── */}
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
-          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · last 24h
+          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
         </div>
       )}
     </section>
