@@ -274,28 +274,7 @@ export default function Dashboard() {
             Wallet
           </div>
           <div className="relative mt-3">
-            <style>{`
-              @keyframes wallet-balance-shine {
-                0%   { background-position: -200% center; }
-                100% { background-position: 200% center; }
-              }
-              .wallet-balance-shine {
-                background: linear-gradient(
-                  105deg,
-                  var(--foreground) 0%,
-                  var(--foreground) 35%,
-                  color-mix(in oklab, var(--primary) 60%, white) 50%,
-                  var(--foreground) 65%,
-                  var(--foreground) 100%
-                );
-                background-size: 200% auto;
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                animation: wallet-balance-shine 3.5s linear infinite;
-              }
-            `}</style>
-            <span className="wallet-balance-shine text-4xl md:text-6xl font-black tracking-tight">
+            <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-primary/70 bg-clip-text text-transparent">
               ${account.isLoading ? "…" : fmt(totalUsdt)}
             </span>
           </div>
