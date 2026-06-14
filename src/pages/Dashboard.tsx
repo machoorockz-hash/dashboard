@@ -229,8 +229,23 @@ export default function Dashboard() {
   const stopPct = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
   const distToTpPct = cur && tpPrice ? ((tpPrice - cur) / cur) * 100 : 0;
   const distToSlPct = cur && slPrice ? ((cur - slPrice) / cur) * 100 : 0;
-  const tpProgress = cur && entry && tpPrice && tpPrice !== entry ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry))) : 0;
-  const slProgress = cur && entry && slPrice && entry !== slPrice ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice))) : 0;
+  // TP bar: fills as price moves toward tpPrice. Range = slPrice → tpPrice (or entry → tpPrice when no SL).
+  const tpProgress = cur && tpPrice
+    ? (slPrice && tpPrice !== slPrice
+        ? Math.max(0, Math.min(1, (cur - slPrice) / (tpPrice - slPrice)))
+        : entry && tpPrice !== entry
+        ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry)))
+        : 0)
+    : 0;
+
+  // SL bar: fills as price moves toward slPrice. Range = tpPrice → slPrice (or entry → slPrice when no TP).
+  const slProgress = cur && slPrice
+    ? (tpPrice && tpPrice !== slPrice
+        ? Math.max(0, Math.min(1, (tpPrice - cur) / (tpPrice - slPrice)))
+        : entry && entry !== slPrice
+        ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice)))
+        : 0)
+    : 0;
 
   const dcaStep = dcaData?.dca_step ?? 0;
   const dcaTotal = dcaData?.dca_total_steps ?? 6;
