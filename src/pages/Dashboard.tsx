@@ -10,92 +10,6 @@ import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/bin
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
-function GlassCardStyles() {
-  return (
-    <style>{`
-      .glass-card-shimmer { position: relative; }
-      .glass-card-shimmer::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          108deg,
-          transparent 28%,
-          rgba(255,255,255,0.09) 48%,
-          rgba(255,255,255,0.13) 50%,
-          rgba(255,255,255,0.09) 52%,
-          transparent 72%
-        );
-        transform: translateX(-130%) skewX(-12deg);
-        pointer-events: none;
-        z-index: 50;
-        border-radius: inherit;
-        opacity: 0;
-      }
-      .glass-card-shimmer:hover::before {
-        animation: glass-shimmer-sweep 0.72s cubic-bezier(0.4,0,0.2,1) forwards;
-      }
-      @keyframes glass-shimmer-sweep {
-        0%   { transform: translateX(-130%) skewX(-12deg); opacity: 1; }
-        100% { transform: translateX(150%)  skewX(-12deg); opacity: 1; }
-      }
-
-      /* Smaller/tighter shimmer for sub-cards (asset pills, cells, tracks) */
-      .glass-subcard-shimmer { position: relative; }
-      .glass-subcard-shimmer::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          108deg,
-          transparent 25%,
-          rgba(255,255,255,0.10) 48%,
-          rgba(255,255,255,0.15) 50%,
-          rgba(255,255,255,0.10) 52%,
-          transparent 75%
-        );
-        transform: translateX(-130%) skewX(-12deg);
-        pointer-events: none;
-        z-index: 50;
-        border-radius: inherit;
-        opacity: 0;
-      }
-      .glass-subcard-shimmer:hover::before {
-        animation: glass-shimmer-sweep 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
-      }
-
-      /* ── Depth layer: sub-cards respond when parent card is hovered ── */
-      /* Smooth transition baseline on all sub-cards */
-      .glass-subcard-shimmer {
-        transition:
-          background-color 0.38s cubic-bezier(0.4,0,0.2,1),
-          border-color     0.38s cubic-bezier(0.4,0,0.2,1),
-          box-shadow       0.38s cubic-bezier(0.4,0,0.2,1),
-          transform        0.38s cubic-bezier(0.4,0,0.2,1);
-      }
-      /* When hovering a parent card, nested sub-cards rise one layer */
-      .glass-card-shimmer:hover .glass-subcard-shimmer {
-        background-color: rgba(255,255,255,0.10) !important;
-        border-color:     rgba(255,255,255,0.20) !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.16),
-          0 2px 12px rgba(0,0,0,0.22),
-          0 0 0 0.5px rgba(255,255,255,0.06) !important;
-      }
-      /* When hovering a sub-card directly, it lifts even higher (top layer) */
-      .glass-card-shimmer:hover .glass-subcard-shimmer:hover {
-        background-color: rgba(255,255,255,0.14) !important;
-        border-color:     rgba(255,255,255,0.28) !important;
-        transform: translateY(-1px);
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.22),
-          0 6px 20px rgba(0,0,0,0.28),
-          0 0 0 0.5px rgba(255,255,255,0.10) !important;
-      }
-    `}</style>
-  );
-}
-
 function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
 }
@@ -349,11 +263,10 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <GlassCardStyles />
       <div className="space-y-5">
 
         {/* ── WALLET ── */}
-        <section className="glow-card glass-card-shimmer rounded-2xl p-5 md:p-6 relative overflow-hidden border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_32px_rgba(0,0,0,0.25)]">
+        <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
           <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -368,7 +281,7 @@ export default function Dashboard() {
           {walletAssets.length > 0 && (
             <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               {walletAssets.slice(0, 10).map((b) => (
-                <div key={b.asset} className="glass-subcard-shimmer shrink-0 rounded-xl border border-white/10 bg-white/[0.06] backdrop-blur-xl px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden">
+                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-card/60 px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
                   <CoinIcon symbol={b.asset} size={28} />
                   <div className="min-w-0">
                     <div className="text-xs font-bold truncate">{b.asset}</div>
@@ -381,7 +294,7 @@ export default function Dashboard() {
         </section>
 
         {/* ── ACTIVE TRADE ── */}
-        <section className={`glass-card-shimmer rounded-2xl border bg-white/[0.06] backdrop-blur-2xl p-5 md:p-6 relative overflow-hidden transition-shadow shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_32px_rgba(0,0,0,0.25)] ${primary ? "border-primary/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-white/10"}`}>
+        <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -413,7 +326,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className={`glass-subcard-shimmer relative mt-5 rounded-xl border backdrop-blur-xl bg-white/[0.05] px-4 py-3 flex items-center justify-between transition-all duration-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] overflow-hidden ${flash === "up" ? "border-bull/60 !bg-bull/10" : flash === "down" ? "border-bear/60 !bg-bear/10" : "border-white/10"}`}>
+              <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
@@ -427,11 +340,9 @@ export default function Dashboard() {
                 <div
                   className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
                   style={{
-                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 10%,rgba(255,255,255,0.04)) 0%, color-mix(in oklab,var(--primary) 5%,rgba(255,255,255,0.02)) 100%)",
-                    border: "1px solid color-mix(in oklab,var(--primary) 30%,rgba(255,255,255,0.08))",
-                    backdropFilter: "blur(20px)",
-                    WebkitBackdropFilter: "blur(20px)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 0 24px -8px color-mix(in oklab,var(--primary) 35%,transparent)",
+                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 8%,var(--card)) 0%, color-mix(in oklab,var(--primary) 4%,var(--card)) 100%)",
+                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
+                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
                   }}
                 >
                   <div
@@ -513,7 +424,7 @@ export default function Dashboard() {
 
 function Cell({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className={`glass-subcard-shimmer rounded-lg border px-3 py-2 backdrop-blur-xl overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ${danger ? "border-bear/30 bg-bear/[0.12]" : accent ? "border-bull/30 bg-bull/[0.12]" : "border-white/10 bg-white/[0.05]"}`}>
+    <div className={`rounded-lg border px-3 py-2 ${danger ? "border-bear/30 bg-bear/10" : accent ? "border-bull/30 bg-bull/10" : "border-border bg-muted/30"}`}>
       <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
       <div className={`text-sm font-black mt-0.5 truncate tabular-nums ${danger ? "text-bear" : accent ? "text-bull" : ""}`}>{value}</div>
     </div>
@@ -573,7 +484,7 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   }, [w]);
 
   return (
-    <div className="glass-subcard-shimmer rounded-xl border border-white/10 bg-white/[0.05] backdrop-blur-xl p-3 relative overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+    <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
       <style>{`
         @keyframes progress-glow-bull {
           0%, 100% {
