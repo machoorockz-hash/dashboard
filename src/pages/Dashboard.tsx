@@ -294,9 +294,9 @@ export default function Dashboard() {
                 background-clip: text;
                 animation: wallet-balance-shine 3.5s linear infinite;
               }
-            \`}</style>
+            `}</style>
             <span className="wallet-balance-shine text-4xl md:text-6xl font-black tracking-tight">
-              \${account.isLoading ? "…" : fmt(totalUsdt)}
+              ${account.isLoading ? "…" : fmt(totalUsdt)}
             </span>
           </div>
           {walletAssets.length > 0 && (
