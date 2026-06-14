@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
@@ -57,7 +57,6 @@ function StepSegments({ step, total }: { step: number; total: number }) {
 
           return (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
-              {/* Pill */}
               <div style={{ position: "relative", width: "100%", height: "7px" }}>
                 <div
                   className={isActive ? "dca-glow-breathe" : ""}
@@ -73,7 +72,6 @@ function StepSegments({ step, total }: { step: number; total: number }) {
                     transition: "background 0.5s ease",
                   }}
                 />
-                {/* Shimmer sweep on active only */}
                 {isActive && (
                   <div style={{ position: "absolute", inset: 0, borderRadius: "999px", overflow: "hidden" }}>
                     <div
@@ -89,7 +87,6 @@ function StepSegments({ step, total }: { step: number; total: number }) {
                   </div>
                 )}
               </div>
-              {/* Step number */}
               <span style={{
                 fontSize: "9px",
                 fontWeight: 700,
@@ -323,7 +320,7 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* ── DCA STEP — inline inside active trade card ── */}
+              {/* ── DCA STEP ── */}
               {showDca && (
                 <div
                   className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
@@ -333,12 +330,10 @@ export default function Dashboard() {
                     boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
                   }}
                 >
-                  {/* Top accent line */}
                   <div
                     className="absolute inset-x-0 top-0 h-px pointer-events-none"
                     style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
                   />
-                  {/* Radial glow top-left */}
                   <div
                     className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
                     style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
@@ -428,78 +423,128 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   const w = Math.max(2, Math.min(100, pct * 100));
   const isBull = color === "bull";
 
+  // Animated counter — smoothly counts from old value to new value
+  const [displayPct, setDisplayPct] = useState(w);
+  const prevWRef = useRef(w);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const start = prevWRef.current;
+    const end = w;
+    prevWRef.current = w;
+
+    if (Math.abs(end - start) < 0.05) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const STEPS = 28;
+    const DURATION_MS = 700;
+    let step = 0;
+
+    timerRef.current = setInterval(() => {
+      step++;
+      // ease-out cubic
+      const t = step / STEPS;
+      const eased = 1 - Math.pow(1 - t, 3);
+      const next = start + (end - start) * eased;
+      setDisplayPct(next);
+      if (step >= STEPS) {
+        setDisplayPct(end);
+        if (timerRef.current) clearInterval(timerRef.current);
+      }
+    }, DURATION_MS / STEPS);
+
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [w]);
+
+  // badge pops in when value changes
+  const [popKey, setPopKey] = useState(0);
+  const prevRounded = useRef(Math.round(w * 10));
+  useEffect(() => {
+    const next = Math.round(w * 10);
+    if (next !== prevRounded.current) {
+      prevRounded.current = next;
+      setPopKey((k) => k + 1);
+    }
+  }, [w]);
+
   return (
     <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
       <style>{`
         @keyframes progress-glow-bull {
           0%, 100% {
             box-shadow:
-              0 0 4px 1px color-mix(in oklab, var(--bull) 45%, transparent),
-              0 0 12px 3px color-mix(in oklab, var(--bull) 22%, transparent),
-              0 0 28px 6px color-mix(in oklab, var(--bull) 10%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bull) 25%, transparent),
+              0 0 8px 2px color-mix(in oklab, var(--bull) 10%, transparent);
           }
           50% {
             box-shadow:
-              0 0 8px 2px color-mix(in oklab, var(--bull) 75%, transparent),
-              0 0 20px 6px color-mix(in oklab, var(--bull) 40%, transparent),
-              0 0 42px 10px color-mix(in oklab, var(--bull) 18%, transparent);
+              0 0 5px 1px color-mix(in oklab, var(--bull) 38%, transparent),
+              0 0 12px 3px color-mix(in oklab, var(--bull) 16%, transparent);
           }
         }
         @keyframes progress-glow-bear {
           0%, 100% {
             box-shadow:
-              0 0 4px 1px color-mix(in oklab, var(--bear) 45%, transparent),
-              0 0 12px 3px color-mix(in oklab, var(--bear) 22%, transparent),
-              0 0 28px 6px color-mix(in oklab, var(--bear) 10%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bear) 25%, transparent),
+              0 0 8px 2px color-mix(in oklab, var(--bear) 10%, transparent);
           }
           50% {
             box-shadow:
-              0 0 8px 2px color-mix(in oklab, var(--bear) 75%, transparent),
-              0 0 20px 6px color-mix(in oklab, var(--bear) 40%, transparent),
-              0 0 42px 10px color-mix(in oklab, var(--bear) 18%, transparent);
+              0 0 5px 1px color-mix(in oklab, var(--bear) 38%, transparent),
+              0 0 12px 3px color-mix(in oklab, var(--bear) 16%, transparent);
           }
         }
         @keyframes progress-shimmer {
           0%   { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
-          20%  { opacity: 1; }
-          80%  { opacity: 1; }
+          20%  { opacity: 0.6; }
+          80%  { opacity: 0.6; }
           100% { transform: translateX(280%) skewX(-12deg); opacity: 0; }
         }
         @keyframes progress-tip-beat-bull {
           0%, 100% {
             transform: translateY(-50%) scale(1);
             box-shadow:
-              0 0 5px 2px color-mix(in oklab, var(--bull) 65%, transparent),
-              0 0 12px 4px color-mix(in oklab, var(--bull) 30%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bull) 40%, transparent),
+              0 0 7px 2px color-mix(in oklab, var(--bull) 18%, transparent);
           }
           50% {
-            transform: translateY(-50%) scale(1.45);
+            transform: translateY(-50%) scale(1.2);
             box-shadow:
-              0 0 10px 4px color-mix(in oklab, var(--bull) 85%, transparent),
-              0 0 22px 8px color-mix(in oklab, var(--bull) 45%, transparent),
-              0 0 36px 12px color-mix(in oklab, var(--bull) 18%, transparent);
+              0 0 5px 2px color-mix(in oklab, var(--bull) 55%, transparent),
+              0 0 12px 4px color-mix(in oklab, var(--bull) 24%, transparent);
           }
         }
         @keyframes progress-tip-beat-bear {
           0%, 100% {
             transform: translateY(-50%) scale(1);
             box-shadow:
-              0 0 5px 2px color-mix(in oklab, var(--bear) 65%, transparent),
-              0 0 12px 4px color-mix(in oklab, var(--bear) 30%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bear) 40%, transparent),
+              0 0 7px 2px color-mix(in oklab, var(--bear) 18%, transparent);
           }
           50% {
-            transform: translateY(-50%) scale(1.45);
+            transform: translateY(-50%) scale(1.2);
             box-shadow:
-              0 0 10px 4px color-mix(in oklab, var(--bear) 85%, transparent),
-              0 0 22px 8px color-mix(in oklab, var(--bear) 45%, transparent),
-              0 0 36px 12px color-mix(in oklab, var(--bear) 18%, transparent);
+              0 0 5px 2px color-mix(in oklab, var(--bear) 55%, transparent),
+              0 0 12px 4px color-mix(in oklab, var(--bear) 24%, transparent);
           }
+        }
+        @keyframes pct-badge-pop {
+          0%   { transform: translateX(-50%) scale(0.75); opacity: 0; }
+          60%  { transform: translateX(-50%) scale(1.12); opacity: 1; }
+          100% { transform: translateX(-50%) scale(1);    opacity: 1; }
+        }
+        @keyframes pct-digit-up {
+          0%   { transform: translateY(60%); opacity: 0; }
+          100% { transform: translateY(0);   opacity: 1; }
         }
         .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; }
         .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; }
         .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; }
         .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; }
         .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; }
+        .pct-badge-pop           { animation: pct-badge-pop 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+        .pct-digit-up            { animation: pct-digit-up 0.22s ease-out both; }
       `}</style>
 
       <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
@@ -507,50 +552,113 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
         <span className={`text-sm font-black tabular-nums ${isBull ? "text-bull" : "text-bear"}`}>{rightValue}</span>
       </div>
 
-      {/* Track */}
-      <div className="relative mt-2 h-2 rounded-full bg-muted/60" style={{ overflow: "visible" }}>
+      {/* Track — extra top padding to make room for the floating badge */}
+      <div className="relative mt-5" style={{ paddingBottom: "2px" }}>
+        <div className="relative h-2 rounded-full bg-muted/60" style={{ overflow: "visible" }}>
 
-        {/* Filled bar */}
-        <div
-          className={`relative h-full rounded-full transition-[width] duration-700 overflow-hidden ${isBull ? "progress-bar-glow-bull" : "progress-bar-glow-bear"}`}
-          style={{
-            width: `${w}%`,
-            background: isBull
-              ? "linear-gradient(90deg, color-mix(in oklab, var(--bull) 55%, transparent) 0%, var(--bull) 100%)"
-              : "linear-gradient(90deg, color-mix(in oklab, var(--bear) 55%, transparent) 0%, var(--bear) 100%)",
-          }}
-        >
-          {/* Shimmer sweep */}
+          {/* Filled bar */}
           <div
-            className="progress-shimmer absolute inset-y-0 pointer-events-none"
+            className={`relative h-full rounded-full transition-[width] duration-700 overflow-hidden ${isBull ? "progress-bar-glow-bull" : "progress-bar-glow-bear"}`}
             style={{
-              width: "38%",
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)",
-              borderRadius: "999px",
+              width: `${w}%`,
+              background: isBull
+                ? "linear-gradient(90deg, color-mix(in oklab, var(--bull) 55%, transparent) 0%, var(--bull) 100%)"
+                : "linear-gradient(90deg, color-mix(in oklab, var(--bear) 55%, transparent) 0%, var(--bear) 100%)",
             }}
-          />
+          >
+            {/* Shimmer sweep */}
+            <div
+              className="progress-shimmer absolute inset-y-0 pointer-events-none"
+              style={{
+                width: "38%",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)",
+                borderRadius: "999px",
+              }}
+            />
+          </div>
+
+          {/* Glowing tip dot */}
+          {w > 3 && (
+            <div
+              className={isBull ? "progress-tip-bull" : "progress-tip-bear"}
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: `calc(${w}% - 5px)`,
+                width: "10px",
+                height: "10px",
+                borderRadius: "999px",
+                background: isBull ? "var(--bull)" : "var(--bear)",
+                zIndex: 10,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          {/* ── Floating percentage badge above tip ── */}
+          {w > 3 && (
+            <div
+              key={popKey}
+              className="pct-badge-pop"
+              style={{
+                position: "absolute",
+                top: "-26px",
+                left: `${w}%`,
+                transform: "translateX(-50%)",
+                pointerEvents: "none",
+                zIndex: 20,
+              }}
+            >
+              {/* Badge pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                  padding: "2px 6px",
+                  borderRadius: "999px",
+                  fontSize: "9px",
+                  fontWeight: 900,
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "0.01em",
+                  lineHeight: 1,
+                  whiteSpace: "nowrap",
+                  background: isBull
+                    ? "color-mix(in oklab, var(--bull) 18%, var(--card))"
+                    : "color-mix(in oklab, var(--bear) 18%, var(--card))",
+                  border: isBull
+                    ? "1px solid color-mix(in oklab, var(--bull) 50%, transparent)"
+                    : "1px solid color-mix(in oklab, var(--bear) 50%, transparent)",
+                  color: isBull ? "var(--bull)" : "var(--bear)",
+                  boxShadow: isBull
+                    ? "0 0 4px 1px color-mix(in oklab, var(--bull) 20%, transparent)"
+                    : "0 0 4px 1px color-mix(in oklab, var(--bear) 20%, transparent)",
+                }}
+              >
+                <span key={`${popKey}-num`} className="pct-digit-up">
+                  {displayPct.toFixed(1)}%
+                </span>
+              </div>
+              {/* Connector line from badge to dot */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  top: "100%",
+                  width: "1px",
+                  height: "8px",
+                  background: isBull
+                    ? "linear-gradient(to bottom, color-mix(in oklab, var(--bull) 60%, transparent), transparent)"
+                    : "linear-gradient(to bottom, color-mix(in oklab, var(--bear) 60%, transparent), transparent)",
+                }}
+              />
+            </div>
+          )}
         </div>
-
-        {/* Glowing tip dot */}
-        {w > 3 && (
-          <div
-            className={isBull ? "progress-tip-bull" : "progress-tip-bear"}
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: `calc(${w}% - 5px)`,
-              width: "10px",
-              height: "10px",
-              borderRadius: "999px",
-              background: isBull ? "var(--bull)" : "var(--bear)",
-              zIndex: 10,
-              pointerEvents: "none",
-            }}
-          />
-        )}
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+      <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
         <span className="truncate">{fromLabel}</span>
         <span className="truncate">{toLabel}</span>
       </div>
