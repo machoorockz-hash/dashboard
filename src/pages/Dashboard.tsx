@@ -489,25 +489,25 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
         @keyframes progress-glow-bull {
           0%, 100% {
             box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bull) 25%, transparent),
-              0 0 8px 2px color-mix(in oklab, var(--bull) 10%, transparent);
+              0 0 2px 0px color-mix(in oklab, var(--bull) 12%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bull) 5%, transparent);
           }
           50% {
             box-shadow:
-              0 0 5px 1px color-mix(in oklab, var(--bull) 38%, transparent),
-              0 0 12px 3px color-mix(in oklab, var(--bull) 16%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bull) 18%, transparent),
+              0 0 6px 1px color-mix(in oklab, var(--bull) 8%, transparent);
           }
         }
         @keyframes progress-glow-bear {
           0%, 100% {
             box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bear) 25%, transparent),
-              0 0 8px 2px color-mix(in oklab, var(--bear) 10%, transparent);
+              0 0 2px 0px color-mix(in oklab, var(--bear) 12%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bear) 5%, transparent);
           }
           50% {
             box-shadow:
-              0 0 5px 1px color-mix(in oklab, var(--bear) 38%, transparent),
-              0 0 12px 3px color-mix(in oklab, var(--bear) 16%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bear) 18%, transparent),
+              0 0 6px 1px color-mix(in oklab, var(--bear) 8%, transparent);
           }
         }
         @keyframes progress-shimmer {
@@ -520,28 +520,28 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
           0%, 100% {
             transform: translateY(-50%) scale(1);
             box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bull) 40%, transparent),
-              0 0 7px 2px color-mix(in oklab, var(--bull) 18%, transparent);
+              0 0 2px 1px color-mix(in oklab, var(--bull) 20%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bull) 9%, transparent);
           }
           50% {
-            transform: translateY(-50%) scale(1.2);
+            transform: translateY(-50%) scale(1.15);
             box-shadow:
-              0 0 5px 2px color-mix(in oklab, var(--bull) 55%, transparent),
-              0 0 12px 4px color-mix(in oklab, var(--bull) 24%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bull) 28%, transparent),
+              0 0 6px 2px color-mix(in oklab, var(--bull) 12%, transparent);
           }
         }
         @keyframes progress-tip-beat-bear {
           0%, 100% {
             transform: translateY(-50%) scale(1);
             box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bear) 40%, transparent),
-              0 0 7px 2px color-mix(in oklab, var(--bear) 18%, transparent);
+              0 0 2px 1px color-mix(in oklab, var(--bear) 20%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bear) 9%, transparent);
           }
           50% {
-            transform: translateY(-50%) scale(1.2);
+            transform: translateY(-50%) scale(1.15);
             box-shadow:
-              0 0 5px 2px color-mix(in oklab, var(--bear) 55%, transparent),
-              0 0 12px 4px color-mix(in oklab, var(--bear) 24%, transparent);
+              0 0 3px 1px color-mix(in oklab, var(--bear) 28%, transparent),
+              0 0 6px 2px color-mix(in oklab, var(--bear) 12%, transparent);
           }
         }
         @keyframes pct-badge-pop {
@@ -646,8 +646,8 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
                     : "1px solid color-mix(in oklab, var(--bear) 50%, transparent)",
                   color: isBull ? "var(--bull)" : "var(--bear)",
                   boxShadow: isBull
-                    ? "0 0 4px 1px color-mix(in oklab, var(--bull) 20%, transparent)"
-                    : "0 0 4px 1px color-mix(in oklab, var(--bear) 20%, transparent)",
+                    ? "0 0 2px 0px color-mix(in oklab, var(--bull) 10%, transparent)"
+                    : "0 0 2px 0px color-mix(in oklab, var(--bear) 10%, transparent)",
                 }}
               >
                 <span key={`${popKey}-num`} className="pct-digit-up">
