@@ -21,6 +21,34 @@ function fmtPrice(p: number) {
   return fmt(p, 6);
 }
 
+function useWalletCountUp(target: number, duration = 1400) {
+  const [value, setValue] = useState(0);
+  const raf = useRef<number>(0);
+  const startRef = useRef<number | null>(null);
+  const prevTarget = useRef<number>(0);
+
+  useEffect(() => {
+    if (target === 0) return;
+    if (target === prevTarget.current) return;
+    prevTarget.current = target;
+    startRef.current = null;
+    cancelAnimationFrame(raf.current);
+    function step(ts: number) {
+      if (!startRef.current) startRef.current = ts;
+      const elapsed = ts - startRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4);
+      setValue(target * ease);
+      if (progress < 1) raf.current = requestAnimationFrame(step);
+      else setValue(target);
+    }
+    raf.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.current);
+  }, [target, duration]);
+
+  return value;
+}
+
 function StepSegments({ step, total }: { step: number; total: number }) {
   return (
     <>
@@ -215,6 +243,16 @@ export default function Dashboard() {
 
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
 
+  // ── Wallet animation state ──
+  const animatedTotal = useWalletCountUp(totalUsdt);
+  const [walletVisible, setWalletVisible] = useState(false);
+  const [walletCardsVisible, setWalletCardsVisible] = useState(false);
+  useEffect(() => {
+    const t1 = setTimeout(() => setWalletVisible(true), 120);
+    const t2 = setTimeout(() => setWalletCardsVisible(true), 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
   const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
   const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
   const orderQty = primary ? parseFloat(primary.origQty) : 0;
@@ -229,7 +267,6 @@ export default function Dashboard() {
   const stopPct = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
   const distToTpPct = cur && tpPrice ? ((tpPrice - cur) / cur) * 100 : 0;
   const distToSlPct = cur && slPrice ? ((cur - slPrice) / cur) * 100 : 0;
-  // TP bar: fills as price moves toward tpPrice. Range = slPrice → tpPrice (or entry → tpPrice when no SL).
   const tpProgress = cur && tpPrice
     ? (slPrice && tpPrice !== slPrice
         ? Math.max(0, Math.min(1, (cur - slPrice) / (tpPrice - slPrice)))
@@ -237,8 +274,6 @@ export default function Dashboard() {
         ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry)))
         : 0)
     : 0;
-
-  // SL bar: fills as price moves toward slPrice. Range = tpPrice → slPrice (or entry → slPrice when no TP).
   const slProgress = cur && slPrice
     ? (tpPrice && tpPrice !== slPrice
         ? Math.max(0, Math.min(1, (tpPrice - cur) / (tpPrice - slPrice)))
@@ -261,36 +296,173 @@ export default function Dashboard() {
     return out;
   }, [orderSymbol, chartSymbol, entry, tpPrice, slPrice]);
 
+  // Format animated balance
+  const animatedStr = account.isLoading
+    ? "0.00"
+    : animatedTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [walletDollars, walletCents] = animatedStr.split(".");
+
+  // Per-asset allocation pct for mini bars
+  const totalForPct = walletAssets.reduce((s, a) => s + a.usd, 0) || 1;
+
   return (
     <AppLayout>
       <div className="space-y-5">
 
         {/* ── WALLET ── */}
-        <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
-          <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <WalletIcon className="h-3.5 w-3.5" />
-            Wallet
-          </div>
-          <div className="relative mt-3">
-            <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-primary/70 bg-clip-text text-transparent">
-              ${account.isLoading ? "…" : fmt(totalUsdt)}
-            </span>
-          </div>
-          {walletAssets.length > 0 && (
-            <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {walletAssets.slice(0, 10).map((b) => (
-                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-card/60 px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
-                  <CoinIcon symbol={b.asset} size={28} />
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold truncate">{b.asset}</div>
-                    <div className="text-[10px] text-muted-foreground tabular-nums">${fmt(b.usd)}</div>
-                  </div>
+        <section style={{ position: "relative", overflow: "hidden" }}>
+          <style>{`
+            @keyframes wallet-shimmer {
+              0%   { background-position: -200% center; }
+              100% { background-position: 200% center; }
+            }
+            @keyframes wallet-dot-pulse {
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50%       { opacity: 0.45; transform: scale(0.7); }
+            }
+            @keyframes wallet-float {
+              0%, 100% { transform: translateY(0px); }
+              50%       { transform: translateY(-4px); }
+            }
+            @keyframes wallet-card-in {
+              from { opacity: 0; transform: translateY(14px) scale(0.97); }
+              to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            .wallet-shimmer-text {
+              background: linear-gradient(90deg,#c7d2fe 0%,#fff 30%,#a5b4fc 50%,#fff 70%,#c7d2fe 100%);
+              background-size: 200% auto;
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              animation: wallet-shimmer 3s linear infinite;
+            }
+            .wallet-dot-pulse  { animation: wallet-dot-pulse 2s ease-in-out infinite; }
+            .wallet-float-icon { animation: wallet-float 3.5s ease-in-out infinite; }
+            .wallet-asset-card { animation: wallet-card-in 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+          `}</style>
+
+          <div style={{
+            borderRadius: "24px",
+            background: "linear-gradient(160deg,#111120 0%,#0d0d1c 50%,#0a0a16 100%)",
+            border: "1px solid rgba(99,102,241,0.18)",
+            boxShadow: "0 0 0 1px rgba(99,102,241,0.07),0 32px 80px rgba(0,0,0,0.55),0 0 120px rgba(99,102,241,0.06)",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            {/* Ambient glows */}
+            <div style={{ position:"absolute", top:"-80px", right:"-80px", width:"300px", height:"300px", borderRadius:"50%", background:"radial-gradient(circle,rgba(99,102,241,0.13) 0%,transparent 70%)", pointerEvents:"none" }} />
+            <div style={{ position:"absolute", bottom:"-60px", left:"-60px", width:"220px", height:"220px", borderRadius:"50%", background:"radial-gradient(circle,rgba(167,139,250,0.07) 0%,transparent 70%)", pointerEvents:"none" }} />
+
+            {/* Header */}
+            <div style={{ padding:"28px 28px 20px" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"22px" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"9px" }}>
+                  <span className="wallet-dot-pulse" style={{ display:"block", width:"7px", height:"7px", borderRadius:"50%", background:"#6366f1", boxShadow:"0 0 8px #6366f1", flexShrink:0 }} />
+                  <span style={{ fontSize:"10px", fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase", color:"rgba(165,180,252,0.65)" }}>
+                    Wallet
+                  </span>
                 </div>
-              ))}
+                <div className="wallet-float-icon" style={{ width:"34px", height:"34px", borderRadius:"10px", background:"linear-gradient(135deg,rgba(99,102,241,0.22),rgba(139,92,246,0.12))", border:"1px solid rgba(99,102,241,0.28)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <WalletIcon style={{ width:"15px", height:"15px", color:"rgba(165,180,252,0.85)" }} />
+                </div>
+              </div>
+
+              {/* Balance */}
+              <div style={{ display:"flex", alignItems:"flex-end", gap:"3px", opacity: walletVisible ? 1 : 0, transition:"opacity 0.45s" }}>
+                <span style={{ fontSize:"13px", fontWeight:700, color:"rgba(165,180,252,0.45)", marginBottom:"12px" }}>$</span>
+                <span className="wallet-shimmer-text" style={{ fontSize:"clamp(44px,8vw,64px)", fontWeight:900, lineHeight:1, letterSpacing:"-0.03em" }}>
+                  {account.isLoading ? "…" : walletDollars}
+                </span>
+                <span style={{ fontSize:"clamp(20px,3.5vw,26px)", fontWeight:700, color:"rgba(165,180,252,0.38)", marginBottom:"9px", letterSpacing:"-0.01em" }}>
+                  {account.isLoading ? "" : `.${walletCents}`}
+                </span>
+              </div>
+
+              {/* 24h change placeholder — replace with real data if available */}
+              <div style={{ display:"flex", alignItems:"center", gap:"8px", marginTop:"8px", opacity: walletVisible ? 1 : 0, transform: walletVisible ? "translateY(0)" : "translateY(8px)", transition:"all 0.5s ease 0.25s" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"4px", background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.2)", borderRadius:"100px", padding:"3px 10px" }}>
+                  <span style={{ fontSize:"11px", fontWeight:700, color:"rgba(165,180,252,0.8)" }}>
+                    {walletAssets.length} asset{walletAssets.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Divider */}
+            <div style={{ height:"1px", margin:"0 28px", background:"linear-gradient(90deg,transparent,rgba(99,102,241,0.18),transparent)" }} />
+
+            {/* Holdings */}
+            {walletAssets.length > 0 && (
+              <div style={{ padding:"18px 28px 24px", display:"flex", flexDirection:"column", gap:"8px" }}>
+                <div style={{ fontSize:"9.5px", fontWeight:600, letterSpacing:"0.13em", textTransform:"uppercase", color:"rgba(148,163,184,0.35)", marginBottom:"4px" }}>
+                  Holdings
+                </div>
+                {walletAssets.slice(0, 8).map((b, i) => {
+                  const pct = (b.usd / totalForPct) * 100;
+                  return (
+                    <div
+                      key={b.asset}
+                      className="wallet-asset-card"
+                      style={{
+                        display:"flex",
+                        alignItems:"center",
+                        gap:"12px",
+                        padding:"11px 14px",
+                        borderRadius:"14px",
+                        background:"rgba(255,255,255,0.025)",
+                        border:"1px solid rgba(255,255,255,0.055)",
+                        animationDelay: walletCardsVisible ? `${i * 60 + 80}ms` : "9999s",
+                        transition:"background 0.2s,border-color 0.2s",
+                        cursor:"default",
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLDivElement).style.background = "rgba(99,102,241,0.07)";
+                        (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(99,102,241,0.22)";
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.025)";
+                        (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.055)";
+                      }}
+                    >
+                      {/* Coin logo */}
+                      <div style={{ flexShrink:0 }}>
+                        <CoinIcon symbol={b.asset} size={36} />
+                      </div>
+
+                      {/* Symbol + name */}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:"13px", fontWeight:700, color:"rgba(226,232,240,0.92)", lineHeight:1.2 }}>{b.asset}</div>
+                        <div style={{ fontSize:"10.5px", color:"rgba(148,163,184,0.45)", marginTop:"2px" }}>{fmt(b.total, 4)} coins</div>
+                      </div>
+
+                      {/* Mini bar */}
+                      <div style={{ width:"60px", flexShrink:0 }}>
+                        <div style={{ height:"3px", borderRadius:"2px", background:"rgba(255,255,255,0.06)", overflow:"hidden" }}>
+                          <div style={{
+                            height:"100%",
+                            width: walletCardsVisible ? `${Math.min(pct, 100)}%` : "0%",
+                            background:"linear-gradient(90deg,rgba(99,102,241,0.6),rgba(99,102,241,0.9))",
+                            borderRadius:"2px",
+                            transition:`width 0.85s cubic-bezier(0.34,1.2,0.64,1) ${i * 70 + 300}ms`,
+                          }} />
+                        </div>
+                        <div style={{ fontSize:"9.5px", fontWeight:600, color:"rgba(99,102,241,0.65)", marginTop:"3px", textAlign:"right" }}>
+                          {pct.toFixed(1)}%
+                        </div>
+                      </div>
+
+                      {/* USD value */}
+                      <div style={{ textAlign:"right", flexShrink:0, minWidth:"72px" }}>
+                        <div style={{ fontSize:"13px", fontWeight:700, color:"rgba(226,232,240,0.88)", letterSpacing:"-0.01em" }}>
+                          ${fmt(b.usd)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* ── ACTIVE TRADE ── */}
@@ -438,7 +610,6 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   const w = Math.max(2, Math.min(100, pct * 100));
   const isBull = color === "bull";
 
-  // Animated counter — smoothly counts from old value to new value
   const [displayPct, setDisplayPct] = useState(w);
   const prevWRef = useRef(w);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -458,7 +629,6 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
 
     timerRef.current = setInterval(() => {
       step++;
-      // ease-out cubic
       const t = step / STEPS;
       const eased = 1 - Math.pow(1 - t, 3);
       const next = start + (end - start) * eased;
@@ -472,7 +642,6 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [w]);
 
-  // badge pops in when value changes
   const [popKey, setPopKey] = useState(0);
   const prevRounded = useRef(Math.round(w * 10));
   useEffect(() => {
@@ -487,62 +656,24 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
     <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
       <style>{`
         @keyframes progress-glow-bull {
-          0%, 100% {
-            box-shadow:
-              0 0 2px 0px color-mix(in oklab, var(--bull) 12%, transparent),
-              0 0 4px 1px color-mix(in oklab, var(--bull) 5%, transparent);
-          }
-          50% {
-            box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bull) 18%, transparent),
-              0 0 6px 1px color-mix(in oklab, var(--bull) 8%, transparent);
-          }
+          0%, 100% { box-shadow: 0 0 2px 0px color-mix(in oklab, var(--bull) 12%, transparent), 0 0 4px 1px color-mix(in oklab, var(--bull) 5%, transparent); }
+          50%       { box-shadow: 0 0 3px 1px color-mix(in oklab, var(--bull) 18%, transparent), 0 0 6px 1px color-mix(in oklab, var(--bull) 8%, transparent); }
         }
         @keyframes progress-glow-bear {
-          0%, 100% {
-            box-shadow:
-              0 0 2px 0px color-mix(in oklab, var(--bear) 12%, transparent),
-              0 0 4px 1px color-mix(in oklab, var(--bear) 5%, transparent);
-          }
-          50% {
-            box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bear) 18%, transparent),
-              0 0 6px 1px color-mix(in oklab, var(--bear) 8%, transparent);
-          }
+          0%, 100% { box-shadow: 0 0 2px 0px color-mix(in oklab, var(--bear) 12%, transparent), 0 0 4px 1px color-mix(in oklab, var(--bear) 5%, transparent); }
+          50%       { box-shadow: 0 0 3px 1px color-mix(in oklab, var(--bear) 18%, transparent), 0 0 6px 1px color-mix(in oklab, var(--bear) 8%, transparent); }
         }
         @keyframes progress-shimmer {
-          0%   { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
-          20%  { opacity: 0.6; }
-          80%  { opacity: 0.6; }
-          100% { transform: translateX(280%) skewX(-12deg); opacity: 0; }
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(350%); }
         }
         @keyframes progress-tip-beat-bull {
-          0%, 100% {
-            transform: translateY(-50%) scale(1);
-            box-shadow:
-              0 0 2px 1px color-mix(in oklab, var(--bull) 20%, transparent),
-              0 0 4px 1px color-mix(in oklab, var(--bull) 9%, transparent);
-          }
-          50% {
-            transform: translateY(-50%) scale(1.15);
-            box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bull) 28%, transparent),
-              0 0 6px 2px color-mix(in oklab, var(--bull) 12%, transparent);
-          }
+          0%, 100% { transform: translateY(-50%) scale(1);    box-shadow: 0 0 2px 1px color-mix(in oklab, var(--bull) 20%, transparent), 0 0 4px 1px color-mix(in oklab, var(--bull) 9%, transparent); }
+          50%       { transform: translateY(-50%) scale(1.15); box-shadow: 0 0 3px 1px color-mix(in oklab, var(--bull) 28%, transparent), 0 0 6px 2px color-mix(in oklab, var(--bull) 12%, transparent); }
         }
         @keyframes progress-tip-beat-bear {
-          0%, 100% {
-            transform: translateY(-50%) scale(1);
-            box-shadow:
-              0 0 2px 1px color-mix(in oklab, var(--bear) 20%, transparent),
-              0 0 4px 1px color-mix(in oklab, var(--bear) 9%, transparent);
-          }
-          50% {
-            transform: translateY(-50%) scale(1.15);
-            box-shadow:
-              0 0 3px 1px color-mix(in oklab, var(--bear) 28%, transparent),
-              0 0 6px 2px color-mix(in oklab, var(--bear) 12%, transparent);
-          }
+          0%, 100% { transform: translateY(-50%) scale(1);    box-shadow: 0 0 2px 1px color-mix(in oklab, var(--bear) 20%, transparent), 0 0 4px 1px color-mix(in oklab, var(--bear) 9%, transparent); }
+          50%       { transform: translateY(-50%) scale(1.15); box-shadow: 0 0 3px 1px color-mix(in oklab, var(--bear) 28%, transparent), 0 0 6px 2px color-mix(in oklab, var(--bear) 12%, transparent); }
         }
         @keyframes pct-badge-pop {
           0%   { transform: translateX(-50%) scale(0.75); opacity: 0; }
@@ -567,11 +698,8 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
         <span className={`text-sm font-black tabular-nums ${isBull ? "text-bull" : "text-bear"}`}>{rightValue}</span>
       </div>
 
-      {/* Track — extra top padding to make room for the floating badge */}
       <div className="relative mt-5" style={{ paddingBottom: "2px" }}>
         <div className="relative h-2 rounded-full bg-muted/60" style={{ overflow: "visible" }}>
-
-          {/* Filled bar */}
           <div
             className={`relative h-full rounded-full transition-[width] duration-700 overflow-hidden ${isBull ? "progress-bar-glow-bull" : "progress-bar-glow-bear"}`}
             style={{
@@ -581,93 +709,29 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
                 : "linear-gradient(90deg, color-mix(in oklab, var(--bear) 55%, transparent) 0%, var(--bear) 100%)",
             }}
           >
-            {/* Shimmer sweep */}
             <div
               className="progress-shimmer absolute inset-y-0 pointer-events-none"
-              style={{
-                width: "38%",
-                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)",
-                borderRadius: "999px",
-              }}
+              style={{ width: "38%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)", borderRadius: "999px" }}
             />
           </div>
 
-          {/* Glowing tip dot */}
           {w > 3 && (
             <div
               className={isBull ? "progress-tip-bull" : "progress-tip-bear"}
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: `calc(${w}% - 5px)`,
-                width: "10px",
-                height: "10px",
-                borderRadius: "999px",
-                background: isBull ? "var(--bull)" : "var(--bear)",
-                zIndex: 10,
-                pointerEvents: "none",
-              }}
+              style={{ position:"absolute", top:"50%", left:`calc(${w}% - 5px)`, width:"10px", height:"10px", borderRadius:"999px", background: isBull ? "var(--bull)" : "var(--bear)", zIndex:10, pointerEvents:"none" }}
             />
           )}
 
-          {/* ── Floating percentage badge above tip ── */}
           {w > 3 && (
             <div
               key={popKey}
               className="pct-badge-pop"
-              style={{
-                position: "absolute",
-                top: "-26px",
-                left: `${w}%`,
-                transform: "translateX(-50%)",
-                pointerEvents: "none",
-                zIndex: 20,
-              }}
+              style={{ position:"absolute", top:"-26px", left:`${w}%`, transform:"translateX(-50%)", pointerEvents:"none", zIndex:20 }}
             >
-              {/* Badge pill */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "2px",
-                  padding: "2px 6px",
-                  borderRadius: "999px",
-                  fontSize: "9px",
-                  fontWeight: 900,
-                  fontVariantNumeric: "tabular-nums",
-                  letterSpacing: "0.01em",
-                  lineHeight: 1,
-                  whiteSpace: "nowrap",
-                  background: isBull
-                    ? "color-mix(in oklab, var(--bull) 18%, var(--card))"
-                    : "color-mix(in oklab, var(--bear) 18%, var(--card))",
-                  border: isBull
-                    ? "1px solid color-mix(in oklab, var(--bull) 50%, transparent)"
-                    : "1px solid color-mix(in oklab, var(--bear) 50%, transparent)",
-                  color: isBull ? "var(--bull)" : "var(--bear)",
-                  boxShadow: isBull
-                    ? "0 0 2px 0px color-mix(in oklab, var(--bull) 10%, transparent)"
-                    : "0 0 2px 0px color-mix(in oklab, var(--bear) 10%, transparent)",
-                }}
-              >
-                <span key={`${popKey}-num`} className="pct-digit-up">
-                  {displayPct.toFixed(1)}%
-                </span>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:"2px", padding:"2px 6px", borderRadius:"999px", fontSize:"9px", fontWeight:900, fontVariantNumeric:"tabular-nums", letterSpacing:"0.01em", lineHeight:1, whiteSpace:"nowrap", background: isBull ? "color-mix(in oklab, var(--bull) 18%, var(--card))" : "color-mix(in oklab, var(--bear) 18%, var(--card))", border: isBull ? "1px solid color-mix(in oklab, var(--bull) 50%, transparent)" : "1px solid color-mix(in oklab, var(--bear) 50%, transparent)", color: isBull ? "var(--bull)" : "var(--bear)", boxShadow: isBull ? "0 0 2px 0px color-mix(in oklab, var(--bull) 10%, transparent)" : "0 0 2px 0px color-mix(in oklab, var(--bear) 10%, transparent)" }}>
+                <span key={`${popKey}-num`} className="pct-digit-up">{displayPct.toFixed(1)}%</span>
               </div>
-              {/* Connector line from badge to dot */}
-              <div
-                style={{
-                  position: "absolute",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  top: "100%",
-                  width: "1px",
-                  height: "8px",
-                  background: isBull
-                    ? "linear-gradient(to bottom, color-mix(in oklab, var(--bull) 60%, transparent), transparent)"
-                    : "linear-gradient(to bottom, color-mix(in oklab, var(--bear) 60%, transparent), transparent)",
-                }}
-              />
+              <div style={{ position:"absolute", left:"50%", transform:"translateX(-50%)", top:"100%", width:"1px", height:"8px", background: isBull ? "linear-gradient(to bottom, color-mix(in oklab, var(--bull) 60%, transparent), transparent)" : "linear-gradient(to bottom, color-mix(in oklab, var(--bear) 60%, transparent), transparent)" }} />
             </div>
           )}
         </div>
