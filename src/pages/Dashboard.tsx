@@ -10,7 +10,6 @@ import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/bin
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
-/* ─────────────────────────────── helpers ─────────────────────────────── */
 function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
 }
@@ -22,322 +21,100 @@ function fmtPrice(p: number) {
   return fmt(p, 6);
 }
 
-/* ─────────────── Global glass + ambient CSS ─────────────── */
-const GLASS_STYLES = `
-  /* ── Base glass card ── */
-  .glass-card {
-    background: linear-gradient(
-      135deg,
-      rgba(255,255,255,0.07) 0%,
-      rgba(255,255,255,0.03) 100%
-    );
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
-    border: 1px solid rgba(255,255,255,0.10);
-    box-shadow:
-      0 8px 40px rgba(0,0,0,0.45),
-      0 1px 0 rgba(255,255,255,0.10) inset,
-      0 -1px 0 rgba(0,0,0,0.30) inset;
-  }
-
-  /* ── Active/glow glass card (wallet, active trade) ── */
-  .glass-card-primary {
-    background: linear-gradient(
-      135deg,
-      color-mix(in oklab, var(--primary) 10%, rgba(255,255,255,0.06)) 0%,
-      rgba(255,255,255,0.03) 100%
-    );
-    backdrop-filter: blur(32px) saturate(180%);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
-    border: 1px solid color-mix(in oklab, var(--primary) 28%, rgba(255,255,255,0.08));
-    box-shadow:
-      0 0 0 1px rgba(255,255,255,0.04) inset,
-      0 8px 40px rgba(0,0,0,0.50),
-      0 0 80px -20px color-mix(in oklab, var(--primary) 35%, transparent);
-  }
-
-  /* ── Chip glass (asset badges, cells) ── */
-  .glass-chip {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow:
-      0 2px 12px rgba(0,0,0,0.30),
-      0 1px 0 rgba(255,255,255,0.08) inset;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .glass-chip:hover {
-    border-color: color-mix(in oklab, var(--primary) 40%, rgba(255,255,255,0.12));
-    box-shadow:
-      0 4px 20px rgba(0,0,0,0.40),
-      0 0 20px -6px color-mix(in oklab, var(--primary) 30%, transparent),
-      0 1px 0 rgba(255,255,255,0.10) inset;
-  }
-
-  /* ── Inner sub-card (live price bar, DCA, progress, cell) ── */
-  .glass-inner {
-    background: rgba(255,255,255,0.04);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.07);
-    box-shadow:
-      0 2px 16px rgba(0,0,0,0.25),
-      0 1px 0 rgba(255,255,255,0.07) inset;
-  }
-
-  /* ── Cell glass variants ── */
-  .glass-cell-bull {
-    background: color-mix(in oklab, var(--bull) 10%, rgba(255,255,255,0.03));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid color-mix(in oklab, var(--bull) 25%, rgba(255,255,255,0.07));
-    box-shadow: 0 0 20px -8px color-mix(in oklab, var(--bull) 30%, transparent);
-  }
-  .glass-cell-bear {
-    background: color-mix(in oklab, var(--bear) 10%, rgba(255,255,255,0.03));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid color-mix(in oklab, var(--bear) 25%, rgba(255,255,255,0.07));
-    box-shadow: 0 0 20px -8px color-mix(in oklab, var(--bear) 30%, transparent);
-  }
-
-  /* ── Ambient dashboard background mesh ── */
-  .dash-bg-ambient {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background:
-      radial-gradient(ellipse 70% 50% at 20% 10%,  color-mix(in oklab, var(--primary) 8%,  transparent), transparent 70%),
-      radial-gradient(ellipse 50% 40% at 80% 80%,  color-mix(in oklab, var(--primary) 5%,  transparent), transparent 70%),
-      radial-gradient(ellipse 40% 30% at 60% 30%,  rgba(56,189,248,0.04), transparent 70%);
-  }
-
-  /* ── Active-trade top shimmer border ── */
-  .glass-top-shimmer::before {
-    content: "";
-    position: absolute;
-    inset-x: 0;
-    top: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      color-mix(in oklab, var(--primary) 70%, rgba(255,255,255,0.5)) 50%,
-      transparent 100%
-    );
-    pointer-events: none;
-  }
-
-  /* ── DCA card glass ── */
-  .glass-dca {
-    background: linear-gradient(
-      135deg,
-      color-mix(in oklab, var(--primary) 9%, rgba(255,255,255,0.05)) 0%,
-      rgba(255,255,255,0.02) 100%
-    );
-    backdrop-filter: blur(20px) saturate(150%);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    border: 1px solid color-mix(in oklab, var(--primary) 30%, rgba(255,255,255,0.08));
-    box-shadow:
-      0 4px 24px rgba(0,0,0,0.35),
-      inset 0 1px 0 color-mix(in oklab, var(--primary) 22%, rgba(255,255,255,0.06)),
-      0 0 30px -10px color-mix(in oklab, var(--primary) 35%, transparent);
-  }
-
-  /* ── ProgressTrack glass ── */
-  .glass-progress {
-    background: rgba(255,255,255,0.04);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
-    border: 1px solid rgba(255,255,255,0.07);
-    box-shadow:
-      0 4px 20px rgba(0,0,0,0.30),
-      inset 0 1px 0 rgba(255,255,255,0.06);
-  }
-
-  /* ── Reflective top-edge highlight ── */
-  .glass-reflect::after {
-    content: "";
-    position: absolute;
-    inset-x: 0;
-    top: 0;
-    height: 40%;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.04), transparent);
-    pointer-events: none;
-    border-radius: inherit;
-  }
-
-  /* ── DCA animations (unchanged) ── */
-  @keyframes dca-glow-breathe {
-    0%, 100% {
-      box-shadow:
-        0 0 6px 1px color-mix(in oklab,var(--primary) 45%,transparent),
-        0 0 18px 4px color-mix(in oklab,var(--primary) 22%,transparent),
-        0 0 40px 8px color-mix(in oklab,var(--primary) 10%,transparent);
-    }
-    50% {
-      box-shadow:
-        0 0 12px 3px color-mix(in oklab,var(--primary) 75%,transparent),
-        0 0 28px 8px color-mix(in oklab,var(--primary) 38%,transparent),
-        0 0 55px 14px color-mix(in oklab,var(--primary) 18%,transparent);
-    }
-  }
-  @keyframes dca-shimmer-sweep {
-    0%   { transform: translateX(-180%) skewX(-15deg); opacity: 0; }
-    15%  { opacity: 1; }
-    85%  { opacity: 1; }
-    100% { transform: translateX(280%) skewX(-15deg); opacity: 0; }
-  }
-  .dca-glow-breathe  { animation: dca-glow-breathe  2.2s ease-in-out infinite; }
-  .dca-shimmer-sweep { animation: dca-shimmer-sweep 2.4s ease-in-out infinite; }
-
-  /* ── Progress animations (unchanged) ── */
-  @keyframes progress-glow-bull {
-    0%, 100% {
-      box-shadow:
-        0 0 2px 0px color-mix(in oklab, var(--bull) 12%, transparent),
-        0 0 4px 1px color-mix(in oklab, var(--bull) 5%, transparent);
-    }
-    50% {
-      box-shadow:
-        0 0 3px 1px color-mix(in oklab, var(--bull) 18%, transparent),
-        0 0 6px 1px color-mix(in oklab, var(--bull) 8%, transparent);
-    }
-  }
-  @keyframes progress-glow-bear {
-    0%, 100% {
-      box-shadow:
-        0 0 2px 0px color-mix(in oklab, var(--bear) 12%, transparent),
-        0 0 4px 1px color-mix(in oklab, var(--bear) 5%, transparent);
-    }
-    50% {
-      box-shadow:
-        0 0 3px 1px color-mix(in oklab, var(--bear) 18%, transparent),
-        0 0 6px 1px color-mix(in oklab, var(--bear) 8%, transparent);
-    }
-  }
-  @keyframes progress-shimmer {
-    0%   { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
-    20%  { opacity: 0.6; }
-    80%  { opacity: 0.6; }
-    100% { transform: translateX(280%) skewX(-12deg); opacity: 0; }
-  }
-  @keyframes progress-tip-beat-bull {
-    0%, 100% {
-      transform: translateY(-50%) scale(1);
-      box-shadow:
-        0 0 2px 1px color-mix(in oklab, var(--bull) 20%, transparent),
-        0 0 4px 1px color-mix(in oklab, var(--bull) 9%, transparent);
-    }
-    50% {
-      transform: translateY(-50%) scale(1.15);
-      box-shadow:
-        0 0 3px 1px color-mix(in oklab, var(--bull) 28%, transparent),
-        0 0 6px 2px color-mix(in oklab, var(--bull) 12%, transparent);
-    }
-  }
-  @keyframes progress-tip-beat-bear {
-    0%, 100% {
-      transform: translateY(-50%) scale(1);
-      box-shadow:
-        0 0 2px 1px color-mix(in oklab, var(--bear) 20%, transparent),
-        0 0 4px 1px color-mix(in oklab, var(--bear) 9%, transparent);
-    }
-    50% {
-      transform: translateY(-50%) scale(1.15);
-      box-shadow:
-        0 0 3px 1px color-mix(in oklab, var(--bear) 28%, transparent),
-        0 0 6px 2px color-mix(in oklab, var(--bear) 12%, transparent);
-    }
-  }
-  @keyframes pct-badge-pop {
-    0%   { transform: translateX(-50%) scale(0.75); opacity: 0; }
-    60%  { transform: translateX(-50%) scale(1.12); opacity: 1; }
-    100% { transform: translateX(-50%) scale(1);    opacity: 1; }
-  }
-  @keyframes pct-digit-up {
-    0%   { transform: translateY(60%); opacity: 0; }
-    100% { transform: translateY(0);   opacity: 1; }
-  }
-  .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; }
-  .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; }
-  .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; }
-  .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; }
-  .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; }
-  .pct-badge-pop           { animation: pct-badge-pop 0.35s cubic-bezier(0.22,1,0.36,1) both; }
-  .pct-digit-up            { animation: pct-digit-up 0.22s ease-out both; }
-`;
-
-/* ─────────────── DCA step segments ─────────────── */
 function StepSegments({ step, total }: { step: number; total: number }) {
   return (
-    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-      {Array.from({ length: total }).map((_, i) => {
-        const filled   = i < step;
-        const isActive = i === step - 1;
-        const isPast   = filled && !isActive;
+    <>
+      <style>{`
+        @keyframes dca-glow-breathe {
+          0%, 100% {
+            box-shadow:
+              0 0 6px 1px color-mix(in oklab,var(--primary) 45%,transparent),
+              0 0 18px 4px color-mix(in oklab,var(--primary) 22%,transparent),
+              0 0 40px 8px color-mix(in oklab,var(--primary) 10%,transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 12px 3px color-mix(in oklab,var(--primary) 75%,transparent),
+              0 0 28px 8px color-mix(in oklab,var(--primary) 38%,transparent),
+              0 0 55px 14px color-mix(in oklab,var(--primary) 18%,transparent);
+          }
+        }
+        @keyframes dca-shimmer-sweep {
+          0%   { transform: translateX(-180%) skewX(-15deg); opacity: 0; }
+          15%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { transform: translateX(280%) skewX(-15deg); opacity: 0; }
+        }
+        .dca-glow-breathe  { animation: dca-glow-breathe  2.2s ease-in-out infinite; }
+        .dca-shimmer-sweep { animation: dca-shimmer-sweep 2.4s ease-in-out infinite; }
+      `}</style>
 
-        return (
-          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
-            <div style={{ position: "relative", width: "100%", height: "7px" }}>
-              <div
-                className={isActive ? "dca-glow-breathe" : ""}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "999px",
-                  background: isActive
-                    ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 85%,white), var(--primary))"
-                    : isPast
-                    ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent), color-mix(in oklab,var(--primary) 68%,transparent))"
-                    : "rgba(255,255,255,0.06)",
-                  transition: "background 0.5s ease",
-                }}
-              />
-              {isActive && (
-                <div style={{ position: "absolute", inset: 0, borderRadius: "999px", overflow: "hidden" }}>
-                  <div
-                    className="dca-shimmer-sweep"
-                    style={{
-                      position: "absolute",
-                      top: 0, bottom: 0,
-                      width: "40%",
-                      background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)",
-                      borderRadius: "999px",
-                    }}
-                  />
-                </div>
-              )}
+      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        {Array.from({ length: total }).map((_, i) => {
+          const filled   = i < step;
+          const isActive = i === step - 1;
+          const isPast   = filled && !isActive;
+
+          return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "7px" }}>
+              <div style={{ position: "relative", width: "100%", height: "7px" }}>
+                <div
+                  className={isActive ? "dca-glow-breathe" : ""}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "999px",
+                    background: isActive
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 85%,white), var(--primary))"
+                      : isPast
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent), color-mix(in oklab,var(--primary) 68%,transparent))"
+                      : "color-mix(in oklab,var(--primary) 9%,var(--card))",
+                    transition: "background 0.5s ease",
+                  }}
+                />
+                {isActive && (
+                  <div style={{ position: "absolute", inset: 0, borderRadius: "999px", overflow: "hidden" }}>
+                    <div
+                      className="dca-shimmer-sweep"
+                      style={{
+                        position: "absolute",
+                        top: 0, bottom: 0,
+                        width: "40%",
+                        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)",
+                        borderRadius: "999px",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <span style={{
+                fontSize: "9px",
+                fontWeight: 700,
+                lineHeight: 1,
+                transition: "color 0.4s",
+                color: isActive
+                  ? "var(--primary)"
+                  : isPast
+                  ? "color-mix(in oklab,var(--primary) 45%,var(--muted-foreground))"
+                  : "color-mix(in oklab,var(--muted-foreground) 35%,transparent)",
+                ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 70%,transparent))" } : {}),
+              }}>
+                {i + 1}
+              </span>
             </div>
-            <span style={{
-              fontSize: "9px",
-              fontWeight: 700,
-              lineHeight: 1,
-              transition: "color 0.4s",
-              color: isActive
-                ? "var(--primary)"
-                : isPast
-                ? "color-mix(in oklab,var(--primary) 45%,var(--muted-foreground))"
-                : "rgba(255,255,255,0.20)",
-              ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 70%,transparent))" } : {}),
-            }}>
-              {i + 1}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
-/* ─────────────── DCA polling hook ─────────────── */
 interface DcaData {
   dca_step?: number;
   dca_total_steps?: number;
   status?: string;
 }
+
 function useDcaData() {
   const [data, setData] = useState<DcaData | null>(null);
   useEffect(() => {
@@ -359,22 +136,19 @@ function useDcaData() {
   return data;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MAIN DASHBOARD
-═══════════════════════════════════════════════════════════ */
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders  = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
-  const prices  = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
   const dcaData = useDcaData();
 
-  const allOrders  = orders.data ?? [];
-  const primary    = allOrders[0];
+  const allOrders = orders.data ?? [];
+  const primary = allOrders[0];
   const sameSymbol = allOrders.filter((o) => o.symbol === primary?.symbol);
-  const tpOrder    = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") === 0) ?? primary;
-  const slOrder    = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") > 0);
+  const tpOrder = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") === 0) ?? primary;
+  const slOrder = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") > 0);
   const orderSymbol = primary?.symbol;
-  const orderBase   = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
+  const orderBase = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
 
   const trades = useQuery({
     queryKey: ["trades", orderSymbol],
@@ -429,7 +203,7 @@ export default function Dashboard() {
     if (!account.data || !prices.data) return [];
     return account.data.balances.map((b) => {
       const total = b.free + b.locked;
-      const usd   = b.asset === "USDT" ? total : total * (prices.data?.[`${b.asset}USDT`] ?? 0);
+      const usd = b.asset === "USDT" ? total : total * (prices.data?.[`${b.asset}USDT`] ?? 0);
       return { ...b, total, usd };
     });
   }, [account.data, prices.data]);
@@ -441,21 +215,21 @@ export default function Dashboard() {
 
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
 
-  const tpPrice    = tpOrder ? parseFloat(tpOrder.price) : 0;
-  const slPrice    = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
-  const orderQty   = primary ? parseFloat(primary.origQty) : 0;
-  const entry      = avgEntry > 0 ? avgEntry : (primary ? parseFloat(primary.price) : 0);
-  const side       = primary?.side ?? "";
-  const dirMult    = side === "SELL" ? 1 : 1;
-  const cur        = livePrice ?? (orderSymbol ? prices.data?.[orderSymbol] : undefined);
+  const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
+  const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
+  const orderQty = primary ? parseFloat(primary.origQty) : 0;
+  const entry = avgEntry > 0 ? avgEntry : (primary ? parseFloat(primary.price) : 0);
+  const side = primary?.side ?? "";
+  const dirMult = side === "SELL" ? 1 : 1;
+  const cur = livePrice ?? (orderSymbol ? prices.data?.[orderSymbol] : undefined);
 
-  const pnlPct      = cur && entry ? ((cur - entry) / entry) * 100 * dirMult : 0;
-  const pnlUsd      = cur && entry ? (cur - entry) * orderQty * dirMult : 0;
-  const targetPct   = tpPrice && entry ? ((tpPrice - entry) / entry) * 100 : 0;
-  const stopPct     = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
+  const pnlPct = cur && entry ? ((cur - entry) / entry) * 100 * dirMult : 0;
+  const pnlUsd = cur && entry ? (cur - entry) * orderQty * dirMult : 0;
+  const targetPct = tpPrice && entry ? ((tpPrice - entry) / entry) * 100 : 0;
+  const stopPct = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
   const distToTpPct = cur && tpPrice ? ((tpPrice - cur) / cur) * 100 : 0;
   const distToSlPct = cur && slPrice ? ((cur - slPrice) / cur) * 100 : 0;
-
+  // TP bar: fills as price moves toward tpPrice. Range = slPrice → tpPrice (or entry → tpPrice when no SL).
   const tpProgress = cur && tpPrice
     ? (slPrice && tpPrice !== slPrice
         ? Math.max(0, Math.min(1, (cur - slPrice) / (tpPrice - slPrice)))
@@ -464,6 +238,7 @@ export default function Dashboard() {
         : 0)
     : 0;
 
+  // SL bar: fills as price moves toward slPrice. Range = tpPrice → slPrice (or entry → slPrice when no TP).
   const slProgress = cur && slPrice
     ? (tpPrice && tpPrice !== slPrice
         ? Math.max(0, Math.min(1, (tpPrice - cur) / (tpPrice - slPrice)))
@@ -472,64 +247,41 @@ export default function Dashboard() {
         : 0)
     : 0;
 
-  const dcaStep  = dcaData?.dca_step ?? 0;
+  const dcaStep = dcaData?.dca_step ?? 0;
   const dcaTotal = dcaData?.dca_total_steps ?? 6;
-  const showDca  = !!primary && dcaStep > 0 && dcaData?.status !== "COMPLETED";
+  const showDca = !!primary && dcaStep > 0 && dcaData?.status !== "COMPLETED";
 
   const chartLines = useMemo(() => {
     const out: Array<{ price: number; label: string; color: string }> = [];
     if (orderSymbol && chartSymbol === orderSymbol) {
-      if (entry   > 0) out.push({ price: entry,   label: `Entry ${fmtPrice(entry)}`,   color: "#a3b1c2" });
-      if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`,    color: "#10b981" });
-      if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`,    color: "#ef4444" });
+      if (entry > 0) out.push({ price: entry, label: `Entry ${fmtPrice(entry)}`, color: "#a3b1c2" });
+      if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`, color: "#10b981" });
+      if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`, color: "#ef4444" });
     }
     return out;
   }, [orderSymbol, chartSymbol, entry, tpPrice, slPrice]);
 
   return (
     <AppLayout>
-      {/* Inject all glass + animation styles once */}
-      <style>{GLASS_STYLES}</style>
+      <div className="space-y-5">
 
-      {/* Ambient background mesh */}
-      <div className="dash-bg-ambient" />
-
-      <div className="relative z-10 space-y-5">
-
-        {/* ══════════════════ WALLET ══════════════════ */}
-        <section className="glass-card-primary glass-reflect rounded-2xl p-5 md:p-6 relative overflow-hidden">
-          {/* Radial glow overlay */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "radial-gradient(ellipse 80% 60% at 90% 0%, color-mix(in oklab,var(--primary) 20%,transparent), transparent 65%)",
-            }}
-          />
-          {/* Bottom edge fade */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-16 pointer-events-none"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.18), transparent)" }}
-          />
-
+        {/* ── WALLET ── */}
+        <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
           <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <WalletIcon className="h-3.5 w-3.5" />
             Wallet
           </div>
-
           <div className="relative mt-3">
-            <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground via-foreground/90 to-primary/70 bg-clip-text text-transparent">
+            <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-primary/70 bg-clip-text text-transparent">
               ${account.isLoading ? "…" : fmt(totalUsdt)}
             </span>
           </div>
-
           {walletAssets.length > 0 && (
             <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               {walletAssets.slice(0, 10).map((b) => (
-                <div
-                  key={b.asset}
-                  className="glass-chip shrink-0 rounded-xl px-3 py-2 flex items-center gap-2 min-w-[150px] cursor-default"
-                >
+                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-card/60 px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
                   <CoinIcon symbol={b.asset} size={28} />
                   <div className="min-w-0">
                     <div className="text-xs font-bold truncate">{b.asset}</div>
@@ -541,21 +293,11 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* ══════════════════ ACTIVE TRADE ══════════════════ */}
-        <section
-          className={`glass-top-shimmer rounded-2xl p-5 md:p-6 relative overflow-hidden transition-shadow ${
-            primary
-              ? "glass-card-primary"
-              : "glass-card"
-          }`}
-          style={primary ? {
-            boxShadow: "0 0 70px -20px color-mix(in oklab, var(--primary) 45%, transparent), 0 8px 40px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.09)",
-          } : {}}
-        >
+        {/* ── ACTIVE TRADE ── */}
+        <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
-              {/* Top shimmer line is handled by .glass-top-shimmer::before */}
-
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
               <div className="relative flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative">
@@ -584,16 +326,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* ── Live price bar ── */}
-              <div
-                className={`relative mt-5 rounded-xl px-4 py-3 flex items-center justify-between transition-all duration-300 glass-inner ${
-                  flash === "up"
-                    ? "!border-bull/50 !bg-[color-mix(in_oklab,var(--bull)_8%,rgba(255,255,255,0.04))]"
-                    : flash === "down"
-                    ? "!border-bear/50 !bg-[color-mix(in_oklab,var(--bear)_8%,rgba(255,255,255,0.04))]"
-                    : ""
-                }`}
-              >
+              <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
@@ -604,16 +337,21 @@ export default function Dashboard() {
 
               {/* ── DCA STEP ── */}
               {showDca && (
-                <div className="glass-dca relative mt-4 rounded-xl overflow-hidden px-4 py-4">
-                  {/* Top shimmer */}
+                <div
+                  className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 8%,var(--card)) 0%, color-mix(in oklab,var(--primary) 4%,var(--card)) 100%)",
+                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
+                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
+                  }}
+                >
                   <div
                     className="absolute inset-x-0 top-0 h-px pointer-events-none"
-                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,rgba(255,255,255,0.3)), transparent)" }}
+                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
                   />
-                  {/* Corner glow */}
                   <div
                     className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
-                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 16%,transparent), transparent 70%)" }}
+                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
                   />
 
                   <div className="relative flex items-center justify-between mb-3">
@@ -636,7 +374,7 @@ export default function Dashboard() {
                       </span>
                       <span
                         className="text-base font-black leading-none"
-                        style={{ color: "rgba(255,255,255,0.25)" }}
+                        style={{ color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)" }}
                       >
                         /{dcaTotal}
                       </span>
@@ -647,157 +385,192 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* ── TP / SL Progress tracks ── */}
               <div className="relative mt-4 grid sm:grid-cols-2 gap-3">
-                <ProgressTrack
-                  icon={<Target className="h-3.5 w-3.5" />}
-                  label="TAKE PROFIT"
-                  fromLabel={`Entry $${fmtPrice(entry)}`}
-                  toLabel={tpPrice ? `TP $${fmtPrice(tpPrice)}` : "—"}
-                  pct={tpProgress}
-                  rightValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
-                  hint={tpPrice && cur ? `${distToTpPct >= 0 ? "+" : ""}${distToTpPct.toFixed(2)}% to TP` : ""}
-                  color="bull"
-                />
-                <ProgressTrack
-                  icon={<Shield className="h-3.5 w-3.5" />}
-                  label="Stop loss"
-                  fromLabel={`Entry $${fmtPrice(entry)}`}
-                  toLabel={slPrice ? `SL $${fmtPrice(slPrice)}` : "—"}
-                  pct={slProgress}
-                  rightValue={slPrice ? `${stopPct.toFixed(2)}%` : "—"}
-                  hint={slPrice && cur ? `${distToSlPct.toFixed(2)}% buffer` : ""}
-                  color="bear"
-                />
+                <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
+                  fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={tpPrice ? `TP $${fmtPrice(tpPrice)}` : "—"}
+                  pct={tpProgress} rightValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
+                  hint={tpPrice && cur ? `${distToTpPct >= 0 ? "+" : ""}${distToTpPct.toFixed(2)}% to TP` : ""} color="bull" />
+                <ProgressTrack icon={<Shield className="h-3.5 w-3.5" />} label="Stop loss"
+                  fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={slPrice ? `SL $${fmtPrice(slPrice)}` : "—"}
+                  pct={slProgress} rightValue={slPrice ? `${stopPct.toFixed(2)}%` : "—"}
+                  hint={slPrice && cur ? `${distToSlPct.toFixed(2)}% buffer` : ""} color="bear" />
               </div>
 
-              {/* ── Stat cells ── */}
               <div className="relative mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <Cell label="Entry (avg)" value={`$${fmtPrice(entry)}`} />
-                <Cell label="Qty"         value={`${fmt(orderQty, 4)} ${orderBase}`} />
+                <Cell label="Qty" value={`${fmt(orderQty, 4)} ${orderBase}`} />
                 <Cell label="Take Profit" value={tpPrice ? `$${fmtPrice(tpPrice)}` : "—"} accent />
-                <Cell label="Stop Loss"   value={slPrice ? `$${fmtPrice(slPrice)}` : "—"} danger />
+                <Cell label="Stop Loss" value={slPrice ? `$${fmtPrice(slPrice)}` : "—"} danger />
               </div>
             </>
           ) : (
             <div className="py-10 text-center">
               <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground/40" />
               <h2 className="mt-3 text-xl font-black">No Active Trade</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Place a limit or OCO order on Binance and it will appear here.
-              </p>
+              <p className="text-sm text-muted-foreground mt-1">Place a limit or OCO order on Binance and it will appear here.</p>
             </div>
           )}
         </section>
 
-        {/* ══════════════════ CHILD CARDS ══════════════════ */}
-        {/* These components render their own root element;
-            wrap each in a glass shell so they inherit the theme. */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <BtcCrashCard />
-        </div>
+        <BtcCrashCard />
 
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <PumpScannerCard />
-        </div>
+        <PumpScannerCard />
 
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <PriceChart
-            symbol={chartSymbol}
-            interval="1m"
-            height={500}
-            searchable
-            onSymbolChange={setChartSymbol}
-            priceLines={chartLines}
-          />
-        </div>
-
+        <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
       </div>
     </AppLayout>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CELL — glass stat chip
-═══════════════════════════════════════════════════════════ */
-function Cell({ label, value, accent, danger }: {
-  label: string; value: string; accent?: boolean; danger?: boolean;
-}) {
-  const cls = danger
-    ? "glass-cell-bear"
-    : accent
-    ? "glass-cell-bull"
-    : "glass-inner";
-
+function Cell({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className={`${cls} rounded-lg px-3 py-2`}>
+    <div className={`rounded-lg border px-3 py-2 ${danger ? "border-bear/30 bg-bear/10" : accent ? "border-bull/30 bg-bull/10" : "border-border bg-muted/30"}`}>
       <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
-      <div className={`text-sm font-black mt-0.5 truncate tabular-nums ${danger ? "text-bear" : accent ? "text-bull" : ""}`}>
-        {value}
-      </div>
+      <div className={`text-sm font-black mt-0.5 truncate tabular-nums ${danger ? "text-bear" : accent ? "text-bull" : ""}`}>{value}</div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PROGRESS TRACK — glass bar with animated fill
-═══════════════════════════════════════════════════════════ */
 function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint, color }: {
   icon: React.ReactNode; label: string; fromLabel: string; toLabel: string;
   pct: number; rightValue: string; hint?: string; color: "bull" | "bear";
 }) {
-  const w      = Math.max(2, Math.min(100, pct * 100));
+  const w = Math.max(2, Math.min(100, pct * 100));
   const isBull = color === "bull";
 
-  /* Animated counter */
+  // Animated counter — smoothly counts from old value to new value
   const [displayPct, setDisplayPct] = useState(w);
-  const prevWRef  = useRef(w);
-  const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevWRef = useRef(w);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const start = prevWRef.current;
-    const end   = w;
+    const end = w;
     prevWRef.current = w;
+
     if (Math.abs(end - start) < 0.05) return;
+
     if (timerRef.current) clearInterval(timerRef.current);
-    const STEPS = 28, DURATION_MS = 700;
+
+    const STEPS = 28;
+    const DURATION_MS = 700;
     let step = 0;
+
     timerRef.current = setInterval(() => {
       step++;
-      const t     = step / STEPS;
+      // ease-out cubic
+      const t = step / STEPS;
       const eased = 1 - Math.pow(1 - t, 3);
-      setDisplayPct(start + (end - start) * eased);
-      if (step >= STEPS) { setDisplayPct(end); if (timerRef.current) clearInterval(timerRef.current); }
+      const next = start + (end - start) * eased;
+      setDisplayPct(next);
+      if (step >= STEPS) {
+        setDisplayPct(end);
+        if (timerRef.current) clearInterval(timerRef.current);
+      }
     }, DURATION_MS / STEPS);
+
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [w]);
 
-  /* Badge pop */
+  // badge pops in when value changes
   const [popKey, setPopKey] = useState(0);
   const prevRounded = useRef(Math.round(w * 10));
   useEffect(() => {
     const next = Math.round(w * 10);
-    if (next !== prevRounded.current) { prevRounded.current = next; setPopKey((k) => k + 1); }
+    if (next !== prevRounded.current) {
+      prevRounded.current = next;
+      setPopKey((k) => k + 1);
+    }
   }, [w]);
 
   return (
-    <div className="glass-progress rounded-xl p-3 relative overflow-hidden">
+    <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
+      <style>{`
+        @keyframes progress-glow-bull {
+          0%, 100% {
+            box-shadow:
+              0 0 2px 0px color-mix(in oklab, var(--bull) 12%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bull) 5%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bull) 18%, transparent),
+              0 0 6px 1px color-mix(in oklab, var(--bull) 8%, transparent);
+          }
+        }
+        @keyframes progress-glow-bear {
+          0%, 100% {
+            box-shadow:
+              0 0 2px 0px color-mix(in oklab, var(--bear) 12%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bear) 5%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bear) 18%, transparent),
+              0 0 6px 1px color-mix(in oklab, var(--bear) 8%, transparent);
+          }
+        }
+        @keyframes progress-shimmer {
+          0%   { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
+          20%  { opacity: 0.6; }
+          80%  { opacity: 0.6; }
+          100% { transform: translateX(280%) skewX(-12deg); opacity: 0; }
+        }
+        @keyframes progress-tip-beat-bull {
+          0%, 100% {
+            transform: translateY(-50%) scale(1);
+            box-shadow:
+              0 0 2px 1px color-mix(in oklab, var(--bull) 20%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bull) 9%, transparent);
+          }
+          50% {
+            transform: translateY(-50%) scale(1.15);
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bull) 28%, transparent),
+              0 0 6px 2px color-mix(in oklab, var(--bull) 12%, transparent);
+          }
+        }
+        @keyframes progress-tip-beat-bear {
+          0%, 100% {
+            transform: translateY(-50%) scale(1);
+            box-shadow:
+              0 0 2px 1px color-mix(in oklab, var(--bear) 20%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bear) 9%, transparent);
+          }
+          50% {
+            transform: translateY(-50%) scale(1.15);
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bear) 28%, transparent),
+              0 0 6px 2px color-mix(in oklab, var(--bear) 12%, transparent);
+          }
+        }
+        @keyframes pct-badge-pop {
+          0%   { transform: translateX(-50%) scale(0.75); opacity: 0; }
+          60%  { transform: translateX(-50%) scale(1.12); opacity: 1; }
+          100% { transform: translateX(-50%) scale(1);    opacity: 1; }
+        }
+        @keyframes pct-digit-up {
+          0%   { transform: translateY(60%); opacity: 0; }
+          100% { transform: translateY(0);   opacity: 1; }
+        }
+        .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; }
+        .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; }
+        .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; }
+        .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; }
+        .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; }
+        .pct-badge-pop           { animation: pct-badge-pop 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+        .pct-digit-up            { animation: pct-digit-up 0.22s ease-out both; }
+      `}</style>
 
       <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
         <span className="flex items-center gap-1.5">{icon}{label}</span>
         <span className={`text-sm font-black tabular-nums ${isBull ? "text-bull" : "text-bear"}`}>{rightValue}</span>
       </div>
 
-      {/* Track */}
+      {/* Track — extra top padding to make room for the floating badge */}
       <div className="relative mt-5" style={{ paddingBottom: "2px" }}>
-        <div
-          className="relative h-2 rounded-full"
-          style={{
-            overflow: "visible",
-            background: "rgba(255,255,255,0.07)",
-            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.40)",
-          }}
-        >
+        <div className="relative h-2 rounded-full bg-muted/60" style={{ overflow: "visible" }}>
+
           {/* Filled bar */}
           <div
             className={`relative h-full rounded-full transition-[width] duration-700 overflow-hidden ${isBull ? "progress-bar-glow-bull" : "progress-bar-glow-bear"}`}
@@ -813,7 +586,7 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
               className="progress-shimmer absolute inset-y-0 pointer-events-none"
               style={{
                 width: "38%",
-                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.48), transparent)",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)",
                 borderRadius: "999px",
               }}
             />
@@ -837,7 +610,7 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
             />
           )}
 
-          {/* Floating percentage badge */}
+          {/* ── Floating percentage badge above tip ── */}
           {w > 3 && (
             <div
               key={popKey}
@@ -851,6 +624,7 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
                 zIndex: 20,
               }}
             >
+              {/* Badge pill */}
               <div
                 style={{
                   display: "inline-flex",
@@ -865,23 +639,22 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
                   lineHeight: 1,
                   whiteSpace: "nowrap",
                   background: isBull
-                    ? "color-mix(in oklab, var(--bull) 18%, rgba(255,255,255,0.05))"
-                    : "color-mix(in oklab, var(--bear) 18%, rgba(255,255,255,0.05))",
+                    ? "color-mix(in oklab, var(--bull) 18%, var(--card))"
+                    : "color-mix(in oklab, var(--bear) 18%, var(--card))",
                   border: isBull
-                    ? "1px solid color-mix(in oklab, var(--bull) 50%, rgba(255,255,255,0.10))"
-                    : "1px solid color-mix(in oklab, var(--bear) 50%, rgba(255,255,255,0.10))",
+                    ? "1px solid color-mix(in oklab, var(--bull) 50%, transparent)"
+                    : "1px solid color-mix(in oklab, var(--bear) 50%, transparent)",
                   color: isBull ? "var(--bull)" : "var(--bear)",
                   boxShadow: isBull
-                    ? "0 0 6px 0px color-mix(in oklab, var(--bull) 20%, transparent)"
-                    : "0 0 6px 0px color-mix(in oklab, var(--bear) 20%, transparent)",
-                  backdropFilter: "blur(8px)",
+                    ? "0 0 2px 0px color-mix(in oklab, var(--bull) 10%, transparent)"
+                    : "0 0 2px 0px color-mix(in oklab, var(--bear) 10%, transparent)",
                 }}
               >
                 <span key={`${popKey}-num`} className="pct-digit-up">
                   {displayPct.toFixed(1)}%
                 </span>
               </div>
-              {/* Connector line */}
+              {/* Connector line from badge to dot */}
               <div
                 style={{
                   position: "absolute",
