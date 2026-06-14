@@ -426,15 +426,130 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   pct: number; rightValue: string; hint?: string; color: "bull" | "bear";
 }) {
   const w = Math.max(2, Math.min(100, pct * 100));
+  const isBull = color === "bull";
+
   return (
     <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
+      <style>{`
+        @keyframes progress-glow-bull {
+          0%, 100% {
+            box-shadow:
+              0 0 4px 1px color-mix(in oklab, var(--bull) 45%, transparent),
+              0 0 12px 3px color-mix(in oklab, var(--bull) 22%, transparent),
+              0 0 28px 6px color-mix(in oklab, var(--bull) 10%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 8px 2px color-mix(in oklab, var(--bull) 75%, transparent),
+              0 0 20px 6px color-mix(in oklab, var(--bull) 40%, transparent),
+              0 0 42px 10px color-mix(in oklab, var(--bull) 18%, transparent);
+          }
+        }
+        @keyframes progress-glow-bear {
+          0%, 100% {
+            box-shadow:
+              0 0 4px 1px color-mix(in oklab, var(--bear) 45%, transparent),
+              0 0 12px 3px color-mix(in oklab, var(--bear) 22%, transparent),
+              0 0 28px 6px color-mix(in oklab, var(--bear) 10%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 8px 2px color-mix(in oklab, var(--bear) 75%, transparent),
+              0 0 20px 6px color-mix(in oklab, var(--bear) 40%, transparent),
+              0 0 42px 10px color-mix(in oklab, var(--bear) 18%, transparent);
+          }
+        }
+        @keyframes progress-shimmer {
+          0%   { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
+          20%  { opacity: 1; }
+          80%  { opacity: 1; }
+          100% { transform: translateX(280%) skewX(-12deg); opacity: 0; }
+        }
+        @keyframes progress-tip-beat-bull {
+          0%, 100% {
+            transform: translateY(-50%) scale(1);
+            box-shadow:
+              0 0 5px 2px color-mix(in oklab, var(--bull) 65%, transparent),
+              0 0 12px 4px color-mix(in oklab, var(--bull) 30%, transparent);
+          }
+          50% {
+            transform: translateY(-50%) scale(1.45);
+            box-shadow:
+              0 0 10px 4px color-mix(in oklab, var(--bull) 85%, transparent),
+              0 0 22px 8px color-mix(in oklab, var(--bull) 45%, transparent),
+              0 0 36px 12px color-mix(in oklab, var(--bull) 18%, transparent);
+          }
+        }
+        @keyframes progress-tip-beat-bear {
+          0%, 100% {
+            transform: translateY(-50%) scale(1);
+            box-shadow:
+              0 0 5px 2px color-mix(in oklab, var(--bear) 65%, transparent),
+              0 0 12px 4px color-mix(in oklab, var(--bear) 30%, transparent);
+          }
+          50% {
+            transform: translateY(-50%) scale(1.45);
+            box-shadow:
+              0 0 10px 4px color-mix(in oklab, var(--bear) 85%, transparent),
+              0 0 22px 8px color-mix(in oklab, var(--bear) 45%, transparent),
+              0 0 36px 12px color-mix(in oklab, var(--bear) 18%, transparent);
+          }
+        }
+        .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; }
+        .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; }
+        .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; }
+        .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; }
+        .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; }
+      `}</style>
+
       <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
         <span className="flex items-center gap-1.5">{icon}{label}</span>
-        <span className={`text-sm font-black tabular-nums ${color === "bull" ? "text-bull" : "text-bear"}`}>{rightValue}</span>
+        <span className={`text-sm font-black tabular-nums ${isBull ? "text-bull" : "text-bear"}`}>{rightValue}</span>
       </div>
-      <div className="mt-2 h-2 rounded-full bg-muted/60 overflow-hidden">
-        <div className={`h-full rounded-full transition-[width] duration-700 ${color === "bull" ? "bg-bull" : "bg-bear"}`} style={{ width: `${w}%` }} />
+
+      {/* Track */}
+      <div className="relative mt-2 h-2 rounded-full bg-muted/60" style={{ overflow: "visible" }}>
+
+        {/* Filled bar */}
+        <div
+          className={`relative h-full rounded-full transition-[width] duration-700 overflow-hidden ${isBull ? "progress-bar-glow-bull" : "progress-bar-glow-bear"}`}
+          style={{
+            width: `${w}%`,
+            background: isBull
+              ? "linear-gradient(90deg, color-mix(in oklab, var(--bull) 55%, transparent) 0%, var(--bull) 100%)"
+              : "linear-gradient(90deg, color-mix(in oklab, var(--bear) 55%, transparent) 0%, var(--bear) 100%)",
+          }}
+        >
+          {/* Shimmer sweep */}
+          <div
+            className="progress-shimmer absolute inset-y-0 pointer-events-none"
+            style={{
+              width: "38%",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)",
+              borderRadius: "999px",
+            }}
+          />
+        </div>
+
+        {/* Glowing tip dot */}
+        {w > 3 && (
+          <div
+            className={isBull ? "progress-tip-bull" : "progress-tip-bear"}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: `calc(${w}% - 5px)`,
+              width: "10px",
+              height: "10px",
+              borderRadius: "999px",
+              background: isBull ? "var(--bull)" : "var(--bear)",
+              zIndex: 10,
+              pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
+
       <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
         <span className="truncate">{fromLabel}</span>
         <span className="truncate">{toLabel}</span>
