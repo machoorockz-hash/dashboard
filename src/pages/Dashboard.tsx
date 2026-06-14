@@ -28,21 +28,19 @@ function StepSegments({ step, total }: { step: number; total: number }) {
         @keyframes dca-glow-breathe {
           0%, 100% {
             box-shadow:
-              0 0 6px 1px color-mix(in oklab,var(--primary) 45%,transparent),
-              0 0 18px 4px color-mix(in oklab,var(--primary) 22%,transparent),
-              0 0 40px 8px color-mix(in oklab,var(--primary) 10%,transparent);
+              0 0 3px 0px color-mix(in oklab,var(--primary) 20%,transparent),
+              0 0 7px 1px color-mix(in oklab,var(--primary) 10%,transparent);
           }
           50% {
             box-shadow:
-              0 0 12px 3px color-mix(in oklab,var(--primary) 75%,transparent),
-              0 0 28px 8px color-mix(in oklab,var(--primary) 38%,transparent),
-              0 0 55px 14px color-mix(in oklab,var(--primary) 18%,transparent);
+              0 0 5px 1px color-mix(in oklab,var(--primary) 30%,transparent),
+              0 0 12px 2px color-mix(in oklab,var(--primary) 14%,transparent);
           }
         }
         @keyframes dca-shimmer-sweep {
           0%   { transform: translateX(-180%) skewX(-15deg); opacity: 0; }
-          15%  { opacity: 1; }
-          85%  { opacity: 1; }
+          15%  { opacity: 0.35; }
+          85%  { opacity: 0.35; }
           100% { transform: translateX(280%) skewX(-15deg); opacity: 0; }
         }
         .dca-glow-breathe  { animation: dca-glow-breathe  2.2s ease-in-out infinite; }
