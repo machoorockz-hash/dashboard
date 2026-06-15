@@ -103,22 +103,10 @@ function DcaSteps({ step, total }: { step: number; total: number }) {
             color:"color-mix(in oklab,var(--primary) 60%,rgba(255,255,255,0.40))" }}>
             DCA STEP
           </span>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            {/* Completed badge */}
-            <span style={{
-              fontSize:9, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase",
-              padding:"2px 7px", borderRadius:999,
-              background:"color-mix(in oklab,var(--primary) 10%,rgba(255,255,255,0.04))",
-              border:"1px solid color-mix(in oklab,var(--primary) 22%,rgba(255,255,255,0.06))",
-              color:"color-mix(in oklab,var(--primary) 70%,rgba(255,255,255,0.50))",
-            }}>
-              {step - 1} done
-            </span>
-            <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.30)", fontVariantNumeric:"tabular-nums" }}>
-              <span style={{ color:"var(--primary)", fontWeight:900, fontSize:13 }}>{step}</span>
-              {" / "}{total}
-            </span>
-          </div>
+          <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.30)", fontVariantNumeric:"tabular-nums" }}>
+            <span style={{ color:"var(--primary)", fontWeight:900, fontSize:13 }}>{step}</span>
+            {" / "}{total}
+          </span>
         </div>
 
         {/* ── Orb chain ── */}
@@ -200,24 +188,11 @@ function DcaSteps({ step, total }: { step: number; total: number }) {
                     </div>
                   </div>
 
-                  {/* Step label below orb */}
-                  <span style={{
-                    fontSize:8, fontWeight:700, letterSpacing:"0.04em",
-                    fontVariantNumeric:"tabular-nums",
-                    color: isActive
-                      ? "color-mix(in oklab,var(--primary) 80%,rgba(255,255,255,0.5))"
-                      : isPast
-                      ? "rgba(255,255,255,0.28)"
-                      : "rgba(255,255,255,0.10)",
-                    transition:"color 0.4s",
-                  }}>
-                    {i + 1}
-                  </span>
                 </div>
 
                 {/* ── Connecting tube ── */}
                 {!isLast && (
-                  <div style={{ flex:1, height:1.5, position:"relative", margin:"0 3px", marginBottom:13 }}>
+                  <div style={{ flex:1, height:1.5, position:"relative", margin:"0 3px" }}>
                     <div style={{ position:"absolute", inset:0, borderRadius:999, background:"rgba(255,255,255,0.06)" }} />
                     {isPast && (
                       <div style={{
@@ -236,76 +211,6 @@ function DcaSteps({ step, total }: { step: number; total: number }) {
               </div>
             );
           })}
-        </div>
-
-        {/* ── Stat footer ── */}
-        <div style={{
-          marginTop:14,
-          padding:"8px 10px",
-          borderRadius:10,
-          background:"rgba(255,255,255,0.03)",
-          border:"1px solid rgba(255,255,255,0.06)",
-          display:"flex", alignItems:"center", gap:0,
-        }}>
-          {/* Progress bar + pct */}
-          <div style={{ flex:1 }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-              <span style={{ fontSize:8, fontWeight:700, letterSpacing:"0.10em", textTransform:"uppercase", color:"rgba(255,255,255,0.22)" }}>
-                Progress
-              </span>
-              <span style={{ fontSize:9, fontWeight:800, fontVariantNumeric:"tabular-nums",
-                color:"color-mix(in oklab,var(--primary) 70%,rgba(255,255,255,0.5))" }}>
-                {pct}%
-              </span>
-            </div>
-            <div style={{ height:3, borderRadius:999, background:"rgba(255,255,255,0.07)", position:"relative" }}>
-              <div style={{
-                position:"absolute", left:0, top:0, bottom:0, borderRadius:999,
-                width:`${pct}%`,
-                background:`linear-gradient(90deg,color-mix(in oklab,var(--primary) 40%,transparent),var(--primary))`,
-                transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)",
-              }} />
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div style={{ width:1, height:28, background:"rgba(255,255,255,0.07)", margin:"0 12px", flexShrink:0 }} />
-
-          {/* Remaining */}
-          <div style={{ textAlign:"center", flexShrink:0 }}>
-            <div style={{ fontSize:16, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums",
-              color:"rgba(255,255,255,0.40)" }}>
-              {remaining}
-            </div>
-            <div style={{ fontSize:7.5, fontWeight:700, letterSpacing:"0.10em", textTransform:"uppercase",
-              color:"rgba(255,255,255,0.18)", marginTop:2 }}>
-              left
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div style={{ width:1, height:28, background:"rgba(255,255,255,0.07)", margin:"0 12px", flexShrink:0 }} />
-
-          {/* Status pill */}
-          <div style={{ flexShrink:0 }}>
-            <div style={{
-              display:"inline-flex", alignItems:"center", gap:5,
-              padding:"3px 8px", borderRadius:999,
-              background:"color-mix(in oklab,var(--primary) 8%,rgba(255,255,255,0.03))",
-              border:"1px solid color-mix(in oklab,var(--primary) 18%,rgba(255,255,255,0.05))",
-            }}>
-              <span style={{
-                width:5, height:5, borderRadius:"50%", flexShrink:0,
-                background:"var(--primary)",
-                boxShadow:"0 0 4px 1px color-mix(in oklab,var(--primary) 45%,transparent)",
-                animation:"pulse 2.5s ease-in-out infinite",
-              }} />
-              <span style={{ fontSize:8, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase",
-                color:"color-mix(in oklab,var(--primary) 65%,rgba(255,255,255,0.45))" }}>
-                Active
-              </span>
-            </div>
-          </div>
         </div>
 
       </div>
