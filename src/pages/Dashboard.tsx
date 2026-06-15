@@ -57,148 +57,153 @@ function fmtUAE(ts: number): { date: string; time: string } {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DcaSteps — centered spotlight display
-   Active step in a frosted-glass hero panel; neighbours ghost out on each side.
+   DcaSteps — glass orb chain
+   Each step is a glass bubble sphere. Past = filled glow, Active = large
+   pulsing orb with spinning inner light, Future = empty crystal ring.
+   Orbs are connected by a thin tube that fills as steps complete.
 ───────────────────────────────────────────────────────────────────────────── */
 function DcaSteps({ step, total }: { step: number; total: number }) {
-  const [displayed, setDisplayed] = useState(step);
-  const [slideDir,  setSlideDir]  = useState<"left" | "right" | null>(null);
-  const prevStep = useRef(step);
-
-  useEffect(() => {
-    if (step === prevStep.current) return;
-    setSlideDir(step > prevStep.current ? "left" : "right");
-    prevStep.current = step;
-    const t = setTimeout(() => { setDisplayed(step); setSlideDir(null); }, 280);
-    return () => clearTimeout(t);
-  }, [step]);
-
   const pct = Math.round((step / total) * 100);
-
-  const neighbours: Array<{ n: number; offset: number }> = [];
-  for (let d = -2; d <= 2; d++) {
-    const n = displayed + d;
-    if (n >= 1 && n <= total) neighbours.push({ n, offset: d });
-  }
 
   return (
     <>
       <style>{`
-        @keyframes dca-panel-glow {
+        @keyframes orb-pulse {
           0%,100% {
             box-shadow:
-              0 0 0 1px  rgba(255,255,255,0.10),
-              0 0 18px 2px color-mix(in oklab,var(--primary) 28%,transparent),
-              0 0 40px 6px color-mix(in oklab,var(--primary) 10%,transparent),
-              inset 0 1px 0 rgba(255,255,255,0.14);
+              0 0 0 0px   color-mix(in oklab,var(--primary)  0%,transparent),
+              0 0 10px 2px color-mix(in oklab,var(--primary) 55%,transparent),
+              0 0 24px 4px color-mix(in oklab,var(--primary) 22%,transparent),
+              inset 0 0 10px 2px color-mix(in oklab,var(--primary) 45%,transparent),
+              inset 0 1px 0 rgba(255,255,255,0.28);
           }
           50% {
             box-shadow:
-              0 0 0 1px  rgba(255,255,255,0.16),
-              0 0 28px 4px color-mix(in oklab,var(--primary) 45%,transparent),
-              0 0 60px 10px color-mix(in oklab,var(--primary) 18%,transparent),
-              inset 0 1px 0 rgba(255,255,255,0.22);
+              0 0 0 7px   color-mix(in oklab,var(--primary) 10%,transparent),
+              0 0 20px 4px color-mix(in oklab,var(--primary) 72%,transparent),
+              0 0 42px 8px color-mix(in oklab,var(--primary) 28%,transparent),
+              inset 0 0 16px 3px color-mix(in oklab,var(--primary) 65%,transparent),
+              inset 0 1px 0 rgba(255,255,255,0.45);
           }
         }
-        @keyframes dca-slide-l { from { transform: translateX(18px); opacity:0; } to { transform:translateX(0); opacity:1; } }
-        @keyframes dca-slide-r { from { transform:translateX(-18px); opacity:0; } to { transform:translateX(0); opacity:1; } }
-        .dca-panel-glow { animation: dca-panel-glow 2.6s ease-in-out infinite; }
-        .dca-slide-l    { animation: dca-slide-l 0.28s cubic-bezier(0.22,1,0.36,1) both; }
-        .dca-slide-r    { animation: dca-slide-r 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes orb-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        .orb-pulse { animation: orb-pulse 2.4s ease-in-out infinite; }
+        .orb-spin  { animation: orb-spin  8s linear infinite; }
       `}</style>
 
       <div className="mt-5 select-none">
-        {/* Spotlight row */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:80, position:"relative" }}>
-          {/* edge fades */}
-          <div style={{
-            position:"absolute", inset:0, pointerEvents:"none", zIndex:2,
-            background:"linear-gradient(90deg,var(--background,#0d0d0d) 0%,transparent 20%,transparent 80%,var(--background,#0d0d0d) 100%)",
-          }} />
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-4">
+          <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", textTransform:"uppercase",
+            color:"color-mix(in oklab,var(--primary) 65%,rgba(255,255,255,0.45))" }}>
+            DCA Averaging
+          </span>
+          <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.35)", fontVariantNumeric:"tabular-nums" }}>
+            <span style={{ color:"var(--primary)", fontWeight:900, fontSize:13 }}>{step}</span>
+            {" / "}{total}
+            <span style={{ marginLeft:5, fontSize:9, color:"rgba(255,255,255,0.22)" }}>· {pct}%</span>
+          </span>
+        </div>
 
-          {neighbours.map(({ n, offset }) => {
-            const isCenter = offset === 0;
-            const dist = Math.abs(offset);
-            const opacity = isCenter ? 1 : dist === 1 ? 0.28 : 0.10;
-            const blur = dist > 1 ? 1 : 0;
+        {/* Orb chain */}
+        <div style={{ display:"flex", alignItems:"center" }}>
+          {Array.from({ length: total }).map((_, i) => {
+            const isActive = i === step - 1;
+            const isPast   = i < step - 1;
+            const isLast   = i === total - 1;
+
             return (
-              <div key={n} style={{
-                display:"flex", alignItems:"center", justifyContent:"center",
-                width: isCenter ? 90 : dist === 1 ? 52 : 38,
-                flexShrink:0, opacity,
-                filter: blur ? `blur(${blur}px)` : undefined,
-                transition:"opacity 0.3s ease,width 0.3s ease",
-                zIndex: isCenter ? 1 : 0, position:"relative",
-              }}>
-                {isCenter ? (
-                  <div className="dca-panel-glow" style={{
-                    width:84, height:68, borderRadius:18,
-                    background:"rgba(255,255,255,0.07)",
-                    backdropFilter:"blur(24px) saturate(180%)",
-                    WebkitBackdropFilter:"blur(24px) saturate(180%)",
-                    display:"flex", flexDirection:"column",
-                    alignItems:"center", justifyContent:"center", gap:2,
-                    overflow:"hidden", position:"relative",
-                  }}>
+              <div key={i} style={{ display:"flex", alignItems:"center", flex: isLast ? "0 0 auto" : 1 }}>
+
+                {/* ── Orb ── */}
+                <div style={{ position:"relative", flexShrink:0 }}>
+                  {/* outer halo ring (active only) */}
+                  {isActive && (
                     <div style={{
-                      position:"absolute", top:0, left:0, right:0, height:1,
-                      background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)",
+                      position:"absolute", inset:-7, borderRadius:"50%", pointerEvents:"none",
+                      border:"1px solid color-mix(in oklab,var(--primary) 30%,transparent)",
                     }} />
+                  )}
+
+                  <div
+                    className={isActive ? "orb-pulse" : ""}
+                    style={{
+                      width:  isActive ? 38 : isPast ? 24 : 18,
+                      height: isActive ? 38 : isPast ? 24 : 18,
+                      borderRadius: "50%",
+                      position: "relative",
+                      overflow: "hidden",
+                      flexShrink: 0,
+                      transition: "width 0.5s cubic-bezier(0.34,1.56,0.64,1), height 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+                      background: isActive
+                        ? "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.04))"
+                        : isPast
+                        ? "radial-gradient(circle at 35% 30%, color-mix(in oklab,var(--primary) 50%,rgba(255,255,255,0.10)), color-mix(in oklab,var(--primary) 22%,transparent))"
+                        : "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.055), rgba(255,255,255,0.015))",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: isActive
+                        ? "1px solid rgba(255,255,255,0.22)"
+                        : isPast
+                        ? "1px solid color-mix(in oklab,var(--primary) 50%,rgba(255,255,255,0.08))"
+                        : "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    {/* spinning light conic (active only) */}
+                    {isActive && (
+                      <div className="orb-spin" style={{
+                        position:"absolute", inset:0, borderRadius:"50%",
+                        background:"conic-gradient(from 0deg,transparent 70%,color-mix(in oklab,var(--primary) 55%,rgba(255,255,255,0.5)) 85%,transparent 100%)",
+                      }} />
+                    )}
+                    {/* specular highlight */}
                     <div style={{
-                      position:"absolute", top:9, right:10,
-                      width:5, height:5, borderRadius:"50%",
-                      background:"var(--primary)",
-                      boxShadow:"0 0 5px 1px color-mix(in oklab,var(--primary) 70%,transparent)",
-                      animation:"pulse 2s ease-in-out infinite",
+                      position:"absolute", top:"12%", left:"18%",
+                      width:"34%", height:"24%", borderRadius:"50%",
+                      background:"rgba(255,255,255,0.32)", filter:"blur(2px)", pointerEvents:"none",
                     }} />
-                    <span className={slideDir==="left"?"dca-slide-l":slideDir==="right"?"dca-slide-r":""} style={{
-                      fontSize:36, fontWeight:900, lineHeight:1, letterSpacing:"-0.05em",
-                      fontVariantNumeric:"tabular-nums", color:"var(--primary)",
-                      textShadow:"0 0 20px color-mix(in oklab,var(--primary) 70%,transparent),0 0 40px color-mix(in oklab,var(--primary) 35%,transparent)",
-                    }}>
-                      {String(displayed).padStart(2,"0")}
-                    </span>
-                    <span style={{
-                      fontSize:9, fontWeight:700, letterSpacing:"0.12em",
-                      textTransform:"uppercase",
-                      color:"color-mix(in oklab,var(--primary) 55%,rgba(255,255,255,0.5))",
-                    }}>
-                      OF {String(total).padStart(2,"0")}
-                    </span>
+                    {/* step number */}
+                    <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <span style={{
+                        fontSize: isActive ? 14 : isPast ? 9 : 8,
+                        fontWeight: 900,
+                        fontVariantNumeric: "tabular-nums",
+                        lineHeight: 1,
+                        position: "relative",
+                        zIndex: 1,
+                        color: isActive
+                          ? "var(--primary)"
+                          : isPast ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.20)",
+                        textShadow: isActive
+                          ? "0 0 8px color-mix(in oklab,var(--primary) 90%,transparent)"
+                          : "none",
+                        transition: "font-size 0.4s, color 0.4s",
+                      }}>
+                        {i + 1}
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  <span style={{
-                    fontSize: dist===1 ? 28 : 20, fontWeight:900,
-                    letterSpacing:"-0.04em", fontVariantNumeric:"tabular-nums",
-                    color:"rgba(255,255,255,0.35)",
-                  }}>
-                    {String(n).padStart(2,"0")}
-                  </span>
+                </div>
+
+                {/* ── Connecting tube ── */}
+                {!isLast && (
+                  <div style={{ flex:1, height:2, position:"relative", margin:"0 3px" }}>
+                    <div style={{ position:"absolute", inset:0, borderRadius:999, background:"rgba(255,255,255,0.07)" }} />
+                    {isPast && (
+                      <div style={{
+                        position:"absolute", inset:0, borderRadius:999,
+                        background:"linear-gradient(90deg,color-mix(in oklab,var(--primary) 55%,transparent),color-mix(in oklab,var(--primary) 65%,transparent))",
+                        boxShadow:"0 0 4px 1px color-mix(in oklab,var(--primary) 28%,transparent)",
+                      }} />
+                    )}
+                  </div>
                 )}
               </div>
             );
           })}
-        </div>
-
-        {/* Bottom label + thin progress line */}
-        <div className="mt-3 px-1">
-          <div className="flex items-center justify-between mb-1.5">
-            <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase", color:"color-mix(in oklab,var(--primary) 60%,rgba(255,255,255,0.4))" }}>
-              DCA Averaging
-            </span>
-            <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.35)", fontVariantNumeric:"tabular-nums" }}>
-              {pct}% complete
-            </span>
-          </div>
-          <div style={{ height:2, borderRadius:999, background:"rgba(255,255,255,0.07)", position:"relative" }}>
-            <div style={{
-              position:"absolute", left:0, top:0, bottom:0,
-              width:`${pct}%`, borderRadius:999,
-              background:`linear-gradient(90deg,color-mix(in oklab,var(--primary) 55%,transparent),var(--primary))`,
-              boxShadow:"0 0 6px 1px color-mix(in oklab,var(--primary) 40%,transparent)",
-              transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)",
-            }} />
-          </div>
         </div>
       </div>
     </>
