@@ -43,19 +43,7 @@ function fmtUAE(ts: number): { date: string; time: string } {
   return { date, time };
 }
 
-function StepSegments({
-  step,
-  total,
-  stepAmounts,
-  stepTimestamps,
-}: {
-  step: number;
-  total: number;
-  stepAmounts?: number[];
-  stepTimestamps?: number[];
-}) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
+function StepSegments({ step, total }: { step: number; total: number }) {
   return (
     <>
       <style>{`
@@ -82,13 +70,8 @@ function StepSegments({
           60%  { transform: scale(1.15); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes dca-tooltip-in {
-          0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
-          100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
-        }
         .dca-node-breathe { animation: dca-node-breathe 2.4s ease-in-out infinite; }
         .dca-check-pop    { animation: dca-check-pop    0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
-        .dca-tooltip-in   { animation: dca-tooltip-in   0.22s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
       <div style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}>
@@ -97,262 +80,100 @@ function StepSegments({
           const isActive = i === step - 1;
           const isPast   = filled && !isActive;
           const isLast   = i === total - 1;
-          const isHovered = hoveredIdx === i;
 
-          const nodeSize = isActive ? 30 : isPast ? 22 : 20;
-          const borderW  = isActive ? 2 : isPast ? 0 : 1.5;
-
-          const statusLabel = isPast ? "Completed" : isActive ? "Active" : "Pending";
-          const statusColor = isPast
-            ? "var(--primary)"
-            : isActive
-            ? "var(--primary)"
-            : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
-          const statusBg = isPast
-            ? "color-mix(in oklab,var(--primary) 18%,var(--card))"
-            : isActive
-            ? "color-mix(in oklab,var(--primary) 12%,var(--card))"
-            : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
-          const statusBorder = isPast || isActive
-            ? "color-mix(in oklab,var(--primary) 35%,transparent)"
-            : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
-
-          const amount    = stepAmounts?.[i];
-          const timestamp = stepTimestamps?.[i];
-          const timeStr   = timestamp ? fmtUAE(timestamp) : null;
+          const nodeSize   = isActive ? 30 : isPast ? 22 : 20;
+          const borderW    = isActive ? 2 : isPast ? 0 : 1.5;
 
           return (
-            <div
-              key={i}
-              style={{ display: "flex", alignItems: "center", flex: isLast ? "0 0 auto" : 1 }}
-            >
-              {/* ── Node wrapper (handles hover) ── */}
+            <div key={i} style={{ display: "flex", alignItems: "center", flex: isLast ? "0 0 auto" : 1 }}>
+              {/* ── Node ── */}
               <div
-                style={{ position: "relative", flexShrink: 0 }}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
+                className={isActive ? "dca-node-breathe" : ""}
+                style={{
+                  position: "relative",
+                  width: `${nodeSize}px`,
+                  height: `${nodeSize}px`,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.4s ease",
+                  background: isActive
+                    ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
+                    : isPast
+                    ? "var(--primary)"
+                    : "color-mix(in oklab,var(--primary) 7%,var(--card))",
+                  border: isActive
+                    ? `${borderW}px solid var(--primary)`
+                    : isPast
+                    ? "none"
+                    : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
+                }}
               >
-                {/* ── Tooltip ── */}
-                {isHovered && (
-                  <div
-                    className="dca-tooltip-in"
-                    style={{
-                      position: "absolute",
-                      bottom: `calc(100% + 14px)`,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      zIndex: 50,
-                      pointerEvents: "none",
-                      minWidth: "110px",
-                      maxWidth: "160px",
-                    }}
-                  >
-                    {/* Glass card */}
-                    <div style={{
-                      background: "color-mix(in oklab,var(--card) 88%,transparent)",
-                      backdropFilter: "blur(12px)",
-                      WebkitBackdropFilter: "blur(12px)",
-                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
-                      borderRadius: "10px",
-                      padding: "8px 10px",
-                      boxShadow: `
-                        0 8px 24px -4px rgba(0,0,0,0.45),
-                        0 2px 8px -2px rgba(0,0,0,0.3),
-                        inset 0 1px 0 color-mix(in oklab,var(--primary) ${isPast || isActive ? "20%" : "8%"},transparent)
-                      `,
-                    }}>
-                      {/* Step label row */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                        <span style={{
-                          fontSize: "10px",
-                          fontWeight: 800,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                          color: "var(--muted-foreground)",
-                        }}>
-                          Step {i + 1}
-                        </span>
-                        {/* Status badge */}
-                        <span style={{
-                          fontSize: "8px",
-                          fontWeight: 800,
-                          letterSpacing: "0.05em",
-                          textTransform: "uppercase",
-                          padding: "2px 6px",
-                          borderRadius: "999px",
-                          color: statusColor,
-                          background: statusBg,
-                          border: `1px solid ${statusBorder}`,
-                          lineHeight: 1.4,
-                          ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 60%,transparent))" } : {}),
-                        }}>
-                          {statusLabel}
-                        </span>
-                      </div>
-
-                      {/* Divider */}
-                      <div style={{
-                        margin: "6px 0",
-                        height: "1px",
-                        background: `linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) ${isPast || isActive ? "25%" : "10%"},transparent), transparent)`,
-                      }} />
-
-                      {/* Amount row */}
-                      {amount != null ? (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
-                          <span style={{ fontSize: "9px", color: "color-mix(in oklab,var(--muted-foreground) 70%,transparent)", fontWeight: 600 }}>Buy</span>
-                          <span style={{
-                            fontSize: "11px",
-                            fontWeight: 900,
-                            fontVariantNumeric: "tabular-nums",
-                            color: isActive ? "var(--primary)" : isPast ? "var(--foreground)" : "color-mix(in oklab,var(--muted-foreground) 60%,transparent)",
-                            letterSpacing: "-0.01em",
-                          }}>
-                            ${fmt(amount, 2)}
-                          </span>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                          <span style={{
-                            display: "inline-block",
-                            width: "32px",
-                            height: "5px",
-                            borderRadius: "999px",
-                            background: "color-mix(in oklab,var(--muted-foreground) 12%,transparent)",
-                          }} />
-                          <span style={{
-                            display: "inline-block",
-                            width: "20px",
-                            height: "5px",
-                            borderRadius: "999px",
-                            background: "color-mix(in oklab,var(--muted-foreground) 7%,transparent)",
-                          }} />
-                        </div>
-                      )}
-
-                      {/* Timestamp row */}
-                      {timeStr && (
-                        <div style={{
-                          marginTop: "4px",
-                          fontSize: "9px",
-                          fontVariantNumeric: "tabular-nums",
-                          color: "color-mix(in oklab,var(--muted-foreground) 55%,transparent)",
-                          fontWeight: 500,
-                        }}>
-                          {timeStr.date} · {timeStr.time}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Arrow */}
-                    <div style={{
-                      position: "absolute",
-                      bottom: "-6px",
-                      left: "50%",
-                      transform: "translateX(-50%) rotate(45deg)",
-                      width: "10px",
-                      height: "10px",
-                      background: "color-mix(in oklab,var(--card) 88%,transparent)",
-                      backdropFilter: "blur(12px)",
-                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
-                      borderTop: "none",
-                      borderLeft: "none",
-                    }} />
-                  </div>
+                {/* Rotating dashed ring on active node */}
+                {isActive && (
+                  <div style={{
+                    position: "absolute",
+                    inset: "-5px",
+                    borderRadius: "50%",
+                    border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
+                    animation: "dca-ring-spin 8s linear infinite",
+                  }} />
                 )}
 
-                {/* ── Node circle ── */}
-                <div
-                  className={isActive ? "dca-node-breathe" : ""}
-                  style={{
-                    width: `${nodeSize}px`,
-                    height: `${nodeSize}px`,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                {isPast ? (
+                  /* Checkmark SVG */
+                  <svg
+                    className="dca-check-pop"
+                    viewBox="0 0 12 12"
+                    width="11"
+                    height="11"
+                    fill="none"
+                    stroke="var(--card)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="2,6 5,9.5 10,3" />
+                  </svg>
+                ) : (
+                  <span style={{
+                    fontSize: isActive ? "12px" : "9px",
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
                     transition: "all 0.4s ease",
-                    cursor: "default",
-                    background: isActive
-                      ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
-                      : isPast
+                    color: isActive
                       ? "var(--primary)"
-                      : "color-mix(in oklab,var(--primary) 7%,var(--card))",
-                    border: isActive
-                      ? `${borderW}px solid var(--primary)`
-                      : isPast
-                      ? "none"
-                      : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
-                    position: "relative",
-                    ...(isHovered && !isActive ? {
-                      transform: isPast
-                        ? "scale(1.12)"
-                        : "scale(1.08)",
-                      boxShadow: `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
+                      : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
+                    ...(isActive ? {
+                      filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 80%,transparent))",
+                      textShadow: "0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)",
                     } : {}),
-                  }}
-                >
-                  {/* Rotating dashed ring on active node */}
-                  {isActive && (
-                    <div style={{
-                      position: "absolute",
-                      inset: "-5px",
-                      borderRadius: "50%",
-                      border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
-                      animation: "dca-ring-spin 8s linear infinite",
-                    }} />
-                  )}
-
-                  {isPast ? (
-                    <svg
-                      className="dca-check-pop"
-                      viewBox="0 0 12 12"
-                      width="11"
-                      height="11"
-                      fill="none"
-                      stroke="var(--card)"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="2,6 5,9.5 10,3" />
-                    </svg>
-                  ) : (
-                    <span style={{
-                      fontSize: isActive ? "12px" : "9px",
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      letterSpacing: "-0.02em",
-                      transition: "all 0.4s ease",
-                      color: isActive
-                        ? "var(--primary)"
-                        : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
-                      ...(isActive ? {
-                        filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 80%,transparent))",
-                        textShadow: "0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)",
-                      } : {}),
-                    }}>
-                      {i + 1}
-                    </span>
-                  )}
-                </div>
+                  }}>
+                    {i + 1}
+                  </span>
+                )}
               </div>
 
               {/* ── Connector line (not after last node) ── */}
               {!isLast && (
                 <div style={{ flex: 1, height: "1.5px", position: "relative", overflow: "hidden" }}>
+                  {/* Base track */}
                   <div style={{
                     position: "absolute",
                     inset: 0,
                     background: "color-mix(in oklab,var(--primary) 8%,var(--card))",
                   }} />
+                  {/* Filled portion */}
                   <div style={{
                     position: "absolute",
                     inset: 0,
                     background: isPast
                       ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 70%,transparent), color-mix(in oklab,var(--primary) 50%,transparent))"
                       : isActive
-                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)"
+                      ? `linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)`
                       : "transparent",
                     transition: "background 0.5s ease",
                   }} />
