@@ -42,231 +42,167 @@ function fmtUAE(ts: number): { date: string; time: string } {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DcaRing — premium SVG arc ring replacing the old segmented bars.
+   DcaSteps — premium floating-node timeline.
 
    Design:
-   • Thin track ring (muted) + glowing filled arc (primary colour)
-   • Animated stroke-dashoffset transition when step changes
-   • Breathing-glow tip circle at the arc's leading edge
-   • Step number centred inside the ring
-   • Horizontal layout: ring left, labels right
+   • Thin horizontal track line with gradient fill showing progress
+   • Each step is a floating node: past = small filled dot, active = glowing
+     pulsing orb with halo, future = hollow ghost dot
+   • Step numbers float above their nodes (active number is large + glowing)
+   • "DCA" label + fraction counter sit inline at the end
+   • Zero heavy backgrounds — floats cleanly inside the card
 ───────────────────────────────────────────────────────────────────────────── */
-function DcaRing({ step, total }: { step: number; total: number }) {
-  const R = 38;                              // ring radius
-  const C = 2 * Math.PI * R;                // circumference ≈ 238.76
-  const SIZE = 100;                          // SVG viewBox size
-  const cx = SIZE / 2;
-  const cy = SIZE / 2;
-  const strokeW = 6;
-
-  const progress = total > 0 ? Math.min(step / total, 1) : 0;
-  const fillDash = C * progress;
-  const gapDash  = C - fillDash;
-
-  // Tip-dot position (angle starts at top, goes clockwise)
-  const angle = progress * 2 * Math.PI - Math.PI / 2;
-  const tipX  = cx + R * Math.cos(angle);
-  const tipY  = cy + R * Math.sin(angle);
-
+function DcaSteps({ step, total }: { step: number; total: number }) {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { const id = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(id); }, []);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
-  // Segment dots — tiny marks around the ring for each total step
-  const segmentDots = Array.from({ length: total }).map((_, i) => {
-    const a = (i / total) * 2 * Math.PI - Math.PI / 2;
-    const r = R + strokeW / 2 + 3;
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), done: i < step };
-  });
+  const progress = total > 1 ? (step - 1) / (total - 1) : 1;
+  const progressPct = mounted ? Math.min(progress * 100, 100) : 0;
 
   return (
     <>
       <style>{`
-        @keyframes dca-ring-breathe {
-          0%, 100% { opacity: 0.55; r: 4.5px; }
-          50%       { opacity: 1;    r: 6px;   }
-        }
-        @keyframes dca-tip-pulse {
+        @keyframes dca-orb-breathe {
           0%, 100% {
-            filter: drop-shadow(0 0 3px color-mix(in oklab,var(--primary) 80%,transparent))
-                    drop-shadow(0 0 6px color-mix(in oklab,var(--primary) 40%,transparent));
+            box-shadow:
+              0 0 0 0px  color-mix(in oklab,var(--primary) 0%,transparent),
+              0 0 8px 1px color-mix(in oklab,var(--primary) 55%,transparent),
+              0 0 20px 2px color-mix(in oklab,var(--primary) 25%,transparent);
           }
           50% {
-            filter: drop-shadow(0 0 6px color-mix(in oklab,var(--primary) 100%,transparent))
-                    drop-shadow(0 0 14px color-mix(in oklab,var(--primary) 60%,transparent));
+            box-shadow:
+              0 0 0 5px  color-mix(in oklab,var(--primary) 12%,transparent),
+              0 0 12px 2px color-mix(in oklab,var(--primary) 70%,transparent),
+              0 0 28px 4px color-mix(in oklab,var(--primary) 35%,transparent);
           }
         }
-        @keyframes dca-ring-spin-in {
-          from { stroke-dashoffset: ${C}px; }
+        @keyframes dca-num-appear {
+          from { transform: translateY(4px) translateX(-50%); opacity: 0; }
+          to   { transform: translateY(0)   translateX(-50%); opacity: 1; }
         }
-        .dca-arc-fill {
-          transition: stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1),
-                      stroke-dasharray  0.9s cubic-bezier(0.4,0,0.2,1);
-        }
-        .dca-tip-glow { animation: dca-tip-pulse 2s ease-in-out infinite; }
+        .dca-orb-breathe { animation: dca-orb-breathe 2.2s ease-in-out infinite; }
+        .dca-num-appear  { animation: dca-num-appear 0.4s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      <div className="mt-4 flex items-center gap-5 px-1">
-
-        {/* ── Ring ── */}
-        <div className="relative shrink-0" style={{ width: 96, height: 96 }}>
-          <svg
-            viewBox={`0 0 ${SIZE} ${SIZE}`}
-            width={96}
-            height={96}
-            style={{ overflow: "visible" }}
+      <div className="mt-5 px-1">
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-5">
+          <span
+            className="text-[10px] uppercase tracking-widest font-bold"
+            style={{ color: "color-mix(in oklab,var(--primary) 70%,var(--muted-foreground))" }}
           >
-            <defs>
-              {/* Gradient along the arc */}
-              <linearGradient id="dca-arc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="color-mix(in oklab,var(--primary) 70%,white)" />
-                <stop offset="100%" stopColor="var(--primary)" />
-              </linearGradient>
-              {/* Glow filter for the track */}
-              <filter id="dca-glow" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="2.5" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
-            {/* Background track ring */}
-            <circle
-              cx={cx} cy={cy} r={R}
-              fill="none"
-              stroke="color-mix(in oklab,var(--primary) 10%,var(--card))"
-              strokeWidth={strokeW}
-            />
-
-            {/* Filled arc (rotated so 0% starts at 12 o'clock) */}
-            <circle
-              cx={cx} cy={cy} r={R}
-              fill="none"
-              stroke="url(#dca-arc-grad)"
-              strokeWidth={strokeW}
-              strokeLinecap="round"
-              className="dca-arc-fill"
-              style={{
-                strokeDasharray:  mounted ? `${fillDash} ${gapDash}` : `0 ${C}`,
-                strokeDashoffset: 0,
-                transformOrigin:  `${cx}px ${cy}px`,
-                transform:        "rotate(-90deg)",
-                filter:           "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 55%,transparent))",
-              }}
-            />
-
-            {/* Segment tick dots */}
-            {segmentDots.map((d, i) => (
-              <circle
-                key={i}
-                cx={d.x} cy={d.y} r={1.6}
-                fill={
-                  d.done
-                    ? "color-mix(in oklab,var(--primary) 70%,white)"
-                    : "color-mix(in oklab,var(--muted-foreground) 30%,transparent)"
-                }
-                style={{ transition: "fill 0.5s ease" }}
-              />
-            ))}
-
-            {/* Glowing tip dot at arc leading edge */}
-            {progress > 0.01 && progress < 0.999 && (
-              <circle
-                cx={tipX} cy={tipY} r={5}
-                fill="var(--primary)"
-                className="dca-tip-glow"
-                style={{ filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 90%,transparent))" }}
-              />
-            )}
-
-            {/* Center: step number */}
-            <text
-              x={cx} y={cy - 6}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              style={{
-                fontSize: "22px",
-                fontWeight: 900,
-                fill: "var(--primary)",
-                filter: "drop-shadow(0 0 8px color-mix(in oklab,var(--primary) 60%,transparent))",
-                letterSpacing: "-0.04em",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {step}
-            </text>
-
-            {/* Center: /total */}
-            <text
-              x={cx} y={cy + 14}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                fill: "color-mix(in oklab,var(--muted-foreground) 55%,transparent)",
-                letterSpacing: "0.02em",
-              }}
-            >
-              of {total}
-            </text>
-          </svg>
+            DCA
+          </span>
+          <span className="tabular-nums text-[11px] font-bold" style={{ color: "color-mix(in oklab,var(--muted-foreground) 60%,transparent)" }}>
+            <span style={{ color: "var(--primary)", fontWeight: 900, fontSize: 13 }}>{step}</span>
+            <span style={{ margin: "0 2px" }}>/</span>
+            {total}
+            <span style={{ marginLeft: 6, color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)", fontSize: 10 }}>
+              · {Math.round((step / total) * 100)}%
+            </span>
+          </span>
         </div>
 
-        {/* ── Right side labels ── */}
-        <div className="flex-1 min-w-0 space-y-2.5">
-          {/* Title */}
-          <div className="flex items-center gap-1.5">
-            <span
-              className="text-[10px] uppercase tracking-widest font-bold"
-              style={{ color: "color-mix(in oklab,var(--primary) 75%,var(--muted-foreground))" }}
-            >
-              DCA Progress
-            </span>
-          </div>
+        {/* Track + nodes */}
+        <div className="relative" style={{ height: 48, paddingTop: 20 }}>
 
-          {/* Mini step pills */}
-          <div className="flex gap-1.5 flex-wrap">
-            {Array.from({ length: total }).map((_, i) => {
-              const done   = i < step;
-              const active = i === step - 1;
-              return (
+          {/* Track background */}
+          <div
+            className="absolute left-0 right-0"
+            style={{
+              top: 20 + 10, // center of nodes
+              height: 1.5,
+              borderRadius: 999,
+              background: "color-mix(in oklab,var(--primary) 10%,var(--card))",
+            }}
+          />
+
+          {/* Track fill */}
+          <div
+            className="absolute left-0"
+            style={{
+              top: 20 + 10,
+              height: 1.5,
+              borderRadius: 999,
+              width: `${progressPct}%`,
+              transition: "width 0.9s cubic-bezier(0.4,0,0.2,1)",
+              background: "linear-gradient(90deg, color-mix(in oklab,var(--primary) 50%,transparent), var(--primary))",
+              boxShadow: "0 0 6px 1px color-mix(in oklab,var(--primary) 35%,transparent)",
+            }}
+          />
+
+          {/* Nodes */}
+          {Array.from({ length: total }).map((_, i) => {
+            const isActive = i === step - 1;
+            const isPast   = i < step - 1;
+            const isFuture = i >= step;
+            // Position along track (0% → 100%)
+            const pct = total > 1 ? (i / (total - 1)) * 100 : 0;
+
+            return (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: `${pct}%`,
+                  top: 20,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                {/* Step number above node */}
                 <div
-                  key={i}
+                  key={`num-${i}-${isActive}`}
+                  className={isActive ? "dca-num-appear" : ""}
                   style={{
-                    width: 28,
-                    height: 5,
-                    borderRadius: 999,
-                    background: active
+                    position: "absolute",
+                    bottom: "calc(100% + 6px)",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    fontVariantNumeric: "tabular-nums",
+                    fontSize:   isActive ? 15 : isPast ? 10 : 10,
+                    fontWeight: isActive ? 900 : isPast ? 700 : 600,
+                    lineHeight: 1,
+                    color: isActive
                       ? "var(--primary)"
-                      : done
-                      ? "color-mix(in oklab,var(--primary) 45%,transparent)"
-                      : "color-mix(in oklab,var(--primary) 10%,var(--card))",
-                    transition: "background 0.5s ease",
-                    boxShadow: active
-                      ? "0 0 6px 1px color-mix(in oklab,var(--primary) 40%,transparent)"
+                      : isPast
+                      ? "color-mix(in oklab,var(--primary) 55%,var(--muted-foreground))"
+                      : "color-mix(in oklab,var(--muted-foreground) 30%,transparent)",
+                    filter: isActive
+                      ? "drop-shadow(0 0 6px color-mix(in oklab,var(--primary) 80%,transparent))"
                       : "none",
+                    whiteSpace: "nowrap",
+                    transition: "color 0.4s, font-size 0.4s",
+                  }}
+                >
+                  {i + 1}
+                </div>
+
+                {/* Node dot */}
+                <div
+                  className={isActive ? "dca-orb-breathe" : ""}
+                  style={{
+                    width:        isActive ? 18 : isPast ? 8 : 6,
+                    height:       isActive ? 18 : isPast ? 8 : 6,
+                    borderRadius: "50%",
+                    background:   isActive
+                      ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 90%,white), var(--primary))"
+                      : isPast
+                      ? "color-mix(in oklab,var(--primary) 60%,transparent)"
+                      : "transparent",
+                    border:       isFuture
+                      ? "1.5px solid color-mix(in oklab,var(--primary) 18%,transparent)"
+                      : "none",
+                    marginTop:    isActive ? -4 : isPast ? 1 : 2,
+                    transition:   "width 0.5s ease, height 0.5s ease, background 0.5s ease, margin-top 0.5s ease",
+                    flexShrink:   0,
                   }}
                 />
-              );
-            })}
-          </div>
-
-          {/* Step fraction label */}
-          <div
-            className="text-xs font-semibold tabular-nums"
-            style={{ color: "color-mix(in oklab,var(--muted-foreground) 70%,transparent)" }}
-          >
-            Step&nbsp;
-            <span style={{ color: "var(--primary)", fontWeight: 900 }}>{step}</span>
-            &nbsp;of&nbsp;
-            <span style={{ fontWeight: 700 }}>{total}</span>
-            &nbsp;·&nbsp;
-            <span style={{ color: "color-mix(in oklab,var(--primary) 80%,var(--foreground))", fontWeight: 700 }}>
-              {Math.round((step / total) * 100)}% averaged
-            </span>
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
@@ -544,8 +480,8 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* ── DCA RING (premium replacement) ── */}
-              {showDca && <DcaRing step={dcaStep} total={dcaTotal} />}
+              {/* ── DCA STEPS (premium floating timeline) ── */}
+              {showDca && <DcaSteps step={dcaStep} total={dcaTotal} />}
 
               {/* TP / SL tracks */}
               <div className="relative mt-4 grid sm:grid-cols-2 gap-3">
