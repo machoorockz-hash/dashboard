@@ -43,7 +43,19 @@ function fmtUAE(ts: number): { date: string; time: string } {
   return { date, time };
 }
 
-function StepSegments({ step, total }: { step: number; total: number }) {
+function StepSegments({
+  step,
+  total,
+  stepAmounts,
+  stepTimestamps,
+}: {
+  step: number;
+  total: number;
+  stepAmounts?: number[];
+  stepTimestamps?: number[];
+}) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   return (
     <>
       <style>{`
@@ -70,112 +82,209 @@ function StepSegments({ step, total }: { step: number; total: number }) {
           60%  { transform: scale(1.15); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
         }
+        @keyframes dca-tooltip-in {
+          0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+        }
         .dca-node-breathe { animation: dca-node-breathe 2.4s ease-in-out infinite; }
         .dca-check-pop    { animation: dca-check-pop    0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+        .dca-tooltip-in   { animation: dca-tooltip-in   0.22s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      <div style={{ display: "flex", alignItems: "center", width: "100%", position: "relative" }}>
+      {/* Outer row — nodes + connectors; labels sit below each node */}
+      <div style={{ display: "flex", alignItems: "flex-start", width: "100%" }}>
         {Array.from({ length: total }).map((_, i) => {
-          const filled   = i < step;
-          const isActive = i === step - 1;
-          const isPast   = filled && !isActive;
-          const isLast   = i === total - 1;
+          const filled    = i < step;
+          const isActive  = i === step - 1;
+          const isPast    = filled && !isActive;
+          const isLast    = i === total - 1;
+          const isHovered = hoveredIdx === i;
 
-          const nodeSize   = isActive ? 30 : isPast ? 22 : 20;
-          const borderW    = isActive ? 2 : isPast ? 0 : 1.5;
+          const nodeSize      = isActive ? 30 : isPast ? 22 : 20;
+          const borderW       = isActive ? 2 : isPast ? 0 : 1.5;
+          const NODE_CONTAINER = 32; // fixed height so connector always centres correctly
+
+          const statusLabel  = isPast ? "Completed" : isActive ? "Active" : "Pending";
+          const statusColor  = isPast || isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
+          const statusBg     = isPast ? "color-mix(in oklab,var(--primary) 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
+          const statusBorder = isPast || isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
+
+          const amount    = stepAmounts?.[i];
+          const timestamp = stepTimestamps?.[i];
+          const timeStr   = timestamp ? fmtUAE(timestamp) : null;
 
           return (
-            <div key={i} style={{ display: "flex", alignItems: "center", flex: isLast ? "0 0 auto" : 1 }}>
-              {/* ── Node ── */}
+            <div
+              key={i}
+              style={{ display: "flex", alignItems: "flex-start", flex: isLast ? "0 0 auto" : 1 }}
+            >
+              {/* ── Node column: circle + USDT label stacked ── */}
               <div
-                className={isActive ? "dca-node-breathe" : ""}
-                style={{
-                  position: "relative",
-                  width: `${nodeSize}px`,
-                  height: `${nodeSize}px`,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "all 0.4s ease",
-                  background: isActive
-                    ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
-                    : isPast
-                    ? "var(--primary)"
-                    : "color-mix(in oklab,var(--primary) 7%,var(--card))",
-                  border: isActive
-                    ? `${borderW}px solid var(--primary)`
-                    : isPast
-                    ? "none"
-                    : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
-                }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", flexShrink: 0, position: "relative" }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
               >
-                {/* Rotating dashed ring on active node */}
-                {isActive && (
-                  <div style={{
-                    position: "absolute",
-                    inset: "-5px",
-                    borderRadius: "50%",
-                    border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
-                    animation: "dca-ring-spin 8s linear infinite",
-                  }} />
+                {/* ── Tooltip ── */}
+                {isHovered && (
+                  <div
+                    className="dca-tooltip-in"
+                    style={{
+                      position: "absolute",
+                      bottom: `calc(100% + 10px)`,
+                      left: "50%",
+                      zIndex: 50,
+                      pointerEvents: "none",
+                      minWidth: "110px",
+                      maxWidth: "160px",
+                    }}
+                  >
+                    <div style={{
+                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      backdropFilter: "blur(14px)",
+                      WebkitBackdropFilter: "blur(14px)",
+                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      borderRadius: "10px",
+                      padding: "8px 10px",
+                      boxShadow: "0 8px 24px -4px rgba(0,0,0,0.45), 0 2px 8px -2px rgba(0,0,0,0.3)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+                          Step {i + 1}
+                        </span>
+                        <span style={{
+                          fontSize: "8px", fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase",
+                          padding: "2px 6px", borderRadius: "999px", lineHeight: 1.4,
+                          color: statusColor, background: statusBg, border: `1px solid ${statusBorder}`,
+                          ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 60%,transparent))" } : {}),
+                        }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div style={{ margin: "6px 0", height: "1px", background: `linear-gradient(90deg,transparent,color-mix(in oklab,var(--primary) ${isPast || isActive ? "25%" : "10%"},transparent),transparent)` }} />
+                      {amount != null ? (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                          <span style={{ fontSize: "9px", color: "color-mix(in oklab,var(--muted-foreground) 70%,transparent)", fontWeight: 600 }}>Buy</span>
+                          <span style={{ fontSize: "11px", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em", color: isActive ? "var(--primary)" : isPast ? "var(--foreground)" : "color-mix(in oklab,var(--muted-foreground) 60%,transparent)" }}>
+                            ${fmt(amount, 2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "5px" }}>
+                          <span style={{ display: "inline-block", width: "32px", height: "5px", borderRadius: "999px", background: "color-mix(in oklab,var(--muted-foreground) 12%,transparent)" }} />
+                          <span style={{ display: "inline-block", width: "20px", height: "5px", borderRadius: "999px", background: "color-mix(in oklab,var(--muted-foreground) 7%,transparent)" }} />
+                        </div>
+                      )}
+                      {timeStr && (
+                        <div style={{ marginTop: "4px", fontSize: "9px", fontVariantNumeric: "tabular-nums", color: "color-mix(in oklab,var(--muted-foreground) 55%,transparent)", fontWeight: 500 }}>
+                          {timeStr.date} · {timeStr.time}
+                        </div>
+                      )}
+                    </div>
+                    {/* Arrow */}
+                    <div style={{
+                      position: "absolute", bottom: "-5px", left: "50%",
+                      transform: "translateX(-50%) rotate(45deg)",
+                      width: "9px", height: "9px",
+                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      backdropFilter: "blur(14px)",
+                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      borderTop: "none", borderLeft: "none",
+                    }} />
+                  </div>
                 )}
 
-                {isPast ? (
-                  /* Checkmark SVG */
-                  <svg
-                    className="dca-check-pop"
-                    viewBox="0 0 12 12"
-                    width="11"
-                    height="11"
-                    fill="none"
-                    stroke="var(--card)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                {/* ── Fixed-height node container so connector always aligns ── */}
+                <div style={{ width: `${NODE_CONTAINER}px`, height: `${NODE_CONTAINER}px`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                  <div
+                    className={isActive ? "dca-node-breathe" : ""}
+                    style={{
+                      width: `${nodeSize}px`,
+                      height: `${nodeSize}px`,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.35s ease",
+                      cursor: "default",
+                      position: "relative",
+                      background: isActive
+                        ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
+                        : isPast ? "var(--primary)"
+                        : "color-mix(in oklab,var(--primary) 7%,var(--card))",
+                      border: isActive
+                        ? `${borderW}px solid var(--primary)`
+                        : isPast ? "none"
+                        : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
+                      ...(isHovered && !isActive ? {
+                        transform: "scale(1.12)",
+                        boxShadow: `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
+                      } : {}),
+                    }}
                   >
-                    <polyline points="2,6 5,9.5 10,3" />
-                  </svg>
-                ) : (
-                  <span style={{
-                    fontSize: isActive ? "12px" : "9px",
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    letterSpacing: "-0.02em",
-                    transition: "all 0.4s ease",
-                    color: isActive
-                      ? "var(--primary)"
-                      : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
-                    ...(isActive ? {
-                      filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 80%,transparent))",
-                      textShadow: "0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)",
-                    } : {}),
-                  }}>
-                    {i + 1}
-                  </span>
-                )}
+                    {isActive && (
+                      <div style={{
+                        position: "absolute", inset: "-5px", borderRadius: "50%",
+                        border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
+                        animation: "dca-ring-spin 8s linear infinite",
+                      }} />
+                    )}
+                    {isPast ? (
+                      <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="var(--card)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="2,6 5,9.5 10,3" />
+                      </svg>
+                    ) : (
+                      <span style={{
+                        fontSize: isActive ? "12px" : "9px", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", transition: "all 0.4s ease",
+                        color: isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
+                        ...(isActive ? { filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 80%,transparent))", textShadow: "0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)" } : {}),
+                      }}>
+                        {i + 1}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── USDT amount label below the node ── */}
+                <div style={{ height: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {amount != null ? (
+                    <span style={{
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      fontVariantNumeric: "tabular-nums",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      color: isActive
+                        ? "var(--primary)"
+                        : isPast
+                        ? "color-mix(in oklab,var(--primary) 65%,var(--muted-foreground))"
+                        : "color-mix(in oklab,var(--muted-foreground) 30%,transparent)",
+                      ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 55%,transparent))" } : {}),
+                    }}>
+                      ${fmt(amount, 0)}
+                    </span>
+                  ) : (isPast || isActive) ? (
+                    <span style={{
+                      display: "inline-block", width: "18px", height: "3px", borderRadius: "999px",
+                      background: isPast
+                        ? "color-mix(in oklab,var(--primary) 22%,transparent)"
+                        : "color-mix(in oklab,var(--primary) 14%,transparent)",
+                    }} />
+                  ) : null}
+                </div>
               </div>
 
-              {/* ── Connector line (not after last node) ── */}
+              {/* ── Connector line — marginTop centres it with the node circles ── */}
               {!isLast && (
-                <div style={{ flex: 1, height: "1.5px", position: "relative", overflow: "hidden" }}>
-                  {/* Base track */}
+                <div style={{ flex: 1, height: "1.5px", marginTop: `${NODE_CONTAINER / 2 - 0.75}px`, position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", inset: 0, background: "color-mix(in oklab,var(--primary) 8%,var(--card))" }} />
                   <div style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "color-mix(in oklab,var(--primary) 8%,var(--card))",
-                  }} />
-                  {/* Filled portion */}
-                  <div style={{
-                    position: "absolute",
-                    inset: 0,
+                    position: "absolute", inset: 0, transition: "background 0.5s ease",
                     background: isPast
                       ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 70%,transparent), color-mix(in oklab,var(--primary) 50%,transparent))"
                       : isActive
-                      ? `linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)`
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)"
                       : "transparent",
-                    transition: "background 0.5s ease",
                   }} />
                 </div>
               )}
@@ -191,6 +300,8 @@ interface DcaData {
   dca_step?: number;
   dca_total_steps?: number;
   status?: string;
+  dca_step_amounts?: number[];      // USDT spent per step, e.g. [50, 100, 150]
+  dca_step_timestamps?: number[];   // unix-ms per step
 }
 
 function useDcaData() {
@@ -373,8 +484,10 @@ export default function Dashboard() {
       : 0;
   // ───────────────────────────────────────────────────────────────────────────
 
-  const dcaStep = dcaData?.dca_step ?? 0;
-  const dcaTotal = dcaData?.dca_total_steps ?? 6;
+  const dcaStep       = dcaData?.dca_step ?? 0;
+  const dcaTotal      = dcaData?.dca_total_steps ?? 6;
+  const dcaAmounts    = dcaData?.dca_step_amounts;
+  const dcaTimestamps = dcaData?.dca_step_timestamps;
   const showDca = !!primary && dcaStep > 0 && dcaData?.status !== "COMPLETED";
 
   const chartLines = useMemo(() => {
@@ -507,7 +620,12 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <StepSegments step={dcaStep} total={dcaTotal} />
+                  <StepSegments
+                    step={dcaStep}
+                    total={dcaTotal}
+                    stepAmounts={dcaAmounts}
+                    stepTimestamps={dcaTimestamps}
+                  />
                 </div>
               )}
 
