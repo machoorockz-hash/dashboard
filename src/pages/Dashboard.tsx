@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
@@ -19,6 +19,28 @@ function fmtPrice(p: number) {
   if (p >= 1) return fmt(p, 4);
   if (p >= 0.01) return fmt(p, 5);
   return fmt(p, 6);
+}
+
+/** Format a unix-ms timestamp into UAE (Asia/Dubai, UTC+4) date & time strings */
+function fmtUAE(ts: number): { date: string; time: string } {
+  const dtf_date = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dubai",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  const dtf_time = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Dubai",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  const d = new Date(ts);
+  // en-GB gives DD/MM/YYYY
+  const date = dtf_date.format(d);
+  // en-US h12 gives e.g. "08:04 AM" — lowercase it
+  const time = dtf_time.format(d).toLowerCase();
+  return { date, time };
 }
 
 function StepSegments({ step, total }: { step: number; total: number }) {
@@ -134,6 +156,56 @@ function useDcaData() {
   return data;
 }
 
+/** Remembers the last active symbol in localStorage so we can fetch its
+ *  trade history even after the order is no longer open. */
+const LAST_SYMBOL_KEY = "dashboard_last_order_symbol";
+
+interface LastTrade {
+  symbol: string;
+  base: string;
+  price: number;
+  qty: number;
+  quoteQty: number;
+  time: number; // unix ms
+}
+
+function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
+  // Persist the last seen active symbol
+  useEffect(() => {
+    if (activeSymbol) {
+      localStorage.setItem(LAST_SYMBOL_KEY, activeSymbol);
+    }
+  }, [activeSymbol]);
+
+  const storedSymbol = localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined;
+  // Only query when there is NO active trade
+  const querySymbol = activeSymbol ? undefined : storedSymbol;
+
+  const tradesQuery = useQuery({
+    queryKey: ["lastTrades", querySymbol],
+    queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
+    enabled: !!querySymbol,
+    staleTime: 60_000,
+  });
+
+  return useMemo(() => {
+    if (!tradesQuery.data || tradesQuery.data.length === 0 || !querySymbol) return null;
+    // Find the most recent SELL trade (trade where isBuyer === false means we sold)
+    const sells = tradesQuery.data.filter((t) => !t.isBuyer);
+    if (sells.length === 0) return null;
+    const latest = sells.reduce((a, b) => (b.time > a.time ? b : a));
+    const base = querySymbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
+    return {
+      symbol: querySymbol,
+      base,
+      price: parseFloat(latest.price),
+      qty: parseFloat(latest.qty),
+      quoteQty: parseFloat(latest.quoteQty ?? "0"),
+      time: latest.time,
+    };
+  }, [tradesQuery.data, querySymbol]);
+}
+
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
   const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
@@ -154,6 +226,9 @@ export default function Dashboard() {
     enabled: !!orderSymbol,
     refetchInterval: 60_000,
   });
+
+  // Last closed trade — shown when no active order
+  const lastTrade = useLastTrade(orderSymbol);
 
   const avgEntry = useMemo(() => {
     if (!trades.data || trades.data.length === 0) return 0;
@@ -229,15 +304,11 @@ export default function Dashboard() {
   const distToSlPct = cur && slPrice ? ((cur - slPrice) / cur) * 100 : 0;
 
   // ── FIXED BAR CALCULATIONS ──────────────────────────────────────────────────
-  // TP bar: how far cur has moved from entry → tpPrice.
-  // 0% = at entry, 100% = at TP price.
   const tpProgress =
     cur && tpPrice && entry && tpPrice !== entry
       ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry)))
       : 0;
 
-  // SL bar: how far cur has moved from entry → slPrice.
-  // 0% = at entry, 100% = at SL price (danger zone fully reached).
   const slProgress =
     cur && slPrice && entry && entry !== slPrice
       ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice)))
@@ -401,11 +472,8 @@ export default function Dashboard() {
               </div>
             </>
           ) : (
-            <div className="py-10 text-center">
-              <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground/40" />
-              <h2 className="mt-3 text-xl font-black">No Active Trade</h2>
-              <p className="text-sm text-muted-foreground mt-1">Place a limit or OCO order on Binance and it will appear here.</p>
-            </div>
+            /* ── NO ACTIVE TRADE — show last closed trade ── */
+            <NoActiveTrade lastTrade={lastTrade} />
           )}
         </section>
 
@@ -416,6 +484,71 @@ export default function Dashboard() {
         <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
       </div>
     </AppLayout>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   NoActiveTrade — renders last closed trade info, or a generic placeholder
+   when no trade history is available yet.
+───────────────────────────────────────────────────────────────────────────── */
+function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
+  if (!lastTrade) {
+    return (
+      <div className="py-10 text-center">
+        <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground/40" />
+        <h2 className="mt-3 text-xl font-black">No Active Trade</h2>
+        <p className="text-sm text-muted-foreground mt-1">Place a limit or OCO order on Binance and it will appear here.</p>
+      </div>
+    );
+  }
+
+  const { date, time } = fmtUAE(lastTrade.time);
+
+  return (
+    <div className="py-6">
+      {/* Header label */}
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-5">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+        Last Closed Trade
+      </div>
+
+      {/* Coin row */}
+      <div className="flex items-center gap-4">
+        {/* Coin logo */}
+        <div className="relative shrink-0">
+          <div className="absolute inset-0 rounded-full bg-muted/40 blur-md scale-110" />
+          <CoinIcon symbol={lastTrade.base} size={56} className="relative" />
+        </div>
+
+        {/* Coin name + symbol */}
+        <div className="min-w-0 flex-1">
+          <div className="text-2xl md:text-3xl font-black tracking-tight truncate">
+            {lastTrade.base}
+            <span className="text-sm font-semibold text-muted-foreground ml-1.5">/ USDT</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5 font-medium truncate">
+            Sold · ${fmtPrice(lastTrade.price)}
+            {lastTrade.quoteQty > 0 && (
+              <span className="ml-2 text-muted-foreground/60">≈ ${fmt(lastTrade.quoteQty)}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Sold badge */}
+        <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-bear/10 text-bear border border-bear/20 uppercase tracking-wider">
+          Sold
+        </span>
+      </div>
+
+      {/* Date & time row */}
+      <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-3">
+        <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold tabular-nums">
+          <span>{date}</span>
+          <span className="text-muted-foreground">{time} <span className="text-[10px] font-bold uppercase tracking-widest ml-0.5">UAE</span></span>
+        </div>
+      </div>
+    </div>
   );
 }
 
