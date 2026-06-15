@@ -57,59 +57,72 @@ function fmtUAE(ts: number): { date: string; time: string } {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DcaSteps — glass orb chain
-   Each step is a glass bubble sphere. Past = filled glow, Active = large
-   pulsing orb with spinning inner light, Future = empty crystal ring.
-   Orbs are connected by a thin tube that fills as steps complete.
+   DcaSteps — glass orb chain (refined)
+   Soft glow, checkmarks on completed orbs, advanced stat footer.
 ───────────────────────────────────────────────────────────────────────────── */
 function DcaSteps({ step, total }: { step: number; total: number }) {
-  const pct = Math.round((step / total) * 100);
+  const pct       = Math.round((step / total) * 100);
+  const remaining = total - step;
 
   return (
     <>
       <style>{`
-        @keyframes orb-pulse {
+        @keyframes orb-breathe {
           0%,100% {
             box-shadow:
-              0 0 0 0px   color-mix(in oklab,var(--primary)  0%,transparent),
-              0 0 10px 2px color-mix(in oklab,var(--primary) 55%,transparent),
-              0 0 24px 4px color-mix(in oklab,var(--primary) 22%,transparent),
-              inset 0 0 10px 2px color-mix(in oklab,var(--primary) 45%,transparent),
-              inset 0 1px 0 rgba(255,255,255,0.28);
+              0 0 0 2px  color-mix(in oklab,var(--primary)  8%,transparent),
+              0 0 8px 1px color-mix(in oklab,var(--primary) 28%,transparent),
+              inset 0 0 7px 1px color-mix(in oklab,var(--primary) 22%,transparent),
+              inset 0 1px 0 rgba(255,255,255,0.18);
           }
           50% {
             box-shadow:
-              0 0 0 7px   color-mix(in oklab,var(--primary) 10%,transparent),
-              0 0 20px 4px color-mix(in oklab,var(--primary) 72%,transparent),
-              0 0 42px 8px color-mix(in oklab,var(--primary) 28%,transparent),
-              inset 0 0 16px 3px color-mix(in oklab,var(--primary) 65%,transparent),
-              inset 0 1px 0 rgba(255,255,255,0.45);
+              0 0 0 4px  color-mix(in oklab,var(--primary)  6%,transparent),
+              0 0 12px 2px color-mix(in oklab,var(--primary) 38%,transparent),
+              inset 0 0 10px 2px color-mix(in oklab,var(--primary) 30%,transparent),
+              inset 0 1px 0 rgba(255,255,255,0.26);
           }
         }
         @keyframes orb-spin {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
         }
-        .orb-pulse { animation: orb-pulse 2.4s ease-in-out infinite; }
-        .orb-spin  { animation: orb-spin  8s linear infinite; }
+        @keyframes tube-fill {
+          from { width: 0%; }
+          to   { width: 100%; }
+        }
+        .orb-breathe { animation: orb-breathe 3s ease-in-out infinite; }
+        .orb-spin    { animation: orb-spin 12s linear infinite; }
       `}</style>
 
       <div className="mt-5 select-none">
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-4">
-          <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.16em", textTransform:"uppercase",
-            color:"color-mix(in oklab,var(--primary) 65%,rgba(255,255,255,0.45))" }}>
-            DCA Averaging
+
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between mb-1">
+          <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.18em", textTransform:"uppercase",
+            color:"color-mix(in oklab,var(--primary) 60%,rgba(255,255,255,0.40))" }}>
+            DCA STEP
           </span>
-          <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.35)", fontVariantNumeric:"tabular-nums" }}>
-            <span style={{ color:"var(--primary)", fontWeight:900, fontSize:13 }}>{step}</span>
-            {" / "}{total}
-            <span style={{ marginLeft:5, fontSize:9, color:"rgba(255,255,255,0.22)" }}>· {pct}%</span>
-          </span>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            {/* Completed badge */}
+            <span style={{
+              fontSize:9, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase",
+              padding:"2px 7px", borderRadius:999,
+              background:"color-mix(in oklab,var(--primary) 10%,rgba(255,255,255,0.04))",
+              border:"1px solid color-mix(in oklab,var(--primary) 22%,rgba(255,255,255,0.06))",
+              color:"color-mix(in oklab,var(--primary) 70%,rgba(255,255,255,0.50))",
+            }}>
+              {step - 1} done
+            </span>
+            <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.30)", fontVariantNumeric:"tabular-nums" }}>
+              <span style={{ color:"var(--primary)", fontWeight:900, fontSize:13 }}>{step}</span>
+              {" / "}{total}
+            </span>
+          </div>
         </div>
 
-        {/* Orb chain */}
-        <div style={{ display:"flex", alignItems:"center" }}>
+        {/* ── Orb chain ── */}
+        <div style={{ display:"flex", alignItems:"center", marginTop:16 }}>
           {Array.from({ length: total }).map((_, i) => {
             const isActive = i === step - 1;
             const isPast   = i < step - 1;
@@ -119,84 +132,103 @@ function DcaSteps({ step, total }: { step: number; total: number }) {
               <div key={i} style={{ display:"flex", alignItems:"center", flex: isLast ? "0 0 auto" : 1 }}>
 
                 {/* ── Orb ── */}
-                <div style={{ position:"relative", flexShrink:0 }}>
-                  {/* outer halo ring (active only) */}
-                  {isActive && (
-                    <div style={{
-                      position:"absolute", inset:-7, borderRadius:"50%", pointerEvents:"none",
-                      border:"1px solid color-mix(in oklab,var(--primary) 30%,transparent)",
-                    }} />
-                  )}
-
-                  <div
-                    className={isActive ? "orb-pulse" : ""}
-                    style={{
-                      width:  isActive ? 38 : isPast ? 24 : 18,
-                      height: isActive ? 38 : isPast ? 24 : 18,
-                      borderRadius: "50%",
-                      position: "relative",
-                      overflow: "hidden",
-                      flexShrink: 0,
-                      transition: "width 0.5s cubic-bezier(0.34,1.56,0.64,1), height 0.5s cubic-bezier(0.34,1.56,0.64,1)",
-                      background: isActive
-                        ? "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.20), rgba(255,255,255,0.04))"
-                        : isPast
-                        ? "radial-gradient(circle at 35% 30%, color-mix(in oklab,var(--primary) 50%,rgba(255,255,255,0.10)), color-mix(in oklab,var(--primary) 22%,transparent))"
-                        : "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.055), rgba(255,255,255,0.015))",
-                      backdropFilter: "blur(12px)",
-                      WebkitBackdropFilter: "blur(12px)",
-                      border: isActive
-                        ? "1px solid rgba(255,255,255,0.22)"
-                        : isPast
-                        ? "1px solid color-mix(in oklab,var(--primary) 50%,rgba(255,255,255,0.08))"
-                        : "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    {/* spinning light conic (active only) */}
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, flexShrink:0 }}>
+                  {/* Subtle outer ring (active only) */}
+                  <div style={{ position:"relative" }}>
                     {isActive && (
-                      <div className="orb-spin" style={{
-                        position:"absolute", inset:0, borderRadius:"50%",
-                        background:"conic-gradient(from 0deg,transparent 70%,color-mix(in oklab,var(--primary) 55%,rgba(255,255,255,0.5)) 85%,transparent 100%)",
+                      <div style={{
+                        position:"absolute", inset:-5, borderRadius:"50%", pointerEvents:"none",
+                        border:"1px solid color-mix(in oklab,var(--primary) 20%,transparent)",
                       }} />
                     )}
-                    {/* specular highlight */}
-                    <div style={{
-                      position:"absolute", top:"12%", left:"18%",
-                      width:"34%", height:"24%", borderRadius:"50%",
-                      background:"rgba(255,255,255,0.32)", filter:"blur(2px)", pointerEvents:"none",
-                    }} />
-                    {/* step number */}
-                    <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <span style={{
-                        fontSize: isActive ? 14 : isPast ? 9 : 8,
-                        fontWeight: 900,
-                        fontVariantNumeric: "tabular-nums",
-                        lineHeight: 1,
-                        position: "relative",
-                        zIndex: 1,
-                        color: isActive
-                          ? "var(--primary)"
-                          : isPast ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.20)",
-                        textShadow: isActive
-                          ? "0 0 8px color-mix(in oklab,var(--primary) 90%,transparent)"
-                          : "none",
-                        transition: "font-size 0.4s, color 0.4s",
-                      }}>
-                        {i + 1}
-                      </span>
+
+                    <div
+                      className={isActive ? "orb-breathe" : ""}
+                      style={{
+                        width:  isActive ? 36 : isPast ? 24 : 18,
+                        height: isActive ? 36 : isPast ? 24 : 18,
+                        borderRadius:"50%",
+                        position:"relative",
+                        overflow:"hidden",
+                        flexShrink:0,
+                        transition:"width 0.5s cubic-bezier(0.34,1.56,0.64,1), height 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+                        background: isActive
+                          ? "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.14), rgba(255,255,255,0.03))"
+                          : isPast
+                          ? "radial-gradient(circle at 35% 30%, color-mix(in oklab,var(--primary) 42%,rgba(255,255,255,0.08)), color-mix(in oklab,var(--primary) 18%,transparent))"
+                          : "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+                        backdropFilter:"blur(12px)",
+                        WebkitBackdropFilter:"blur(12px)",
+                        border: isActive
+                          ? "1px solid rgba(255,255,255,0.18)"
+                          : isPast
+                          ? "1px solid color-mix(in oklab,var(--primary) 40%,rgba(255,255,255,0.06))"
+                          : "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      {/* Very subtle rotating conic (active only, low opacity) */}
+                      {isActive && (
+                        <div className="orb-spin" style={{
+                          position:"absolute", inset:0, borderRadius:"50%", opacity:0.18,
+                          background:"conic-gradient(from 0deg,transparent 65%,rgba(255,255,255,0.9) 82%,transparent 100%)",
+                        }} />
+                      )}
+                      {/* Specular */}
+                      <div style={{
+                        position:"absolute", top:"10%", left:"16%",
+                        width:"32%", height:"22%", borderRadius:"50%",
+                        background:"rgba(255,255,255,0.22)", filter:"blur(1.5px)", pointerEvents:"none",
+                      }} />
+                      {/* Icon: checkmark for past, number for active/future */}
+                      <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        {isPast ? (
+                          <svg width={isPast ? 10 : 8} height={isPast ? 10 : 8} viewBox="0 0 10 10" fill="none" style={{ position:"relative", zIndex:1 }}>
+                            <path d="M2 5.2L4.1 7.4L8 3" stroke="rgba(255,255,255,0.75)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <span style={{
+                            fontSize: isActive ? 13 : 8,
+                            fontWeight:900, fontVariantNumeric:"tabular-nums", lineHeight:1,
+                            position:"relative", zIndex:1,
+                            color: isActive ? "var(--primary)" : "rgba(255,255,255,0.18)",
+                            transition:"font-size 0.4s, color 0.4s",
+                          }}>
+                            {i + 1}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Step label below orb */}
+                  <span style={{
+                    fontSize:8, fontWeight:700, letterSpacing:"0.04em",
+                    fontVariantNumeric:"tabular-nums",
+                    color: isActive
+                      ? "color-mix(in oklab,var(--primary) 80%,rgba(255,255,255,0.5))"
+                      : isPast
+                      ? "rgba(255,255,255,0.28)"
+                      : "rgba(255,255,255,0.10)",
+                    transition:"color 0.4s",
+                  }}>
+                    {i + 1}
+                  </span>
                 </div>
 
                 {/* ── Connecting tube ── */}
                 {!isLast && (
-                  <div style={{ flex:1, height:2, position:"relative", margin:"0 3px" }}>
-                    <div style={{ position:"absolute", inset:0, borderRadius:999, background:"rgba(255,255,255,0.07)" }} />
+                  <div style={{ flex:1, height:1.5, position:"relative", margin:"0 3px", marginBottom:13 }}>
+                    <div style={{ position:"absolute", inset:0, borderRadius:999, background:"rgba(255,255,255,0.06)" }} />
                     {isPast && (
                       <div style={{
                         position:"absolute", inset:0, borderRadius:999,
-                        background:"linear-gradient(90deg,color-mix(in oklab,var(--primary) 55%,transparent),color-mix(in oklab,var(--primary) 65%,transparent))",
-                        boxShadow:"0 0 4px 1px color-mix(in oklab,var(--primary) 28%,transparent)",
+                        background:"linear-gradient(90deg,color-mix(in oklab,var(--primary) 40%,transparent),color-mix(in oklab,var(--primary) 50%,transparent))",
+                      }} />
+                    )}
+                    {isActive && i > 0 && (
+                      <div style={{
+                        position:"absolute", left:0, top:0, bottom:0, width:"50%", borderRadius:999,
+                        background:"color-mix(in oklab,var(--primary) 30%,transparent)",
                       }} />
                     )}
                   </div>
@@ -205,6 +237,77 @@ function DcaSteps({ step, total }: { step: number; total: number }) {
             );
           })}
         </div>
+
+        {/* ── Stat footer ── */}
+        <div style={{
+          marginTop:14,
+          padding:"8px 10px",
+          borderRadius:10,
+          background:"rgba(255,255,255,0.03)",
+          border:"1px solid rgba(255,255,255,0.06)",
+          display:"flex", alignItems:"center", gap:0,
+        }}>
+          {/* Progress bar + pct */}
+          <div style={{ flex:1 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
+              <span style={{ fontSize:8, fontWeight:700, letterSpacing:"0.10em", textTransform:"uppercase", color:"rgba(255,255,255,0.22)" }}>
+                Progress
+              </span>
+              <span style={{ fontSize:9, fontWeight:800, fontVariantNumeric:"tabular-nums",
+                color:"color-mix(in oklab,var(--primary) 70%,rgba(255,255,255,0.5))" }}>
+                {pct}%
+              </span>
+            </div>
+            <div style={{ height:3, borderRadius:999, background:"rgba(255,255,255,0.07)", position:"relative" }}>
+              <div style={{
+                position:"absolute", left:0, top:0, bottom:0, borderRadius:999,
+                width:`${pct}%`,
+                background:`linear-gradient(90deg,color-mix(in oklab,var(--primary) 40%,transparent),var(--primary))`,
+                transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)",
+              }} />
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width:1, height:28, background:"rgba(255,255,255,0.07)", margin:"0 12px", flexShrink:0 }} />
+
+          {/* Remaining */}
+          <div style={{ textAlign:"center", flexShrink:0 }}>
+            <div style={{ fontSize:16, fontWeight:900, lineHeight:1, fontVariantNumeric:"tabular-nums",
+              color:"rgba(255,255,255,0.40)" }}>
+              {remaining}
+            </div>
+            <div style={{ fontSize:7.5, fontWeight:700, letterSpacing:"0.10em", textTransform:"uppercase",
+              color:"rgba(255,255,255,0.18)", marginTop:2 }}>
+              left
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width:1, height:28, background:"rgba(255,255,255,0.07)", margin:"0 12px", flexShrink:0 }} />
+
+          {/* Status pill */}
+          <div style={{ flexShrink:0 }}>
+            <div style={{
+              display:"inline-flex", alignItems:"center", gap:5,
+              padding:"3px 8px", borderRadius:999,
+              background:"color-mix(in oklab,var(--primary) 8%,rgba(255,255,255,0.03))",
+              border:"1px solid color-mix(in oklab,var(--primary) 18%,rgba(255,255,255,0.05))",
+            }}>
+              <span style={{
+                width:5, height:5, borderRadius:"50%", flexShrink:0,
+                background:"var(--primary)",
+                boxShadow:"0 0 4px 1px color-mix(in oklab,var(--primary) 45%,transparent)",
+                animation:"pulse 2.5s ease-in-out infinite",
+              }} />
+              <span style={{ fontSize:8, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase",
+                color:"color-mix(in oklab,var(--primary) 65%,rgba(255,255,255,0.45))" }}>
+                Active
+              </span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </>
   );
