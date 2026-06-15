@@ -42,168 +42,218 @@ function fmtUAE(ts: number): { date: string; time: string } {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   DcaSteps — premium floating-node timeline.
+   DcaSteps — centered spotlight display.
 
    Design:
-   • Thin horizontal track line with gradient fill showing progress
-   • Each step is a floating node: past = small filled dot, active = glowing
-     pulsing orb with halo, future = hollow ghost dot
-   • Step numbers float above their nodes (active number is large + glowing)
-   • "DCA" label + fraction counter sit inline at the end
-   • Zero heavy backgrounds — floats cleanly inside the card
+   • Only 3 numbers visible: prev (ghost) · ACTIVE (hero) · next (ghost)
+   • Active number is very large, inside a frosted-glass panel with a deep
+     layered glow — like a high-end audio gear parameter display
+   • Flanking numbers fade by distance, creating natural depth
+   • Below the panel: a ultra-thin single progress line + step label
+   • Step changes trigger a smooth slide-in animation
 ───────────────────────────────────────────────────────────────────────────── */
 function DcaSteps({ step, total }: { step: number; total: number }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
+  const [displayed, setDisplayed] = useState(step);
+  const [slideDir,  setSlideDir]  = useState<"left" | "right" | null>(null);
+  const prevStep = useRef(step);
 
-  const progress = total > 1 ? (step - 1) / (total - 1) : 1;
-  const progressPct = mounted ? Math.min(progress * 100, 100) : 0;
+  useEffect(() => {
+    if (step === prevStep.current) return;
+    setSlideDir(step > prevStep.current ? "left" : "right");
+    prevStep.current = step;
+    const t = setTimeout(() => { setDisplayed(step); setSlideDir(null); }, 280);
+    return () => clearTimeout(t);
+  }, [step]);
+
+  const pct = Math.round((step / total) * 100);
+
+  // Neighbours: show up to 2 on each side
+  const neighbours: Array<{ n: number; offset: number }> = [];
+  for (let d = -2; d <= 2; d++) {
+    const n = displayed + d;
+    if (n >= 1 && n <= total) neighbours.push({ n, offset: d });
+  }
 
   return (
     <>
       <style>{`
-        @keyframes dca-orb-breathe {
+        @keyframes dca-panel-glow {
           0%, 100% {
             box-shadow:
-              0 0 0 0px  color-mix(in oklab,var(--primary) 0%,transparent),
-              0 0 8px 1px color-mix(in oklab,var(--primary) 55%,transparent),
-              0 0 20px 2px color-mix(in oklab,var(--primary) 25%,transparent);
+              0 0 0 1px  color-mix(in oklab,var(--primary) 22%,transparent),
+              0 0 18px 2px color-mix(in oklab,var(--primary) 30%,transparent),
+              0 0 40px 6px color-mix(in oklab,var(--primary) 12%,transparent),
+              inset 0 1px 0 color-mix(in oklab,var(--primary) 18%,transparent);
           }
           50% {
             box-shadow:
-              0 0 0 5px  color-mix(in oklab,var(--primary) 12%,transparent),
-              0 0 12px 2px color-mix(in oklab,var(--primary) 70%,transparent),
-              0 0 28px 4px color-mix(in oklab,var(--primary) 35%,transparent);
+              0 0 0 1px  color-mix(in oklab,var(--primary) 38%,transparent),
+              0 0 26px 4px color-mix(in oklab,var(--primary) 48%,transparent),
+              0 0 60px 10px color-mix(in oklab,var(--primary) 18%,transparent),
+              inset 0 1px 0 color-mix(in oklab,var(--primary) 30%,transparent);
           }
         }
-        @keyframes dca-num-appear {
-          from { transform: translateY(4px) translateX(-50%); opacity: 0; }
-          to   { transform: translateY(0)   translateX(-50%); opacity: 1; }
+        @keyframes dca-num-slide-left {
+          from { transform: translateX(18px); opacity: 0; }
+          to   { transform: translateX(0);    opacity: 1; }
         }
-        .dca-orb-breathe { animation: dca-orb-breathe 2.2s ease-in-out infinite; }
-        .dca-num-appear  { animation: dca-num-appear 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes dca-num-slide-right {
+          from { transform: translateX(-18px); opacity: 0; }
+          to   { transform: translateX(0);     opacity: 1; }
+        }
+        @keyframes dca-line-fill {
+          from { width: 0%; }
+        }
+        .dca-panel-glow      { animation: dca-panel-glow 2.6s ease-in-out infinite; }
+        .dca-slide-left      { animation: dca-num-slide-left  0.28s cubic-bezier(0.22,1,0.36,1) both; }
+        .dca-slide-right     { animation: dca-num-slide-right 0.28s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
-      <div className="mt-5 px-1">
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-5">
-          <span
-            className="text-[10px] uppercase tracking-widest font-bold"
-            style={{ color: "color-mix(in oklab,var(--primary) 70%,var(--muted-foreground))" }}
-          >
-            DCA
-          </span>
-          <span className="tabular-nums text-[11px] font-bold" style={{ color: "color-mix(in oklab,var(--muted-foreground) 60%,transparent)" }}>
-            <span style={{ color: "var(--primary)", fontWeight: 900, fontSize: 13 }}>{step}</span>
-            <span style={{ margin: "0 2px" }}>/</span>
-            {total}
-            <span style={{ marginLeft: 6, color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)", fontSize: 10 }}>
-              · {Math.round((step / total) * 100)}%
-            </span>
-          </span>
-        </div>
+      <div className="mt-5 select-none">
 
-        {/* Track + nodes */}
-        <div className="relative" style={{ height: 48, paddingTop: 20 }}>
+        {/* ── Spotlight row ── */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, height: 80, position: "relative" }}>
 
-          {/* Track background */}
-          <div
-            className="absolute left-0 right-0"
-            style={{
-              top: 20 + 10, // center of nodes
-              height: 1.5,
-              borderRadius: 999,
-              background: "color-mix(in oklab,var(--primary) 10%,var(--card))",
-            }}
-          />
+          {/* Fade masks on edges */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2,
+            background: "linear-gradient(90deg, var(--card) 0%, transparent 22%, transparent 78%, var(--card) 100%)",
+          }} />
 
-          {/* Track fill */}
-          <div
-            className="absolute left-0"
-            style={{
-              top: 20 + 10,
-              height: 1.5,
-              borderRadius: 999,
-              width: `${progressPct}%`,
-              transition: "width 0.9s cubic-bezier(0.4,0,0.2,1)",
-              background: "linear-gradient(90deg, color-mix(in oklab,var(--primary) 50%,transparent), var(--primary))",
-              boxShadow: "0 0 6px 1px color-mix(in oklab,var(--primary) 35%,transparent)",
-            }}
-          />
-
-          {/* Nodes */}
-          {Array.from({ length: total }).map((_, i) => {
-            const isActive = i === step - 1;
-            const isPast   = i < step - 1;
-            const isFuture = i >= step;
-            // Position along track (0% → 100%)
-            const pct = total > 1 ? (i / (total - 1)) * 100 : 0;
+          {neighbours.map(({ n, offset }) => {
+            const isCenter = offset === 0;
+            const dist = Math.abs(offset);
+            const opacity = isCenter ? 1 : dist === 1 ? 0.28 : 0.10;
+            const scale = isCenter ? 1 : dist === 1 ? 0.62 : 0.40;
+            const blur = isCenter ? 0 : dist === 1 ? 0 : 1;
 
             return (
               <div
-                key={i}
+                key={n}
                 style={{
-                  position: "absolute",
-                  left: `${pct}%`,
-                  top: 20,
-                  transform: "translateX(-50%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: isCenter ? 90 : dist === 1 ? 52 : 38,
+                  flexShrink: 0,
+                  opacity,
+                  filter: blur ? `blur(${blur}px)` : undefined,
+                  transition: "opacity 0.3s ease, width 0.3s ease",
+                  zIndex: isCenter ? 1 : 0,
+                  position: "relative",
                 }}
               >
-                {/* Step number above node */}
-                <div
-                  key={`num-${i}-${isActive}`}
-                  className={isActive ? "dca-num-appear" : ""}
-                  style={{
-                    position: "absolute",
-                    bottom: "calc(100% + 6px)",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    fontVariantNumeric: "tabular-nums",
-                    fontSize:   isActive ? 15 : isPast ? 10 : 10,
-                    fontWeight: isActive ? 900 : isPast ? 700 : 600,
-                    lineHeight: 1,
-                    color: isActive
-                      ? "var(--primary)"
-                      : isPast
-                      ? "color-mix(in oklab,var(--primary) 55%,var(--muted-foreground))"
-                      : "color-mix(in oklab,var(--muted-foreground) 30%,transparent)",
-                    filter: isActive
-                      ? "drop-shadow(0 0 6px color-mix(in oklab,var(--primary) 80%,transparent))"
-                      : "none",
-                    whiteSpace: "nowrap",
-                    transition: "color 0.4s, font-size 0.4s",
-                  }}
-                >
-                  {i + 1}
-                </div>
+                {isCenter ? (
+                  /* ── Hero panel ── */
+                  <div
+                    className="dca-panel-glow"
+                    style={{
+                      width: 84,
+                      height: 68,
+                      borderRadius: 18,
+                      background: "linear-gradient(145deg, color-mix(in oklab,var(--primary) 12%,var(--card)) 0%, color-mix(in oklab,var(--primary) 6%,var(--card)) 100%)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 2,
+                      overflow: "hidden",
+                      position: "relative",
+                    }}
+                  >
+                    {/* top sheen */}
+                    <div style={{
+                      position: "absolute", top: 0, left: 0, right: 0, height: 1,
+                      background: "linear-gradient(90deg,transparent,color-mix(in oklab,var(--primary) 55%,transparent),transparent)",
+                    }} />
 
-                {/* Node dot */}
-                <div
-                  className={isActive ? "dca-orb-breathe" : ""}
-                  style={{
-                    width:        isActive ? 18 : isPast ? 8 : 6,
-                    height:       isActive ? 18 : isPast ? 8 : 6,
-                    borderRadius: "50%",
-                    background:   isActive
-                      ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 90%,white), var(--primary))"
-                      : isPast
-                      ? "color-mix(in oklab,var(--primary) 60%,transparent)"
-                      : "transparent",
-                    border:       isFuture
-                      ? "1.5px solid color-mix(in oklab,var(--primary) 18%,transparent)"
-                      : "none",
-                    marginTop:    isActive ? -4 : isPast ? 1 : 2,
-                    transition:   "width 0.5s ease, height 0.5s ease, background 0.5s ease, margin-top 0.5s ease",
-                    flexShrink:   0,
-                  }}
-                />
+                    {/* live pulse dot */}
+                    <div style={{
+                      position: "absolute", top: 9, right: 10,
+                      width: 5, height: 5, borderRadius: "50%",
+                      background: "var(--primary)",
+                      boxShadow: "0 0 5px 1px color-mix(in oklab,var(--primary) 70%,transparent)",
+                      animation: "pulse 2s ease-in-out infinite",
+                    }} />
+
+                    {/* The big number */}
+                    <span
+                      className={slideDir === "left" ? "dca-slide-left" : slideDir === "right" ? "dca-slide-right" : ""}
+                      style={{
+                        fontSize: 36,
+                        fontWeight: 900,
+                        lineHeight: 1,
+                        letterSpacing: "-0.05em",
+                        fontVariantNumeric: "tabular-nums",
+                        color: "var(--primary)",
+                        textShadow: "0 0 20px color-mix(in oklab,var(--primary) 70%,transparent), 0 0 40px color-mix(in oklab,var(--primary) 35%,transparent)",
+                      }}
+                    >
+                      {String(displayed).padStart(2, "0")}
+                    </span>
+
+                    {/* of total */}
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "color-mix(in oklab,var(--primary) 50%,var(--muted-foreground))",
+                      lineHeight: 1,
+                    }}>
+                      OF {String(total).padStart(2, "0")}
+                    </span>
+                  </div>
+                ) : (
+                  /* ── Ghost neighbour ── */
+                  <span style={{
+                    fontSize: dist === 1 ? 28 : 20,
+                    fontWeight: 900,
+                    letterSpacing: "-0.04em",
+                    fontVariantNumeric: "tabular-nums",
+                    color: "var(--muted-foreground)",
+                    transition: "font-size 0.3s ease",
+                  }}>
+                    {String(n).padStart(2, "0")}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
+
+        {/* ── Bottom strip: label + thin progress line ── */}
+        <div className="mt-3 px-1">
+          <div className="flex items-center justify-between mb-1.5">
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "color-mix(in oklab,var(--primary) 60%,var(--muted-foreground))",
+            }}>
+              DCA Averaging
+            </span>
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
+              color: "color-mix(in oklab,var(--muted-foreground) 55%,transparent)",
+              fontVariantNumeric: "tabular-nums",
+            }}>
+              {pct}% complete
+            </span>
+          </div>
+
+          {/* Single ultra-thin progress line */}
+          <div style={{ position: "relative", height: 2, borderRadius: 999, background: "color-mix(in oklab,var(--primary) 10%,var(--card))" }}>
+            <div style={{
+              position: "absolute", left: 0, top: 0, bottom: 0,
+              width: `${pct}%`,
+              borderRadius: 999,
+              background: "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent), var(--primary))",
+              boxShadow: "0 0 6px 1px color-mix(in oklab,var(--primary) 40%,transparent)",
+              transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
+            }} />
+          </div>
+        </div>
+
       </div>
     </>
   );
