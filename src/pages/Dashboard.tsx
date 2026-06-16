@@ -339,14 +339,19 @@ interface LastTrade {
 }
 
 function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
-  // Persist the last seen active symbol
+  // Keep storedSymbol in state so React re-renders when it changes
+  const [storedSymbol, setStoredSymbol] = useState<string | undefined>(
+    () => localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined,
+  );
+
+  // Persist the last seen active symbol — update both localStorage AND state
   useEffect(() => {
     if (activeSymbol) {
       localStorage.setItem(LAST_SYMBOL_KEY, activeSymbol);
+      setStoredSymbol(activeSymbol);
     }
   }, [activeSymbol]);
 
-  const storedSymbol = localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined;
   // Only query when there is NO active trade
   const querySymbol = activeSymbol ? undefined : storedSymbol;
 
@@ -354,7 +359,8 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     queryKey: ["lastTrades", querySymbol],
     queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
     enabled: !!querySymbol,
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   return useMemo(() => {
