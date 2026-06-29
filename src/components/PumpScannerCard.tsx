@@ -138,9 +138,6 @@ export default function PumpScannerCard() {
           animation: pump-shimmer 1.4s ease-in-out 0.3s 2;
           pointer-events: none;
         }
-        .pump-icon-wrap {
-          animation: pump-icon-glow 2.5s ease-in-out infinite;
-        }
 
         .pump-scroll {
           scrollbar-width: thin;
@@ -155,6 +152,38 @@ export default function PumpScannerCard() {
         .pump-scroll::-webkit-scrollbar-thumb:hover {
           background: color-mix(in oklab, var(--primary) 65%, transparent);
         }
+
+        /* ── Premium scanning animation ── */
+        @keyframes radar-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes radar-ping-1 {
+          0%        { transform: scale(0.5);  opacity: 0.7; }
+          70%, 100% { transform: scale(1.9);  opacity: 0; }
+        }
+        @keyframes radar-ping-2 {
+          0%        { transform: scale(0.5);  opacity: 0.5; }
+          70%, 100% { transform: scale(2.6);  opacity: 0; }
+        }
+        @keyframes radar-ping-3 {
+          0%        { transform: scale(0.5);  opacity: 0.3; }
+          70%, 100% { transform: scale(3.4);  opacity: 0; }
+        }
+        @keyframes radar-dot-beat {
+          0%, 100% { transform: scale(1);   opacity: 1; }
+          50%       { transform: scale(1.5); opacity: 0.6; }
+        }
+        @keyframes scan-text-blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
+        .radar-spin    { animation: radar-spin    3s linear infinite; }
+        .radar-ping-1  { animation: radar-ping-1  2s ease-out infinite; }
+        .radar-ping-2  { animation: radar-ping-2  2s ease-out 0.5s infinite; }
+        .radar-ping-3  { animation: radar-ping-3  2s ease-out 1s infinite; }
+        .radar-dot     { animation: radar-dot-beat 1.4s ease-in-out infinite; }
+        .scan-text     { animation: scan-text-blink 1.6s ease-in-out infinite; }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -259,6 +288,62 @@ export default function PumpScannerCard() {
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
           {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
+        </div>
+      )}
+
+      {/* ── PREMIUM SCANNING ANIMATION — only when bot is active ── */}
+      {active && (
+        <div className="relative flex flex-col items-center gap-3 rounded-xl border border-primary/20 bg-gradient-to-b from-primary/5 to-transparent py-5 overflow-hidden">
+          {/* background radial glow */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_8%,transparent)_0%,transparent_70%)]" />
+
+          {/* radar rings */}
+          <div className="relative flex items-center justify-center" style={{ width: 72, height: 72 }}>
+            {/* expanding ping rings */}
+            <span className="radar-ping-1 absolute inset-0 rounded-full border border-primary/40" />
+            <span className="radar-ping-2 absolute inset-0 rounded-full border border-primary/25" />
+            <span className="radar-ping-3 absolute inset-0 rounded-full border border-primary/15" />
+
+            {/* spinning dashed ring */}
+            <span
+              className="radar-spin absolute inset-1 rounded-full"
+              style={{
+                border: "1.5px dashed color-mix(in oklab, var(--primary) 40%, transparent)",
+              }}
+            />
+
+            {/* centre core */}
+            <div
+              className="relative z-10 flex items-center justify-center rounded-full"
+              style={{
+                width: 32,
+                height: 32,
+                background: "radial-gradient(circle at 35% 35%, color-mix(in oklab, var(--primary) 30%, var(--card)), var(--card))",
+                border: "1.5px solid color-mix(in oklab, var(--primary) 45%, transparent)",
+                boxShadow: "0 0 14px 2px color-mix(in oklab, var(--primary) 20%, transparent)",
+              }}
+            >
+              <span
+                className="radar-dot rounded-full"
+                style={{
+                  width: 8,
+                  height: 8,
+                  background: "var(--primary)",
+                  boxShadow: "0 0 8px 2px color-mix(in oklab, var(--primary) 60%, transparent)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* label */}
+          <div className="flex flex-col items-center gap-1 relative z-10">
+            <span className="scan-text text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+              Scanning Markets
+            </span>
+            <span className="text-[9px] text-muted-foreground/50 tracking-widest uppercase">
+              monitoring all USDT pairs
+            </span>
+          </div>
         </div>
       )}
     </section>
