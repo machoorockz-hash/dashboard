@@ -18,6 +18,39 @@ interface DelistData {
   lastHeartbeat: string | null;
 }
 
+/**
+ * Returns true if the delist date is today or in the future.
+ * Accepts DD/MM/YYYY format. If the date is missing or unparseable,
+ * the coin is shown (safe default).
+ */
+function isUpcoming(item: DelistSymbol): boolean {
+  if (!item.date) return true;
+
+  // Try DD/MM/YYYY (the format used throughout this project)
+  const parts = item.date.split("/");
+  if (parts.length === 3) {
+    const [dd, mm, yyyy] = parts;
+    const delistDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    if (!isNaN(delistDate.getTime())) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      delistDate.setHours(0, 0, 0, 0);
+      return delistDate >= today;
+    }
+  }
+
+  // Fallback: try native Date parsing (YYYY-MM-DD, ISO, etc.)
+  const d = new Date(item.date);
+  if (!isNaN(d.getTime())) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    d.setHours(0, 0, 0, 0);
+    return d >= today;
+  }
+
+  return true; // unparseable → show it
+}
+
 export function TickerTape() {
   const [data, setData] = useState<DelistData | null>(null);
   const [stale, setStale] = useState(false);
@@ -44,15 +77,16 @@ export function TickerTape() {
     return () => clearTimeout(timer);
   }, []);
 
-  const active = !stale && data?.active === true && data.symbols.length > 0;
+  const isActive = !stale && data?.active === true;
 
-  if (!active) return null;
+  // Only show coins whose delist date hasn't passed yet
+  const upcomingSymbols = isActive ? (data?.symbols ?? []).filter(isUpcoming) : [];
 
-  const symbols = data!.symbols;
+  if (upcomingSymbols.length === 0) return null;
 
   const row = (
     <div className="flex items-center gap-8 px-6 py-1.5 shrink-0">
-      {symbols.map((item) => (
+      {upcomingSymbols.map((item) => (
         <div key={item.symbol} className="flex items-center gap-2.5 text-xs whitespace-nowrap">
           <CoinIcon symbol={item.symbol} size={18} />
           <span className="font-bold text-foreground">{item.symbol}/USDT</span>
