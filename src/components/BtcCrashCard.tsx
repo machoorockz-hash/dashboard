@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, TrendingUp } from "lucide-react";
+import { Activity, TrendingUp, Zap, Waves, DollarSign, TrendingDown } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -20,6 +20,14 @@ interface BotData {
   volatility: number;
   status: string;
   trade_mode?: string;
+  // ── Market signals (all sent by bot, newly displayed) ──
+  whale_count?: number;
+  consec_drops?: number;
+  vol_spike?: boolean;
+  funding_rate?: number;
+  funding_level?: string;
+  liq_usd_60s?: number;
+  liq_level?: string;
 }
 
 interface Snapshot {
@@ -43,6 +51,19 @@ const TIMEFRAMES: Array<{ label: string; dropKey: keyof BotData; peakKey: keyof 
   { label: "1h",  dropKey: "drop_1h",  peakKey: "peak_1h"  },
   { label: "4h",  dropKey: "drop_4h",  peakKey: "peak_4h"  },
 ];
+
+const LEVEL_COLORS: Record<string, string> = {
+  NORMAL: "text-emerald-400",
+  WATCH:  "text-yellow-400",
+  RISK:   "text-orange-400",
+  DANGER: "text-red-400",
+};
+const LEVEL_BG: Record<string, string> = {
+  NORMAL: "bg-emerald-500/10 border-emerald-500/30",
+  WATCH:  "bg-yellow-500/10 border-yellow-500/30",
+  RISK:   "bg-orange-500/10 border-orange-500/30",
+  DANGER: "bg-red-500/10 border-red-500/30",
+};
 
 function dropColor(pct: number) {
   if (pct >= 4) return "text-red-400";
@@ -80,6 +101,27 @@ function timeSince(iso: string) {
 
 function fmtPrice(p: number) {
   return p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtLiq(usd: number) {
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1)}M`;
+  if (usd >= 1_000)     return `$${(usd / 1_000).toFixed(0)}K`;
+  return `$${usd.toFixed(0)}`;
+}
+
+function fmtFunding(rate: number) {
+  return `${rate >= 0 ? "+" : ""}${(rate * 100).toFixed(4)}%`;
+}
+
+/** A mini pill badge for signal levels */
+function LevelBadge({ level }: { level: string }) {
+  const col = LEVEL_COLORS[level] ?? "text-emerald-400";
+  const bg  = LEVEL_BG[level]    ?? "bg-emerald-500/10 border-emerald-500/30";
+  return (
+    <span className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest ${col} ${bg}`}>
+      {level}
+    </span>
+  );
 }
 
 export function BtcCrashCard() {
@@ -135,6 +177,18 @@ export function BtcCrashCard() {
   const stage    = d?.status ?? "SAFE";
   const cfg      = STAGE_CONFIG[stage] ?? STAGE_CONFIG["SAFE"]!;
   const isPaused = d?.trade_mode === "Pause";
+
+  // Signal values
+  const whaleCount  = d?.whale_count  ?? 0;
+  const consecDrops = d?.consec_drops ?? 0;
+  const volSpike    = d?.vol_spike    ?? false;
+  const fundingRate = d?.funding_rate ?? 0;
+  const fundingLvl  = d?.funding_level ?? "NORMAL";
+  const liqUsd      = d?.liq_usd_60s  ?? 0;
+  const liqLvl      = d?.liq_level     ?? "NORMAL";
+
+  const whaleCritical = whaleCount >= 3;
+  const consecCritical = consecDrops >= 5;
 
   return (
     <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden flex flex-col gap-4 ${cfg.border}`}>
@@ -195,53 +249,32 @@ export function BtcCrashCard() {
 
       {/* ── PEAK PRICES + DROP TABLE ── */}
       <div className="rounded-xl border border-border bg-muted/10 overflow-hidden">
-
-        {/* section header */}
         <div className="flex items-center gap-2 px-3 pt-3 pb-2 border-b border-border/50">
           <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15 border border-primary/20">
             <TrendingUp className="h-3 w-3 text-primary" />
           </div>
           <span className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Peak Prices & Drop</span>
         </div>
-
-        {/* column headers */}
         <div className="grid grid-cols-[40px_1fr_80px_68px] gap-x-2 px-3 py-1.5 border-b border-border/40">
           <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold text-right">TF</span>
           <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold">Peak Price</span>
           <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold text-right">Drop</span>
           <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold pl-1">Bar</span>
         </div>
-
-        {/* rows */}
         <div className="divide-y divide-border/30">
           {TIMEFRAMES.map(({ label, dropKey, peakKey }) => {
             const pct      = d ? (d[dropKey] as number) : 0;
             const peak     = d ? (d[peakKey] as number) : null;
             const inactive = !d;
-
             return (
-              <div
-                key={label}
-                className="grid grid-cols-[40px_1fr_80px_68px] gap-x-2 items-center px-3 py-2 hover:bg-muted/20 transition-colors"
-              >
-                {/* timeframe label — muted-foreground */}
-                <span className="text-[10px] font-black text-muted-foreground text-right tabular-nums">
-                  {label}
-                </span>
-
-                {/* peak price — same muted-foreground color as the TF label */}
-                <span className={`text-[11px] font-black tabular-nums ${
-                  inactive ? "text-muted-foreground/30" : "text-muted-foreground"
-                }`}>
+              <div key={label} className="grid grid-cols-[40px_1fr_80px_68px] gap-x-2 items-center px-3 py-2 hover:bg-muted/20 transition-colors">
+                <span className="text-[10px] font-black text-muted-foreground text-right tabular-nums">{label}</span>
+                <span className={`text-[11px] font-black tabular-nums ${inactive ? "text-muted-foreground/30" : "text-muted-foreground"}`}>
                   {inactive ? "—" : `$${fmtPrice(peak ?? 0)}`}
                 </span>
-
-                {/* drop % */}
                 <div className={`text-right text-xs font-black tabular-nums ${inactive ? "text-red-400/50" : dropColor(pct)}`}>
                   {inactive ? "-.--%" : `-${pct.toFixed(2)}%`}
                 </div>
-
-                {/* intensity bar */}
                 <div className="pl-1">
                   <IntensityBar pct={pct} inactive={inactive} />
                 </div>
@@ -274,6 +307,118 @@ export function BtcCrashCard() {
           }`}>
             {!d ? "0.00%" : `${d.volatility.toFixed(2)}%`}
           </span>
+        </div>
+      </div>
+
+      {/* ── MARKET SIGNALS ── */}
+      <div className="rounded-xl border border-border bg-muted/10 overflow-hidden">
+        <div className="flex items-center gap-2 px-3 pt-3 pb-2 border-b border-border/50">
+          <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15 border border-primary/20">
+            <Zap className="h-3 w-3 text-primary" />
+          </div>
+          <span className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Market Signals</span>
+        </div>
+
+        <div className="divide-y divide-border/30">
+
+          {/* Liquidations */}
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">💥</span>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Liquidations (60s)</div>
+                <div className={`text-sm font-black tabular-nums mt-0.5 ${
+                  !d ? "text-muted-foreground/30" :
+                  liqLvl === "DANGER" ? "text-red-400" :
+                  liqLvl === "RISK"   ? "text-orange-400" :
+                  liqLvl === "WATCH"  ? "text-yellow-400" :
+                                        "text-emerald-400"
+                }`}>
+                  {!d ? "—" : fmtLiq(liqUsd)}
+                </div>
+              </div>
+            </div>
+            {d ? <LevelBadge level={liqLvl} /> : <span className="text-muted-foreground/30 text-xs">—</span>}
+          </div>
+
+          {/* Funding Rate */}
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">💸</span>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Funding Rate</div>
+                <div className={`text-sm font-black tabular-nums mt-0.5 ${
+                  !d ? "text-muted-foreground/30" :
+                  fundingLvl === "DANGER" ? "text-red-400" :
+                  fundingLvl === "RISK"   ? "text-orange-400" :
+                  fundingLvl === "WATCH"  ? "text-yellow-400" :
+                                            "text-emerald-400"
+                }`}>
+                  {!d ? "—" : fmtFunding(fundingRate)}
+                </div>
+              </div>
+            </div>
+            {d ? <LevelBadge level={fundingLvl} /> : <span className="text-muted-foreground/30 text-xs">—</span>}
+          </div>
+
+          {/* Whale Sells + Consec Drops side by side */}
+          <div className="grid grid-cols-2 divide-x divide-border/30">
+            <div className="px-3 py-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-xs">🐋</span>
+                <div className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Whale Sells/60s</div>
+              </div>
+              <div className={`text-xl font-black tabular-nums ${
+                !d ? "text-muted-foreground/30" :
+                whaleCritical        ? "text-red-400" :
+                whaleCount >= 1      ? "text-orange-400" :
+                                       "text-emerald-400"
+              }`}>
+                {!d ? "—" : whaleCount}
+              </div>
+              {d && whaleCritical && (
+                <div className="text-[9px] text-red-400/70 font-bold mt-0.5">cluster alert!</div>
+              )}
+            </div>
+            <div className="px-3 py-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingDown className="h-3 w-3 text-muted-foreground" />
+                <div className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Bleed Mins</div>
+              </div>
+              <div className={`text-xl font-black tabular-nums ${
+                !d ? "text-muted-foreground/30" :
+                consecCritical       ? "text-red-400" :
+                consecDrops >= 3     ? "text-orange-400" :
+                consecDrops >= 1     ? "text-yellow-400" :
+                                       "text-emerald-400"
+              }`}>
+                {!d ? "—" : consecDrops}
+              </div>
+              {d && consecCritical && (
+                <div className="text-[9px] text-red-400/70 font-bold mt-0.5">slow bleed!</div>
+              )}
+            </div>
+          </div>
+
+          {/* Volume Spike */}
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Waves className="h-4 w-4 text-muted-foreground" />
+              <div className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Vol Spike on Red Candle</div>
+            </div>
+            {!d ? (
+              <span className="text-muted-foreground/30 text-xs font-black">—</span>
+            ) : volSpike ? (
+              <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-black uppercase tracking-widest">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
+                SPIKE 🔥
+              </span>
+            ) : (
+              <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                Normal
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
