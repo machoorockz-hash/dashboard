@@ -69,12 +69,12 @@ function FlareBeamAnimation() {
         <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <defs>
             <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.9" />
-              <stop offset="40%" stopColor="color-mix(in oklab, var(--primary) 80%, transparent)" stopOpacity="0.5" />
+              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.7" />
+              <stop offset="40%" stopColor="color-mix(in oklab, var(--primary) 80%, transparent)" stopOpacity="0.3" />
               <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 60%, transparent)" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="fb-beam2-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 70%, white)" stopOpacity="0.4" />
+              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 70%, white)" stopOpacity="0.2" />
               <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 50%, transparent)" stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -187,7 +187,7 @@ export default function PumpScannerCard() {
         }
         @keyframes pump-glow-pulse {
           0%, 100% { box-shadow: 0 0 0px 0px color-mix(in oklab, var(--primary) 0%, transparent); }
-          50%      { box-shadow: 0 0 18px 4px color-mix(in oklab, var(--primary) 28%, transparent); }
+          50%      { box-shadow: 0 0 8px 2px color-mix(in oklab, var(--primary) 14%, transparent); }
         }
         @keyframes pump-shimmer {
           0%   { background-position: -200% center; }
@@ -231,8 +231,8 @@ export default function PumpScannerCard() {
         }
         @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fb-orb {
-          0%,100% { box-shadow: 0 0 8px 4px color-mix(in oklab,var(--primary) 50%,transparent), 0 0 20px 8px color-mix(in oklab,var(--primary) 20%,transparent); }
-          50%     { box-shadow: 0 0 16px 6px color-mix(in oklab,var(--primary) 80%,transparent), 0 0 36px 14px color-mix(in oklab,var(--primary) 35%,transparent); }
+          0%,100% { box-shadow: 0 0 4px 2px color-mix(in oklab,var(--primary) 25%,transparent), 0 0 8px 3px color-mix(in oklab,var(--primary) 10%,transparent); }
+          50%     { box-shadow: 0 0 6px 3px color-mix(in oklab,var(--primary) 35%,transparent), 0 0 14px 5px color-mix(in oklab,var(--primary) 15%,transparent); }
         }
         @keyframes fb-ring  { 0%,100%{opacity:.2} 50%{opacity:.5} }
         @keyframes fb-blink { 0%,100%{opacity:1}  50%{opacity:.3} }
