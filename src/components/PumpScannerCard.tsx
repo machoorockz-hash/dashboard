@@ -42,84 +42,6 @@ function formatPrice(p: number) {
   return p.toFixed(8);
 }
 
-function FlareBeamAnimation() {
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div style={{ position: "relative", width: 88, height: 88 }}>
-        {/* outer rings */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
-          <circle
-            className="fb-ring"
-            cx="44" cy="44" r="40"
-            fill="none"
-            stroke="color-mix(in oklab, var(--primary) 30%, transparent)"
-            strokeWidth="1"
-            strokeDasharray="3 9"
-          />
-          <circle
-            className="fb-ring"
-            cx="44" cy="44" r="32"
-            fill="none"
-            stroke="color-mix(in oklab, var(--primary) 15%, transparent)"
-            strokeWidth="0.8"
-          />
-        </svg>
-
-        {/* rotating beam */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
-          <defs>
-            <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.9" />
-              <stop offset="40%" stopColor="color-mix(in oklab, var(--primary) 80%, transparent)" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 60%, transparent)" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="fb-beam2-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 70%, white)" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 50%, transparent)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <g className="fb-spin">
-            {/* wide soft sector */}
-            <path d="M44,44 L84,36 L84,52 Z" fill="url(#fb-beam2-cg)" />
-            {/* sharp ray */}
-            <line
-              x1="44" y1="44" x2="84" y2="44"
-              stroke="url(#fb-beam-cg)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </g>
-        </svg>
-
-        {/* centre orb */}
-        <div className="fb-orb" style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%,-50%)",
-          width: 12, height: 12, borderRadius: "50%",
-          background: "radial-gradient(circle, white 0%, color-mix(in oklab, var(--primary) 90%, white) 40%, color-mix(in oklab, var(--primary) 80%, transparent) 100%)",
-        }} />
-
-        {/* crosshairs */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
-          <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="68" y1="44" x2="86" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-        </svg>
-      </div>
-
-      <div className="text-center">
-        <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase text-primary">
-          Scanning Markets
-        </div>
-        <div className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground/45 mt-1">
-          monitoring all USDT pairs
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function PumpScannerCard() {
   const [data, setData] = useState<PumpData | null>(null);
   const [stale, setStale] = useState(false);
@@ -216,6 +138,7 @@ export default function PumpScannerCard() {
           animation: pump-shimmer 1.4s ease-in-out 0.3s 2;
           pointer-events: none;
         }
+
         .pump-scroll {
           scrollbar-width: thin;
           scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent) transparent;
@@ -229,17 +152,38 @@ export default function PumpScannerCard() {
         .pump-scroll::-webkit-scrollbar-thumb:hover {
           background: color-mix(in oklab, var(--primary) 65%, transparent);
         }
-        @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes fb-orb {
-          0%,100% { box-shadow: 0 0 8px 4px color-mix(in oklab,var(--primary) 50%,transparent), 0 0 20px 8px color-mix(in oklab,var(--primary) 20%,transparent); }
-          50%     { box-shadow: 0 0 16px 6px color-mix(in oklab,var(--primary) 80%,transparent), 0 0 36px 14px color-mix(in oklab,var(--primary) 35%,transparent); }
+
+        /* ── Premium scanning animation ── */
+        @keyframes radar-spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
-        @keyframes fb-ring  { 0%,100%{opacity:.2} 50%{opacity:.5} }
-        @keyframes fb-blink { 0%,100%{opacity:1}  50%{opacity:.3} }
-        .fb-spin  { animation: fb-rotate 4s linear infinite; transform-origin: 44px 44px; }
-        .fb-orb   { animation: fb-orb   2s ease-in-out infinite; }
-        .fb-ring  { animation: fb-ring  2s ease-in-out infinite; }
-        .fb-blink { animation: fb-blink 2s ease-in-out infinite; }
+        @keyframes radar-ping-1 {
+          0%        { transform: scale(0.5);  opacity: 0.7; }
+          70%, 100% { transform: scale(1.9);  opacity: 0; }
+        }
+        @keyframes radar-ping-2 {
+          0%        { transform: scale(0.5);  opacity: 0.5; }
+          70%, 100% { transform: scale(2.6);  opacity: 0; }
+        }
+        @keyframes radar-ping-3 {
+          0%        { transform: scale(0.5);  opacity: 0.3; }
+          70%, 100% { transform: scale(3.4);  opacity: 0; }
+        }
+        @keyframes radar-dot-beat {
+          0%, 100% { transform: scale(1);   opacity: 1; }
+          50%       { transform: scale(1.5); opacity: 0.6; }
+        }
+        @keyframes scan-text-blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.4; }
+        }
+        .radar-spin    { animation: radar-spin    3s linear infinite; }
+        .radar-ping-1  { animation: radar-ping-1  2s ease-out infinite; }
+        .radar-ping-2  { animation: radar-ping-2  2s ease-out 0.5s infinite; }
+        .radar-ping-3  { animation: radar-ping-3  2s ease-out 1s infinite; }
+        .radar-dot     { animation: radar-dot-beat 1.4s ease-in-out infinite; }
+        .scan-text     { animation: scan-text-blink 1.6s ease-in-out infinite; }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -330,9 +274,13 @@ export default function PumpScannerCard() {
           })}
         </div>
       ) : active ? (
-        /* ── EMPTY STATE: Flare Beam animation when active but no signals yet ── */
-        <div className="flex items-center justify-center py-4">
-          <FlareBeamAnimation />
+        <div className="flex flex-col items-center justify-center py-6 gap-2">
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+            <TrendingUp className="h-5 w-5 text-primary/60" />
+          </div>
+          <span className="text-xs text-muted-foreground text-center">
+            Scanning markets…<br />No pumps detected yet
+          </span>
         </div>
       ) : null}
 
@@ -343,10 +291,56 @@ export default function PumpScannerCard() {
         </div>
       )}
 
-      {/* ── FLARE BEAM: always shows at bottom when bot is active ── */}
-      {active && data && data.signals.length > 0 && (
-        <div className="flex items-center justify-center pt-1 pb-1">
-          <FlareBeamAnimation />
+      {/* ── PREMIUM SCANNING ANIMATION — only when bot is active, no border ── */}
+      {active && (
+        <div className="flex flex-col items-center gap-3 py-4">
+          {/* radar rings */}
+          <div className="relative flex items-center justify-center" style={{ width: 72, height: 72 }}>
+            {/* expanding ping rings */}
+            <span className="radar-ping-1 absolute inset-0 rounded-full border border-primary/40" />
+            <span className="radar-ping-2 absolute inset-0 rounded-full border border-primary/25" />
+            <span className="radar-ping-3 absolute inset-0 rounded-full border border-primary/15" />
+
+            {/* spinning dashed ring */}
+            <span
+              className="radar-spin absolute inset-1 rounded-full"
+              style={{
+                border: "1.5px dashed color-mix(in oklab, var(--primary) 40%, transparent)",
+              }}
+            />
+
+            {/* centre core */}
+            <div
+              className="relative z-10 flex items-center justify-center rounded-full"
+              style={{
+                width: 32,
+                height: 32,
+                background: "radial-gradient(circle at 35% 35%, color-mix(in oklab, var(--primary) 30%, var(--card)), var(--card))",
+                border: "1.5px solid color-mix(in oklab, var(--primary) 45%, transparent)",
+                boxShadow: "0 0 14px 2px color-mix(in oklab, var(--primary) 20%, transparent)",
+              }}
+            >
+              <span
+                className="radar-dot rounded-full"
+                style={{
+                  width: 8,
+                  height: 8,
+                  background: "var(--primary)",
+                  boxShadow: "0 0 8px 2px color-mix(in oklab, var(--primary) 60%, transparent)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* label */}
+          <div className="flex flex-col items-center gap-1">
+            <span className="scan-text text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+              Scanning Markets
+            </span>
+            <span className="text-[9px] text-muted-foreground/50 tracking-widest uppercase">
+              monitoring all USDT pairs
+            </span>
+          </div>
         </div>
       )}
     </section>
