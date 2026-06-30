@@ -20,19 +20,20 @@ interface BotData {
   volatility: number;
   status: string;
   trade_mode?: string;
+  pause_reason?: string;        // ← NEW: exact reason the bot paused trading
   // ── Market signals ──
   whale_count?: number;
-  whale_usd_total?: number;   // NEW: total USD of whale sells in 60s
-  whale_buy_total?: number;   // NEW: total USD of whale buys in 60s
-  whale_net_flow?: number;    // NEW: net flow = buys - sells (negative = selling pressure)
-  whale_net_flow_level?: string; // NEW: NORMAL / WATCH / DANGER
+  whale_usd_total?: number;   // total USD of whale sells in 60s
+  whale_buy_total?: number;   // total USD of whale buys in 60s
+  whale_net_flow?: number;    // net flow = buys - sells (negative = selling pressure)
+  whale_net_flow_level?: string; // NORMAL / WATCH / DANGER
   consec_drops?: number;
   vol_spike?: boolean;
   funding_rate?: number;
   funding_level?: string;
   liq_usd_60s?: number;
   liq_level?: string;
-  liq_largest?: number;       // NEW: largest single liquidation event in 60s
+  liq_largest?: number;       // largest single liquidation event in 60s
 }
 
 interface Snapshot {
@@ -183,6 +184,31 @@ export function BtcCrashCard() {
   const cfg      = STAGE_CONFIG[stage] ?? STAGE_CONFIG["SAFE"]!;
   const isPaused = d?.trade_mode === "Pause";
 
+  // Pause reason: use bot-supplied reason if available, otherwise build one from signals
+  const pauseReason: string = (() => {
+    if (!d) return "";
+    // 1. Prefer the explicit reason sent by the bot
+    if (d.pause_reason && d.pause_reason.trim().length > 0) return d.pause_reason.trim();
+    // 2. Derive a reason from the largest drop that crossed the threshold
+    const drops: Array<{ label: string; pct: number }> = [
+      { label: "1 min",  pct: d.drop_1m  },
+      { label: "5 min",  pct: d.drop_5m  },
+      { label: "15 min", pct: d.drop_15m },
+      { label: "1 hr",   pct: d.drop_1h  },
+      { label: "4 hr",   pct: d.drop_4h  },
+    ];
+    const worstDrop = drops.reduce((a, b) => (b.pct > a.pct ? b : a));
+    const parts: string[] = [];
+    if (worstDrop.pct >= 1) parts.push(`BTC ${worstDrop.label} drop: −${worstDrop.pct.toFixed(2)}%`);
+    if ((d.consec_drops ?? 0) >= 3) parts.push(`${d.consec_drops} consecutive down-minutes`);
+    if (d.vol_spike) parts.push("volume spike on red candle");
+    if ((d.whale_count ?? 0) >= 3) parts.push(`${d.whale_count} whale sells in 60s`);
+    if (d.liq_level === "DANGER") parts.push(`liquidations ${fmtLiq(d.liq_usd_60s ?? 0)}`);
+    if (parts.length > 0) return parts.join(" · ");
+    // 3. Generic fallback
+    return "BTC conditions are elevated — avoid new alt buys until signals normalize";
+  })();
+
   // Signal values
   const whaleCount    = d?.whale_count       ?? 0;
   const whaleUsdTotal = d?.whale_usd_total   ?? 0;
@@ -251,12 +277,12 @@ export function BtcCrashCard() {
 
       {/* ── TRADING PAUSED BANNER ── */}
       {isPaused && (
-        <div className="flex items-center gap-2.5 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3">
-          <span className="text-lg">⏸</span>
-          <div>
+        <div className="flex items-start gap-2.5 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3">
+          <span className="text-lg mt-0.5">⏸</span>
+          <div className="min-w-0">
             <div className="text-xs font-black text-yellow-400 uppercase tracking-widest">Trading Paused</div>
-            <div className="text-[11px] text-yellow-400/70 mt-0.5">
-              BTC dropped ≥ 2.6% — avoid new alt buys until drop recovers below 2.3%
+            <div className="text-[11px] text-yellow-400/80 mt-1 leading-relaxed break-words">
+              {pauseReason}
             </div>
           </div>
         </div>
@@ -350,7 +376,6 @@ export function BtcCrashCard() {
                                         "text-emerald-400"
                 }`}>
                   {!d ? "—" : fmtLiq(liqUsd)}
-                  {/* NEW: largest single liquidation */}
                   {d && liqLargest > 0 && (
                     <span className="ml-2 text-[10px] font-bold text-muted-foreground">
                       Lrg: {fmtLiq(liqLargest)}
@@ -397,7 +422,6 @@ export function BtcCrashCard() {
               }`}>
                 {!d ? "—" : whaleCount}
               </div>
-              {/* NEW: show USD total of whale sells */}
               {d && (
                 <div className={`text-[10px] font-bold mt-0.5 tabular-nums ${
                   whaleCritical   ? "text-red-400/80" :
@@ -431,7 +455,7 @@ export function BtcCrashCard() {
             </div>
           </div>
 
-          {/* ── NEW: Net Whale Flow (B vs S vs Net) ── */}
+          {/* ── Net Whale Flow (B vs S vs Net) ── */}
           <div className="px-3 py-2.5">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
@@ -504,12 +528,6 @@ export function BtcCrashCard() {
         </div>
       </div>
 
-      {/* ── STATUS BANNER ── */}
-      <div className={`w-full text-center rounded-xl border py-3 font-black text-sm tracking-wide shadow-lg ${
-        d ? `${cfg.bg} ${cfg.text} ${cfg.border} ${cfg.glow}` : "bg-red-500/10 text-red-400 border-red-500/30"
-      }`}>
-        {d ? cfg.label : "BOT IS NOT ACTIVE"}
-      </div>
     </section>
   );
 }
