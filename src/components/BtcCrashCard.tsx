@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, TrendingUp, Zap, Waves, DollarSign, TrendingDown } from "lucide-react";
+import { Activity, TrendingUp, Zap, Waves, DollarSign, TrendingDown, ArrowUpDown } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -20,14 +20,19 @@ interface BotData {
   volatility: number;
   status: string;
   trade_mode?: string;
-  // ── Market signals (all sent by bot, newly displayed) ──
+  // ── Market signals ──
   whale_count?: number;
+  whale_usd_total?: number;   // NEW: total USD of whale sells in 60s
+  whale_buy_total?: number;   // NEW: total USD of whale buys in 60s
+  whale_net_flow?: number;    // NEW: net flow = buys - sells (negative = selling pressure)
+  whale_net_flow_level?: string; // NEW: NORMAL / WATCH / DANGER
   consec_drops?: number;
   vol_spike?: boolean;
   funding_rate?: number;
   funding_level?: string;
   liq_usd_60s?: number;
   liq_level?: string;
+  liq_largest?: number;       // NEW: largest single liquidation event in 60s
 }
 
 interface Snapshot {
@@ -179,16 +184,26 @@ export function BtcCrashCard() {
   const isPaused = d?.trade_mode === "Pause";
 
   // Signal values
-  const whaleCount  = d?.whale_count  ?? 0;
-  const consecDrops = d?.consec_drops ?? 0;
-  const volSpike    = d?.vol_spike    ?? false;
-  const fundingRate = d?.funding_rate ?? 0;
-  const fundingLvl  = d?.funding_level ?? "NORMAL";
-  const liqUsd      = d?.liq_usd_60s  ?? 0;
-  const liqLvl      = d?.liq_level     ?? "NORMAL";
+  const whaleCount    = d?.whale_count       ?? 0;
+  const whaleUsdTotal = d?.whale_usd_total   ?? 0;
+  const whaleBuyTotal = d?.whale_buy_total   ?? 0;
+  const whaleNetFlow  = d?.whale_net_flow    ?? 0;
+  const whaleNetFlowLvl = d?.whale_net_flow_level ?? "NORMAL";
+  const consecDrops   = d?.consec_drops      ?? 0;
+  const volSpike      = d?.vol_spike         ?? false;
+  const fundingRate   = d?.funding_rate      ?? 0;
+  const fundingLvl    = d?.funding_level     ?? "NORMAL";
+  const liqUsd        = d?.liq_usd_60s       ?? 0;
+  const liqLvl        = d?.liq_level         ?? "NORMAL";
+  const liqLargest    = d?.liq_largest       ?? 0;
 
-  const whaleCritical = whaleCount >= 3;
+  const whaleCritical  = whaleCount >= 3;
   const consecCritical = consecDrops >= 5;
+
+  // Net flow direction helpers
+  const netFlowNeg     = whaleNetFlow < 0;
+  const netFlowAbs     = Math.abs(whaleNetFlow);
+  const netFlowStr     = (whaleNetFlow >= 0 ? "+" : "−") + fmtLiq(netFlowAbs);
 
   return (
     <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden flex flex-col gap-4 ${cfg.border}`}>
@@ -321,7 +336,7 @@ export function BtcCrashCard() {
 
         <div className="divide-y divide-border/30">
 
-          {/* Liquidations */}
+          {/* ── Liquidations (total + largest) ── */}
           <div className="flex items-center justify-between px-3 py-2.5">
             <div className="flex items-center gap-2">
               <span className="text-sm">💥</span>
@@ -335,13 +350,19 @@ export function BtcCrashCard() {
                                         "text-emerald-400"
                 }`}>
                   {!d ? "—" : fmtLiq(liqUsd)}
+                  {/* NEW: largest single liquidation */}
+                  {d && liqLargest > 0 && (
+                    <span className="ml-2 text-[10px] font-bold text-muted-foreground">
+                      Lrg: {fmtLiq(liqLargest)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
             {d ? <LevelBadge level={liqLvl} /> : <span className="text-muted-foreground/30 text-xs">—</span>}
           </div>
 
-          {/* Funding Rate */}
+          {/* ── Funding Rate ── */}
           <div className="flex items-center justify-between px-3 py-2.5">
             <div className="flex items-center gap-2">
               <span className="text-sm">💸</span>
@@ -361,7 +382,7 @@ export function BtcCrashCard() {
             {d ? <LevelBadge level={fundingLvl} /> : <span className="text-muted-foreground/30 text-xs">—</span>}
           </div>
 
-          {/* Whale Sells + Consec Drops side by side */}
+          {/* ── Whale Sells + Consec Drops side by side ── */}
           <div className="grid grid-cols-2 divide-x divide-border/30">
             <div className="px-3 py-2.5">
               <div className="flex items-center gap-1.5 mb-1">
@@ -376,6 +397,16 @@ export function BtcCrashCard() {
               }`}>
                 {!d ? "—" : whaleCount}
               </div>
+              {/* NEW: show USD total of whale sells */}
+              {d && (
+                <div className={`text-[10px] font-bold mt-0.5 tabular-nums ${
+                  whaleCritical   ? "text-red-400/80" :
+                  whaleCount >= 1 ? "text-orange-400/80" :
+                                    "text-emerald-400/60"
+                }`}>
+                  {whaleUsdTotal > 0 ? fmtLiq(whaleUsdTotal) : "$0"}
+                </div>
+              )}
               {d && whaleCritical && (
                 <div className="text-[9px] text-red-400/70 font-bold mt-0.5">cluster alert!</div>
               )}
@@ -400,7 +431,58 @@ export function BtcCrashCard() {
             </div>
           </div>
 
-          {/* Volume Spike */}
+          {/* ── NEW: Net Whale Flow (B vs S vs Net) ── */}
+          <div className="px-3 py-2.5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs">🌊</span>
+                <div className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Net Whale Flow (60s)</div>
+              </div>
+              {d ? <LevelBadge level={whaleNetFlowLvl} /> : <span className="text-muted-foreground/30 text-xs">—</span>}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {/* Buys */}
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 text-center">
+                <div className="text-[8px] uppercase tracking-widest font-black text-emerald-400/70 mb-0.5">Buys</div>
+                <div className={`text-xs font-black tabular-nums ${!d ? "text-muted-foreground/30" : "text-emerald-400"}`}>
+                  {!d ? "—" : fmtLiq(whaleBuyTotal)}
+                </div>
+              </div>
+              {/* Sells */}
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-2 py-1.5 text-center">
+                <div className="text-[8px] uppercase tracking-widest font-black text-red-400/70 mb-0.5">Sells</div>
+                <div className={`text-xs font-black tabular-nums ${!d ? "text-muted-foreground/30" : "text-red-400"}`}>
+                  {!d ? "—" : fmtLiq(whaleUsdTotal)}
+                </div>
+              </div>
+              {/* Net */}
+              <div className={`rounded-lg border px-2 py-1.5 text-center ${
+                !d                          ? "bg-muted/20 border-border" :
+                whaleNetFlowLvl === "DANGER" ? "bg-red-500/10 border-red-500/30" :
+                whaleNetFlowLvl === "WATCH"  ? "bg-orange-500/10 border-orange-500/30" :
+                netFlowNeg                   ? "bg-yellow-500/10 border-yellow-500/30" :
+                                               "bg-emerald-500/10 border-emerald-500/30"
+              }`}>
+                <div className="text-[8px] uppercase tracking-widest font-black text-muted-foreground/70 mb-0.5">Net</div>
+                <div className={`text-xs font-black tabular-nums flex items-center justify-center gap-0.5 ${
+                  !d                          ? "text-muted-foreground/30" :
+                  whaleNetFlowLvl === "DANGER" ? "text-red-400" :
+                  whaleNetFlowLvl === "WATCH"  ? "text-orange-400" :
+                  netFlowNeg                   ? "text-yellow-400" :
+                                                 "text-emerald-400"
+                }`}>
+                  {!d ? "—" : (
+                    <>
+                      <span>{netFlowNeg ? "▼" : "▲"}</span>
+                      <span>{fmtLiq(netFlowAbs)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Volume Spike ── */}
           <div className="flex items-center justify-between px-3 py-2.5">
             <div className="flex items-center gap-2">
               <Waves className="h-4 w-4 text-muted-foreground" />
