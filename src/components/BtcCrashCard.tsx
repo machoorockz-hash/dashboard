@@ -232,7 +232,7 @@ export function BtcCrashCard() {
   const netFlowStr     = (whaleNetFlow >= 0 ? "+" : "−") + fmtLiq(netFlowAbs);
 
   return (
-    <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden flex flex-col gap-4 ${cfg.border}`}>
+    <section className={`rounded-2xl bg-card p-5 md:p-6 relative overflow-hidden flex flex-col gap-4`}>
 
       {/* top shimmer line */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -259,10 +259,10 @@ export function BtcCrashCard() {
       </div>
 
       {/* ── LIVE PRICE ── */}
-      <div className={`relative rounded-xl border px-4 py-3 flex items-center justify-between transition-all duration-300 bg-gradient-to-r from-primary/5 to-transparent ${
-        flash === "up"   ? "border-bull/60 bg-bull/10"  :
-        flash === "down" ? "border-bear/60 bg-bear/10"  :
-        "border-border"
+      <div className={`relative rounded-xl px-4 py-3 flex items-center justify-between transition-all duration-300 bg-gradient-to-r from-primary/5 to-transparent ${
+        flash === "up"   ? "bg-bull/10"  :
+        flash === "down" ? "bg-bear/10"  :
+        ""
       }`}>
         <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
           <Activity className="h-3 w-3" /> BTC Live Price
@@ -289,7 +289,7 @@ export function BtcCrashCard() {
       )}
 
       {/* ── PEAK PRICES + DROP TABLE ── */}
-      <div className="rounded-xl border border-border bg-muted/10 overflow-hidden">
+      <div className="rounded-xl bg-muted/10 overflow-hidden">
         <div className="flex items-center gap-2 px-3 pt-3 pb-2 border-b border-border/50">
           <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15 border border-primary/20">
             <TrendingUp className="h-3 w-3 text-primary" />
@@ -327,7 +327,7 @@ export function BtcCrashCard() {
 
       {/* ── SPEED & VOLATILITY ── */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-xl border border-border bg-muted/20 px-3 py-2.5">
+        <div className="rounded-xl bg-muted/20 px-3 py-2.5">
           <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">⚡ Speed (10s)</div>
           <span className={`font-black tabular-nums text-sm ${
             !d             ? "text-red-400/60" :
@@ -338,7 +338,7 @@ export function BtcCrashCard() {
             {!d ? "-0.00%" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%`}
           </span>
         </div>
-        <div className="rounded-xl border border-border bg-muted/20 px-3 py-2.5">
+        <div className="rounded-xl bg-muted/20 px-3 py-2.5">
           <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1">🌪 Vol (10s)</div>
           <span className={`font-black tabular-nums text-sm ${
             !d                    ? "text-red-400/60"  :
@@ -352,7 +352,7 @@ export function BtcCrashCard() {
       </div>
 
       {/* ── MARKET SIGNALS ── */}
-      <div className="rounded-xl border border-border bg-muted/10 overflow-hidden">
+      <div className="rounded-xl bg-muted/10 overflow-hidden">
         <div className="flex items-center gap-2 px-3 pt-3 pb-2 border-b border-border/50">
           <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/15 border border-primary/20">
             <Zap className="h-3 w-3 text-primary" />
