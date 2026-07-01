@@ -251,8 +251,8 @@ export function BtcCrashCard() {
             </div>
           </div>
         </div>
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold ${
-          d ? `${cfg.bg} ${cfg.text} ${cfg.border}` : "bg-red-500/10 text-red-400 border-red-500/30"
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold ${
+          d ? `${cfg.bg} ${cfg.text}` : "bg-red-500/10 text-red-400"
         }`}>
           {d ? cfg.label : "BOT IS NOT ACTIVE"}
         </div>
