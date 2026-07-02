@@ -1,13 +1,13 @@
 /**
- * BTC Crash Monitor — v3
+ * BTC Crash Monitor — v4 (Premium)
  *
  * Drop-in replacement for BtcCrashCard.tsx.
- * Same props/exports/data interfaces.
+ * Same props / exports / data interfaces as v3.
  *
  * Requires: lucide-react, CoinIcon (already in your project)
  */
-import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowUpRight, ArrowDownRight, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -54,6 +54,21 @@ function hexRgb(hex: string): [number, number, number] {
   return [parseInt(m[0], 16), parseInt(m[1], 16), parseInt(m[2], 16)];
 }
 
+/* ── Section label ───────────────────────────────────────── */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{
+      color: "rgba(255,255,255,0.18)",
+      fontSize: 8,
+      fontWeight: 800,
+      letterSpacing: "0.22em",
+      textTransform: "uppercase",
+    }}>
+      {children}
+    </span>
+  );
+}
+
 /* ── Badge ───────────────────────────────────────────────── */
 function Badge({ label, color }: { label: string; color: string }) {
   const [r, g, b] = hexRgb(color);
@@ -61,10 +76,10 @@ function Badge({ label, color }: { label: string; color: string }) {
     <span
       style={{
         display: "inline-flex", alignItems: "center",
-        padding: "2px 8px",
+        padding: "2px 7px",
         borderRadius: 4,
-        background: `rgba(${r},${g},${b},0.18)`,
-        border: `1px solid rgba(${r},${g},${b},0.38)`,
+        background: `rgba(${r},${g},${b},0.14)`,
+        border: `1px solid rgba(${r},${g},${b},0.32)`,
         color,
         fontSize: 9,
         fontWeight: 900,
@@ -78,7 +93,7 @@ function Badge({ label, color }: { label: string; color: string }) {
   );
 }
 
-/* ── Status pill (top-right) ─────────────────────────────── */
+/* ── Status pill ─────────────────────────────────────────── */
 function StatusPill({ stage, danger }: { stage: Stage; danger: boolean }) {
   const st = STAGE[stage];
   const [r, g, b] = hexRgb(st.hex);
@@ -86,13 +101,15 @@ function StatusPill({ stage, danger }: { stage: Stage; danger: boolean }) {
     <div
       style={{
         display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4,
-        padding: "8px 14px",
-        borderRadius: 10,
-        background: `rgba(${r},${g},${b},0.10)`,
-        border: `1px solid rgba(${r},${g},${b},0.30)`,
-        boxShadow: danger ? `0 0 20px -4px rgba(${r},${g},${b},0.35)` : undefined,
-        transition: "all 0.6s ease",
-        minWidth: 120,
+        padding: "9px 14px",
+        borderRadius: 12,
+        background: `rgba(${r},${g},${b},0.08)`,
+        border: `1px solid rgba(${r},${g},${b},${danger ? "0.40" : "0.22"})`,
+        boxShadow: danger
+          ? `0 0 24px -4px rgba(${r},${g},${b},0.45), inset 0 1px 0 rgba(${r},${g},${b},0.10)`
+          : `inset 0 1px 0 rgba(${r},${g},${b},0.06)`,
+        transition: "all 0.5s ease",
+        minWidth: 124,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -100,97 +117,137 @@ function StatusPill({ stage, danger }: { stage: Stage; danger: boolean }) {
           style={{
             width: 7, height: 7, borderRadius: "50%",
             background: st.hex,
-            boxShadow: `0 0 6px ${st.hex}`,
-            animation: danger ? "btcv3_pulse 1.6s ease-in-out infinite" : undefined,
+            boxShadow: `0 0 8px ${st.hex}, 0 0 16px ${st.hex}44`,
+            animation: danger ? "btcv4_dot_pulse 1.4s ease-in-out infinite" : undefined,
             flexShrink: 0,
           }}
         />
-        <span style={{ color: st.hex, fontSize: 11, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        <span style={{
+          color: st.hex,
+          fontSize: 11, fontWeight: 900, letterSpacing: "0.13em", textTransform: "uppercase",
+        }}>
           {st.label}
         </span>
       </div>
-      <span style={{ color: `rgba(${r},${g},${b},0.50)`, fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+      <span style={{
+        color: `rgba(${r},${g},${b},0.45)`,
+        fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase",
+      }}>
         {st.sub}
       </span>
     </div>
   );
 }
 
-/* ── Block pressure bar (retro terminal style) ───────────── */
+/* ── Gradient pressure bar ───────────────────────────────── */
 function PressureBar({ pct, color }: { pct: number; color: string }) {
   const BLOCKS = 10;
   const filled = Math.round((pct / 100) * BLOCKS);
   const [r, g, b] = hexRgb(color);
   return (
-    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-      {Array.from({ length: BLOCKS }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            width: 6,
-            height: 14,
-            borderRadius: 1,
-            background: i < filled
-              ? color
-              : "rgba(255,255,255,0.07)",
-            boxShadow: i < filled && i === filled - 1
-              ? `0 0 6px rgba(${r},${g},${b},0.7)`
-              : undefined,
-            transition: "background 0.5s ease",
-          }}
-        />
-      ))}
+    <div style={{ display: "flex", gap: 2.5, alignItems: "center" }}>
+      {Array.from({ length: BLOCKS }).map((_, i) => {
+        const isFilled = i < filled;
+        const isLead   = isFilled && i === filled - 1;
+        const progress = isFilled ? (i + 1) / BLOCKS : 0;
+        // gradient: start dimmer, get brighter toward the lead block
+        const alpha    = isFilled ? 0.35 + progress * 0.65 : 0;
+        return (
+          <div
+            key={i}
+            style={{
+              width: 7,
+              height: 16,
+              borderRadius: 2,
+              background: isFilled
+                ? `rgba(${r},${g},${b},${alpha.toFixed(2)})`
+                : "rgba(255,255,255,0.05)",
+              boxShadow: isLead
+                ? `0 0 8px rgba(${r},${g},${b},0.85), 0 0 3px rgba(${r},${g},${b},0.5)`
+                : undefined,
+              transition: "background 0.4s ease, box-shadow 0.4s ease",
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
 
-/* ── Market signal card ──────────────────────────────────── */
+/* ── Signal card ─────────────────────────────────────────── */
 function SignalCard({
   icon, title, badgeLabel, badgeColor,
   primary, secondary,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   badgeLabel?: string;
   badgeColor?: string;
   primary: string;
   secondary?: string;
 }) {
+  const [r, g, b] = badgeColor ? hexRgb(badgeColor) : [255, 255, 255];
   return (
     <div
       style={{
         flex: 1,
-        padding: "12px 14px",
-        borderRadius: 10,
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        padding: "11px 13px",
+        borderRadius: 12,
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderTop: badgeColor
+          ? `1px solid rgba(${r},${g},${b},0.28)`
+          : "1px solid rgba(255,255,255,0.07)",
         display: "flex",
         flexDirection: "column",
-        gap: 6,
+        gap: 7,
         minWidth: 0,
+        boxShadow: badgeColor
+          ? `inset 0 1px 0 rgba(${r},${g},${b},0.08)`
+          : "none",
+        transition: "border-color 0.5s ease, box-shadow 0.5s ease",
       }}
     >
       {/* Title row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ fontSize: 11, opacity: 0.5 }}>{icon}</span>
-          <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 9, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase" }}>
-            {title}
-          </span>
+          <span style={{ fontSize: 10, opacity: 0.4, lineHeight: 1 }}>{icon}</span>
+          <SectionLabel>{title}</SectionLabel>
         </div>
-        {badgeLabel && badgeColor && (
-          <Badge label={badgeLabel} color={badgeColor} />
-        )}
+        {badgeLabel && badgeColor && <Badge label={badgeLabel} color={badgeColor} />}
       </div>
       {/* Value */}
-      <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+      <div style={{
+        color: "rgba(255,255,255,0.90)",
+        fontSize: 21, fontWeight: 900,
+        letterSpacing: "-0.025em", lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+      }}>
         {primary}
       </div>
       {secondary && (
-        <div style={{ color: "rgba(255,255,255,0.30)", fontSize: 10, fontWeight: 600 }}>
+        <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: 600 }}>
           {secondary}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Quick stat cell ─────────────────────────────────────── */
+function QuickStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <SectionLabel>{label}</SectionLabel>
+      <span style={{
+        color,
+        fontSize: 13, fontWeight: 800,
+        fontVariantNumeric: "tabular-nums",
+        letterSpacing: "-0.01em",
+        transition: "color 0.4s ease",
+      }}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -247,12 +304,12 @@ export function BtcCrashCard() {
   const d        = snap?.data;
   const stage    = (d?.status ?? "SAFE") as Stage;
   const st       = STAGE[stage] ?? STAGE.SAFE;
+  const [sr, sg, sb] = hexRgb(st.hex);
   const isDanger = stage === "DANGER" || stage === "SELL_ALERT";
   const isPaused = d?.trade_mode === "Pause";
 
   const wCount     = d?.whale_count     ?? 0;
   const wUsd       = d?.whale_usd_total ?? 0;
-  const wBuy       = d?.whale_buy_total ?? 0;
   const wNet       = d?.whale_net_flow  ?? 0;
   const wNetLvl    = d?.whale_net_flow_level ?? "NORMAL";
   const consec     = d?.consec_drops   ?? 0;
@@ -262,11 +319,10 @@ export function BtcCrashCard() {
   const liqUsd     = d?.liq_usd_60s   ?? 0;
   const liqLvl     = d?.liq_level     ?? "NORMAL";
   const liqLargest = d?.liq_largest   ?? 0;
-  const maxDrop    = d ? Math.max(d.drop_1m, d.drop_5m, d.drop_15m, d.drop_1h, d.drop_4h) : 0;
   const netNeg     = wNet < 0;
   const netColor   = LVL_COLOR(wNetLvl);
+  const [nr, ng, nb] = hexRgb(netColor);
 
-  /* Pressure bar rows */
   const timeframes = [
     { label: "1m",  pct: d?.drop_1m  ?? 0, peak: d?.peak_1m  ?? 0 },
     { label: "5m",  pct: d?.drop_5m  ?? 0, peak: d?.peak_5m  ?? 0 },
@@ -289,88 +345,112 @@ export function BtcCrashCard() {
   return (
     <>
       <style>{`
-        @keyframes btcv3_price_up {
-          0%   { color: #34d399; transform: translateY(-3px); }
-          100% { color: #F7931A; transform: translateY(0); }
+        @keyframes btcv4_price_up {
+          0%   { color: #34d399; text-shadow: 0 0 24px #34d39966; transform: translateY(-4px); }
+          100% { color: #F7931A; text-shadow: 0 0 32px rgba(247,147,26,0.50); transform: translateY(0); }
         }
-        @keyframes btcv3_price_dn {
-          0%   { color: #f87171; transform: translateY(3px); }
-          100% { color: #F7931A; transform: translateY(0); }
+        @keyframes btcv4_price_dn {
+          0%   { color: #f87171; text-shadow: 0 0 24px #f8717166; transform: translateY(4px); }
+          100% { color: #F7931A; text-shadow: 0 0 32px rgba(247,147,26,0.50); transform: translateY(0); }
         }
-        @keyframes btcv3_pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.4; transform: scale(0.7); }
+        @keyframes btcv4_dot_pulse {
+          0%, 100% { opacity: 1;   transform: scale(1);   }
+          50%       { opacity: 0.3; transform: scale(0.6); }
         }
-        @keyframes btcv3_fade_in {
-          from { opacity: 0; transform: translateY(3px); }
+        @keyframes btcv4_fade_in {
+          from { opacity: 0; transform: translateY(4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .btcv3-price-up { animation: btcv3_price_up 0.65s cubic-bezier(0.22,1,0.36,1) both; }
-        .btcv3-price-dn { animation: btcv3_price_dn 0.65s cubic-bezier(0.22,1,0.36,1) both; }
-        .btcv3-fade-in  { animation: btcv3_fade_in  0.4s ease-out both; }
+        @keyframes btcv4_pause_pulse {
+          0%, 100% { opacity: 0.06; }
+          50%       { opacity: 0.12; }
+        }
+        .btcv4-price-up { animation: btcv4_price_up 0.65s cubic-bezier(0.22,1,0.36,1) both; }
+        .btcv4-price-dn { animation: btcv4_price_dn 0.65s cubic-bezier(0.22,1,0.36,1) both; }
+        .btcv4-fade-in  { animation: btcv4_fade_in  0.45s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
       <div
         style={{
-          background: "linear-gradient(170deg, #111318 0%, #0d0f13 100%)",
-          border: "1px solid rgba(255,255,255,0.09)",
-          borderRadius: 16,
+          /* Deep premium base */
+          background: "linear-gradient(170deg, #0f1015 0%, #090a0e 60%, #0b0c12 100%)",
+          borderRadius: 18,
           overflow: "hidden",
-          boxShadow: "0 8px 48px -8px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.06) inset",
+          position: "relative",
           fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif",
+          /* Layered shadow: soft ambient + sharp edge */
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.07),
+            0 4px 6px -2px rgba(0,0,0,0.6),
+            0 16px 48px -8px rgba(0,0,0,0.80),
+            inset 0 1px 0 rgba(255,255,255,0.06)
+          `,
         }}
       >
+
+        {/* ════ TOP ACCENT LINE — stage-colored gradient ════ */}
+        <div
+          style={{
+            height: 2,
+            background: `linear-gradient(90deg,
+              transparent 0%,
+              rgba(${sr},${sg},${sb},0.55) 30%,
+              rgba(${sr},${sg},${sb},0.90) 50%,
+              rgba(${sr},${sg},${sb},0.55) 70%,
+              transparent 100%)`,
+            transition: "background 0.8s ease",
+          }}
+        />
 
         {/* ════ HEADER ════ */}
         <div
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 18px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            padding: "13px 18px",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
             gap: 12,
           }}
         >
-          {/* Left: icon + title + live */}
+          {/* Left: BTC icon + title */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 42, height: 42, borderRadius: "50%",
-                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                background: "linear-gradient(140deg, #fb923c 0%, #ea580c 60%, #c2410c 100%)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 0 16px rgba(249,115,22,0.40)",
-                flexShrink: 0,
+                boxShadow: "0 0 20px rgba(249,115,22,0.45), 0 0 6px rgba(249,115,22,0.25), inset 0 1px 0 rgba(255,200,120,0.25)",
               }}
             >
               <CoinIcon symbol="BTC" size={22} />
             </div>
+
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ color: "rgba(255,255,255,0.92)", fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em" }}>
+                <span style={{
+                  color: "rgba(255,255,255,0.94)",
+                  fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em",
+                }}>
                   BTC Crash Monitor
                 </span>
                 {/* LIVE badge */}
-                <span
-                  style={{
-                    padding: "2px 8px", borderRadius: 4,
-                    background: "rgba(16,185,129,0.15)",
-                    border: "1px solid rgba(16,185,129,0.35)",
-                    color: "#10b981",
-                    fontSize: 9, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase",
-                  }}
-                >
+                <span style={{
+                  padding: "2px 7px", borderRadius: 4,
+                  background: "rgba(16,185,129,0.12)",
+                  border: "1px solid rgba(16,185,129,0.30)",
+                  color: "#10b981",
+                  fontSize: 9, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase",
+                }}>
                   LIVE
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  style={{
-                    width: 6, height: 6, borderRadius: "50%",
-                    background: d ? "#f97316" : "rgba(255,255,255,0.20)",
-                    boxShadow: d ? "0 0 6px #f97316" : undefined,
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ color: "rgba(255,255,255,0.30)", fontSize: 10, fontWeight: 600 }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: "50%", display: "inline-block",
+                  background: d ? "#f97316" : "rgba(255,255,255,0.15)",
+                  boxShadow: d ? "0 0 8px #f97316, 0 0 14px #f9731655" : undefined,
+                  animation: d ? "btcv4_dot_pulse 2s ease-in-out infinite" : undefined,
+                }} />
+                <span style={{ color: "rgba(255,255,255,0.28)", fontSize: 10, fontWeight: 600 }}>
                   {d ? `updated ${age}` : "offline"}
                 </span>
               </div>
@@ -384,143 +464,126 @@ export function BtcCrashCard() {
         {/* ════ PRICE BLOCK ════ */}
         <div
           style={{
-            padding: "16px 18px 14px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            padding: "18px 18px 16px",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          {/* Price */}
+          {/* Subtle amber haze behind price */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+            background: "radial-gradient(ellipse 60% 100% at 0% 50%, rgba(247,147,26,0.06) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
+
+          {/* Price row */}
           <div
-            className={flash === "up" ? "btcv3-price-up" : flash === "dn" ? "btcv3-price-dn" : ""}
+            className={flash === "up" ? "btcv4-price-up" : flash === "dn" ? "btcv4-price-dn" : ""}
             style={{
-              fontSize: 44,
+              fontSize: 46,
               fontWeight: 900,
-              letterSpacing: "-0.03em",
+              letterSpacing: "-0.035em",
               lineHeight: 1,
               fontVariantNumeric: "tabular-nums",
-              marginBottom: 10,
+              marginBottom: 12,
               display: "flex", alignItems: "center", gap: 10,
+              position: "relative",
               ...(flash
                 ? {}
-                : { color: "#F7931A", textShadow: "0 0 28px rgba(247,147,26,0.45)" }),
+                : { color: "#F7931A", textShadow: "0 0 36px rgba(247,147,26,0.50), 0 0 12px rgba(247,147,26,0.20)" }),
             }}
           >
             {price ? `$${f$(price)}` : "—"}
-            {/* Trend arrow */}
-            {flash === "up" && <ArrowUpRight size={24} style={{ color: "#34d399", flexShrink: 0 }} />}
-            {flash === "dn" && <ArrowDownRight size={24} style={{ color: "#f87171", flexShrink: 0 }} />}
+            {flash === "up" && <ArrowUpRight size={26} style={{ color: "#34d399", flexShrink: 0, filter: "drop-shadow(0 0 6px #34d39988)" }} />}
+            {flash === "dn" && <ArrowDownRight size={26} style={{ color: "#f87171", flexShrink: 0, filter: "drop-shadow(0 0 6px #f8717188)" }} />}
           </div>
 
           {/* Quick stats row */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
-            <div>
-              <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase", marginBottom: 3 }}>
-                Speed
-              </div>
-              <div style={{
-                color: !d ? "rgba(255,255,255,0.18)" : d.speed < -0.05 ? "#ef4444" : d.speed > 0.05 ? "#10b981" : "rgba(255,255,255,0.60)",
-                fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums",
-              }}>
-                {!d ? "—" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%/min`}
-              </div>
-            </div>
-            <div>
-              <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase", marginBottom: 3 }}>
-                Volatility
-              </div>
-              <div style={{
-                color: !d ? "rgba(255,255,255,0.18)" : d.volatility >= 4 ? "#ef4444" : d.volatility >= 2.5 ? "#f97316" : "rgba(255,255,255,0.60)",
-                fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums",
-              }}>
-                {!d ? "—" : `${d.volatility.toFixed(2)}%`}
-              </div>
-            </div>
-            <div>
-              <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase", marginBottom: 3 }}>
-                Consec Drops
-              </div>
-              <div style={{
-                color: !d ? "rgba(255,255,255,0.18)" : consec >= 5 ? "#ef4444" : consec >= 3 ? "#f97316" : consec >= 1 ? "#f59e0b" : "rgba(255,255,255,0.60)",
-                fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums",
-              }}>
-                {!d ? "—" : consec}
-              </div>
-            </div>
-            <div>
-              <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase", marginBottom: 3 }}>
-                ⚡ Vol Spike
-              </div>
-              <div style={{
-                color: !d ? "rgba(255,255,255,0.18)" : volSpike ? "#ef4444" : "rgba(255,255,255,0.40)",
-                fontSize: 13, fontWeight: 900, letterSpacing: "0.04em",
-              }}>
-                {!d ? "—" : volSpike ? "YES" : "NO"}
-              </div>
-            </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 28, flexWrap: "wrap" }}>
+            <QuickStat
+              label="Speed"
+              value={!d ? "—" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%/min`}
+              color={!d ? "rgba(255,255,255,0.16)" : d.speed < -0.05 ? "#ef4444" : d.speed > 0.05 ? "#10b981" : "rgba(255,255,255,0.55)"}
+            />
+            <QuickStat
+              label="Volatility"
+              value={!d ? "—" : `${d.volatility.toFixed(2)}%`}
+              color={!d ? "rgba(255,255,255,0.16)" : d.volatility >= 4 ? "#ef4444" : d.volatility >= 2.5 ? "#f97316" : "rgba(255,255,255,0.55)"}
+            />
+            <QuickStat
+              label="Consec Drops"
+              value={!d ? "—" : String(consec)}
+              color={!d ? "rgba(255,255,255,0.16)" : consec >= 5 ? "#ef4444" : consec >= 3 ? "#f97316" : consec >= 1 ? "#f59e0b" : "rgba(255,255,255,0.55)"}
+            />
+            <QuickStat
+              label="⚡ Vol Spike"
+              value={!d ? "—" : volSpike ? "YES" : "NO"}
+              color={!d ? "rgba(255,255,255,0.16)" : volSpike ? "#ef4444" : "rgba(255,255,255,0.35)"}
+            />
           </div>
         </div>
 
         {/* ════ PRESSURE TABLE ════ */}
-        <div style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           {/* Column headers */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "36px 1fr 72px 60px",
-              gap: 8,
-              padding: "8px 18px 6px",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
-            }}
-          >
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "38px 1fr 76px 64px",
+            gap: 8,
+            padding: "9px 18px 7px",
+            borderBottom: "1px solid rgba(255,255,255,0.04)",
+          }}>
             <div />
-            <span style={{ color: "rgba(255,255,255,0.22)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase" }}>
-              Pressure
-            </span>
-            <span style={{ color: "rgba(255,255,255,0.22)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase", textAlign: "right" }}>
+            <SectionLabel>Pressure</SectionLabel>
+            <span style={{ color: "rgba(255,255,255,0.18)", fontSize: 8, fontWeight: 800, letterSpacing: "0.22em", textTransform: "uppercase", textAlign: "right" }}>
               Peak
             </span>
-            <span style={{ color: "rgba(255,255,255,0.22)", fontSize: 8, fontWeight: 800, letterSpacing: "0.20em", textTransform: "uppercase", textAlign: "right" }}>
+            <span style={{ color: "rgba(255,255,255,0.18)", fontSize: 8, fontWeight: 800, letterSpacing: "0.22em", textTransform: "uppercase", textAlign: "right" }}>
               Drop
             </span>
           </div>
 
-          {/* Rows */}
-          {timeframes.map(({ label, pct, peak }) => {
-            const c = DROP_COLOR(pct);
+          {timeframes.map(({ label, pct, peak }, idx) => {
+            const c      = DROP_COLOR(pct);
             const barPct = Math.min((pct / 6) * 100, 100);
+            const [cr, cg, cb] = hexRgb(c);
             return (
               <div
                 key={label}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "36px 1fr 72px 60px",
+                  gridTemplateColumns: "38px 1fr 76px 64px",
                   gap: 8,
                   alignItems: "center",
-                  padding: "7px 18px",
-                  borderBottom: "1px solid rgba(255,255,255,0.04)",
+                  padding: "8px 18px",
+                  background: idx % 2 === 0 ? "rgba(255,255,255,0.012)" : "transparent",
+                  borderBottom: "1px solid rgba(255,255,255,0.035)",
+                  transition: "background 0.4s ease",
                 }}
               >
-                {/* Label */}
-                <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                <span style={{
+                  color: "rgba(255,255,255,0.32)",
+                  fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+                }}>
                   {label}
                 </span>
 
-                {/* Block bar */}
                 <div style={{ display: "flex", alignItems: "center" }}>
                   {d
                     ? <PressureBar pct={barPct} color={c} />
                     : (
-                      <div style={{ display: "flex", gap: 2 }}>
+                      <div style={{ display: "flex", gap: 2.5 }}>
                         {Array.from({ length: 10 }).map((_, i) => (
-                          <div key={i} style={{ width: 6, height: 14, borderRadius: 1, background: "rgba(255,255,255,0.06)" }} />
+                          <div key={i} style={{ width: 7, height: 16, borderRadius: 2, background: "rgba(255,255,255,0.04)" }} />
                         ))}
                       </div>
                     )
                   }
                 </div>
 
-                {/* Peak */}
                 <span style={{
-                  color: "rgba(255,255,255,0.35)",
+                  color: "rgba(255,255,255,0.28)",
                   fontSize: 11, fontWeight: 700,
                   fontVariantNumeric: "tabular-nums",
                   textAlign: "right",
@@ -529,15 +592,14 @@ export function BtcCrashCard() {
                   {!d || peak === 0 ? "—" : `$${Math.round(peak).toLocaleString()}`}
                 </span>
 
-                {/* Drop */}
                 <span style={{
-                  color: !d ? "rgba(255,255,255,0.18)" : pct > 0 ? c : "rgba(255,255,255,0.22)",
+                  color: !d ? "rgba(255,255,255,0.16)" : pct > 0 ? c : "rgba(255,255,255,0.20)",
                   fontSize: 13, fontWeight: 900,
                   fontVariantNumeric: "tabular-nums",
                   textAlign: "right",
                   letterSpacing: "-0.01em",
-                  textShadow: pct >= 2 ? `0 0 10px ${c}88` : undefined,
-                  transition: "color 0.4s ease",
+                  textShadow: pct >= 2 ? `0 0 12px rgba(${cr},${cg},${cb},0.70)` : undefined,
+                  transition: "color 0.4s ease, text-shadow 0.4s ease",
                 }}>
                   {!d ? "—" : pct > 0 ? `−${pct.toFixed(2)}%` : "—"}
                 </span>
@@ -547,12 +609,10 @@ export function BtcCrashCard() {
         </div>
 
         {/* ════ SIGNAL CARDS ════ */}
-        <div
-          style={{
-            display: "flex", gap: 10, padding: "12px 14px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
+        <div style={{
+          display: "flex", gap: 8, padding: "12px 14px",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}>
           <SignalCard
             icon="≡"
             title="Whale Sells"
@@ -582,30 +642,41 @@ export function BtcCrashCard() {
         <div
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "11px 18px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            padding: "12px 18px",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderLeft: `3px solid rgba(${nr},${ng},${nb},0.55)`,
+            background: `linear-gradient(90deg, rgba(${nr},${ng},${nb},0.04) 0%, transparent 40%)`,
+            transition: "border-color 0.5s ease, background 0.5s ease",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <span style={{ color: "rgba(255,255,255,0.28)", fontSize: 11 }}>$</span>
-            <span style={{ color: "rgba(255,255,255,0.30)", fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-              Whale Net Flow
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {!d ? (
+              <Minus size={12} style={{ color: "rgba(255,255,255,0.20)" }} />
+            ) : netNeg ? (
+              <TrendingDown size={13} style={{ color: netColor, filter: `drop-shadow(0 0 4px ${netColor}88)` }} />
+            ) : (
+              <TrendingUp size={13} style={{ color: netColor, filter: `drop-shadow(0 0 4px ${netColor}88)` }} />
+            )}
+            <SectionLabel>Whale Net Flow</SectionLabel>
           </div>
+
           {!d ? (
-            <span style={{ color: "rgba(255,255,255,0.16)", fontSize: 13, fontWeight: 800 }}>—</span>
+            <span style={{ color: "rgba(255,255,255,0.14)", fontSize: 14, fontWeight: 800 }}>—</span>
           ) : (
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span style={{
                 color: netColor,
-                fontSize: 18, fontWeight: 900,
-                letterSpacing: "-0.02em",
+                fontSize: 19, fontWeight: 900,
+                letterSpacing: "-0.025em",
                 fontVariantNumeric: "tabular-nums",
-                textShadow: `0 0 14px ${netColor}66`,
+                textShadow: `0 0 16px rgba(${nr},${ng},${nb},0.60)`,
               }}>
                 {netNeg ? "−" : "+"}{fM(Math.abs(wNet))}
               </span>
-              <span style={{ color: `${netColor}88`, fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+              <span style={{
+                color: `rgba(${nr},${ng},${nb},0.55)`,
+                fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase",
+              }}>
                 {wNetLvl === "NORMAL" ? "Balanced" : netNeg ? "Sell pressure" : "Buy pressure"}
               </span>
             </div>
@@ -615,35 +686,55 @@ export function BtcCrashCard() {
         {/* ════ PAUSE BANNER ════ */}
         {isPaused && (
           <div
-            className="btcv3-fade-in"
+            className="btcv4-fade-in"
             style={{
+              position: "relative",
               display: "flex", alignItems: "flex-start", gap: 14,
-              padding: "14px 18px",
-              background: "rgba(249,115,22,0.06)",
-              borderTop: "1px solid rgba(249,115,22,0.16)",
+              padding: "16px 18px",
+              overflow: "hidden",
             }}
           >
-            {/* Pause icon circle */}
-            <div
-              style={{
-                width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
-                background: "rgba(249,115,22,0.18)",
-                border: "1px solid rgba(249,115,22,0.35)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 16,
-                boxShadow: "0 0 14px rgba(249,115,22,0.25)",
-              }}
-            >
+            {/* Pulsing amber background wash */}
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "rgba(249,115,22,0.07)",
+              animation: "btcv4_pause_pulse 2s ease-in-out infinite",
+              pointerEvents: "none",
+            }} />
+            {/* Top amber border */}
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0,
+              height: 1,
+              background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.70), transparent)",
+            }} />
+
+            {/* Pause icon */}
+            <div style={{
+              width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(140deg, rgba(249,115,22,0.22), rgba(249,115,22,0.10))",
+              border: "1px solid rgba(249,115,22,0.40)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 17,
+              boxShadow: "0 0 18px rgba(249,115,22,0.35), inset 0 1px 0 rgba(255,200,100,0.15)",
+              position: "relative",
+            }}>
               ⏸
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                <span style={{ color: "#f97316", fontSize: 11, fontWeight: 900, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+
+            <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  color: "#f97316",
+                  fontSize: 11, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase",
+                }}>
                   Trading Paused
                 </span>
                 <Badge label="Bot Halted" color="#f97316" />
               </div>
-              <div style={{ color: "rgba(249,115,22,0.55)", fontSize: 11, fontWeight: 500, lineHeight: 1.5 }}>
+              <div style={{
+                color: "rgba(249,115,22,0.50)",
+                fontSize: 11, fontWeight: 500, lineHeight: 1.6,
+              }}>
                 {pauseReason}
               </div>
             </div>
@@ -652,17 +743,22 @@ export function BtcCrashCard() {
 
         {/* ════ FOOTER ════ */}
         {!isPaused && (
-          <div
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "8px 18px",
-              borderTop: "1px solid rgba(255,255,255,0.04)",
-            }}
-          >
-            <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 8, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 18px",
+            borderTop: "1px solid rgba(255,255,255,0.04)",
+            background: "rgba(0,0,0,0.15)",
+          }}>
+            <span style={{
+              color: "rgba(255,255,255,0.10)",
+              fontSize: 8, fontWeight: 700, letterSpacing: "0.20em", textTransform: "uppercase",
+            }}>
               Binance · Live Feed
             </span>
-            <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 8, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+            <span style={{
+              color: "rgba(255,255,255,0.10)",
+              fontSize: 8, fontWeight: 700, letterSpacing: "0.20em", textTransform: "uppercase",
+            }}>
               {d ? `Updated ${age}` : "Awaiting data"}
             </span>
           </div>
