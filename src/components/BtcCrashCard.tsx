@@ -116,7 +116,7 @@ function LvlBadge({ level }: { level: string }) {
       background: `${c}16`, border: `1px solid ${c}38`,
       color: c, fontSize: "8px", fontWeight: 900,
       letterSpacing: "0.12em", textTransform: "uppercase",
-      flexShrink: 0, boxShadow: `0 0 8px -2px ${c}40`,
+      flexShrink: 0,
     }}>
       {level}
     </span>
@@ -145,7 +145,7 @@ function SigCard({
         padding: "14px 12px",
         display: "flex", flexDirection: "column", gap: "7px",
         transition: "all 0.25s ease",
-        boxShadow: hov ? `0 6px 28px -8px ${lvlColor}55, 0 0 0 1px ${lvlColor}20` : "none",
+        boxShadow: "none",
         transform: hov ? "translateY(-2px)" : "none",
         backdropFilter: "blur(12px)",
         cursor: "default",
@@ -183,9 +183,7 @@ function SigCard({
         fontSize: "26px", fontWeight: 900, lineHeight: 1,
         fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
         color: lvlColor, wordBreak: "break-all",
-        textShadow: danger
-          ? `0 0 22px ${lvlColor}80, 0 0 50px ${lvlColor}30`
-          : `0 0 14px ${lvlColor}45`,
+        textShadow: "none",
       }}>
         {value}
       </div>
@@ -297,10 +295,8 @@ export function BtcCrashCard() {
         WebkitBackdropFilter: "blur(30px) saturate(185%) brightness(1.06)",
         border: `1px solid ${cfg.border}`,
         boxShadow: `
-          0 0 0 1px rgba(255,255,255,0.07) inset,
-          0 1px 0 rgba(255,255,255,0.11) inset,
-          0 10px 90px -20px ${cfg.glow},
-          0 0 180px -55px ${cfg.glow}
+          0 0 0 1px rgba(255,255,255,0.06) inset,
+          0 1px 0 rgba(255,255,255,0.08) inset
         `,
         transition: "border-color 0.55s ease, box-shadow 0.65s ease",
         display: "flex", flexDirection: "column",
@@ -314,30 +310,21 @@ export function BtcCrashCard() {
           maskImage: "radial-gradient(ellipse 75% 70% at 60% 40%, black 20%, transparent 100%)",
         }} />
 
-        {/* top glow line */}
+        {/* top accent line */}
         <div aria-hidden style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: "2px",
-          background: `linear-gradient(90deg, transparent, ${cfg.color}85 25%, ${cfg.color} 50%, ${cfg.color}85 75%, transparent)`,
-          boxShadow: `0 0 14px 3px ${cfg.color}55`,
+          position: "absolute", top: 0, left: 0, right: 0, height: "1px",
+          background: `linear-gradient(90deg, transparent, ${cfg.color}55 30%, ${cfg.color}80 50%, ${cfg.color}55 70%, transparent)`,
           zIndex: 5, pointerEvents: "none",
-          transition: "all 0.55s ease",
+          transition: "background 0.55s ease",
         }} />
 
-        {/* ambient orb — top right */}
+        {/* ambient orb — top right, very subtle */}
         <div aria-hidden style={{
           position: "absolute", top: "-90px", right: "-70px",
-          width: "320px", height: "300px", borderRadius: "50%",
-          background: `radial-gradient(ellipse at center, ${cfg.glow} 0%, transparent 68%)`,
+          width: "280px", height: "260px", borderRadius: "50%",
+          background: `radial-gradient(ellipse at center, ${cfg.color}0a 0%, transparent 70%)`,
           pointerEvents: "none", zIndex: 0,
-          animation: "_bc_orb 7s ease-in-out infinite, _bc_breathe 3.5s ease-in-out infinite",
           transition: "background 0.6s ease",
-        }} />
-        {/* ambient orb — bottom left (always teal) */}
-        <div aria-hidden style={{
-          position: "absolute", bottom: "-55px", left: "-35px",
-          width: "220px", height: "200px", borderRadius: "50%",
-          background: "radial-gradient(ellipse at center, rgba(13,217,170,0.07) 0%, transparent 70%)",
-          pointerEvents: "none", zIndex: 0,
         }} />
 
         {/* ═══════════════ HEADER ═══════════════ */}
@@ -375,13 +362,13 @@ export function BtcCrashCard() {
                   display: "inline-flex", alignItems: "center", gap: "5px",
                   padding: "3px 9px", borderRadius: "999px",
                   background: "rgba(13,217,170,0.1)", border: "1px solid rgba(13,217,170,0.32)",
-                  boxShadow: "0 0 12px -2px rgba(13,217,170,0.3)",
+                  boxShadow: "none",
                   fontSize: "8px", fontWeight: 900, letterSpacing: "0.14em",
                   color: "#0dd9aa", textTransform: "uppercase",
                 }}>
                   <span style={{
                     width: "5px", height: "5px", borderRadius: "50%",
-                    background: "#0dd9aa", boxShadow: "0 0 5px #0dd9aa",
+                    background: "#0dd9aa",
                     animation: "_bc_blink 1.5s ease-in-out infinite",
                     display: "inline-block",
                   }} />
@@ -399,19 +386,19 @@ export function BtcCrashCard() {
             padding: "9px 18px", borderRadius: "12px",
             background: `linear-gradient(135deg, ${cfg.color}18, ${cfg.color}07)`,
             border: `1px solid ${cfg.border}`,
-            boxShadow: `0 0 22px -4px ${cfg.glow}, inset 0 1px 0 ${cfg.color}20`,
+            boxShadow: `inset 0 1px 0 ${cfg.color}15`,
             display: "flex", flexDirection: "column", alignItems: "center",
             transition: "all 0.55s ease", minWidth: "88px",
           }}>
             <div style={{
               display: "flex", alignItems: "center", gap: "7px",
               fontSize: "12px", fontWeight: 900, letterSpacing: "0.1em",
-              color: cfg.color, textShadow: `0 0 14px ${cfg.color}80`,
+              color: cfg.color,
               textTransform: "uppercase",
             }}>
               <span style={{
                 width: "7px", height: "7px", borderRadius: "50%",
-                background: cfg.color, boxShadow: `0 0 9px ${cfg.color}`,
+                background: cfg.color,
                 animation: "_bc_blink 1.8s ease-in-out infinite",
               }} />
               {d ? cfg.label : "OFFLINE"}
@@ -466,7 +453,7 @@ export function BtcCrashCard() {
                 <path
                   d={flash === "down" ? "M9 22 L2 10 L16 10 Z" : "M9 4 L16 16 L2 16 Z"}
                   fill={flash === "down" ? "#ef4444" : "#0dd9aa"}
-                  style={{ filter: `drop-shadow(0 0 7px ${flash === "down" ? "#ef4444" : "#0dd9aa"})` }}
+                  style={{ filter: "none" }}
                 />
               </svg>
             </div>
@@ -514,8 +501,7 @@ export function BtcCrashCard() {
                   fontSize: "14px", fontWeight: 900,
                   fontVariantNumeric: "tabular-nums", color,
                   letterSpacing: "-0.01em",
-                  textShadow: ["rgba(255,255,255,0.16)", "rgba(255,255,255,0.4)", "rgba(255,255,255,0.7)"].includes(color)
-                    ? "none" : `0 0 10px ${color}55`,
+                  textShadow: "none",
                 }}>
                   {value}
                   {unit && <span style={{ fontSize: "9px", marginLeft: "1px", color: `${color}80` }}>{unit}</span>}
@@ -574,7 +560,7 @@ export function BtcCrashCard() {
                 <span style={{
                   fontSize: "14px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
                   color: col, textAlign: "right", letterSpacing: "-0.01em",
-                  textShadow: d && pct >= 1 ? `0 0 14px ${col}80` : "none",
+                  textShadow: "none",
                 }}>
                   {d ? `-${pct.toFixed(2)}%` : "—"}
                 </span>
@@ -624,7 +610,7 @@ export function BtcCrashCard() {
           borderRadius: "14px",
           background: `linear-gradient(135deg, ${netColor}09, rgba(255,255,255,0.022))`,
           border: `1px solid ${netColor}28`,
-          boxShadow: `0 0 24px -8px ${netColor}45`,
+          boxShadow: "none",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: "10px",
           transition: "all 0.45s ease",
@@ -655,7 +641,7 @@ export function BtcCrashCard() {
             <span style={{
               fontSize: "24px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.02em", color: netColor,
-              textShadow: `0 0 22px ${netColor}75, 0 0 50px ${netColor}30`,
+              textShadow: "none",
             }}>
               {!d ? "—" : `${whaleNet >= 0 ? "+" : "−"}${fmtK(Math.abs(whaleNet))}`}
             </span>
@@ -680,7 +666,7 @@ export function BtcCrashCard() {
             borderRadius: "14px",
             background: "linear-gradient(135deg, rgba(245,197,66,0.11), rgba(245,197,66,0.04))",
             border: "1px solid rgba(245,197,66,0.30)",
-            boxShadow: "0 0 28px -8px rgba(245,197,66,0.32), inset 0 1px 0 rgba(245,197,66,0.16)",
+            boxShadow: "inset 0 1px 0 rgba(245,197,66,0.10)",
             display: "flex", alignItems: "center", gap: "14px",
             animation: "_bc_slide_in 0.35s ease both",
           }}>
@@ -688,7 +674,7 @@ export function BtcCrashCard() {
               width: "40px", height: "40px", borderRadius: "50%",
               background: "linear-gradient(135deg, rgba(245,197,66,0.22), rgba(245,197,66,0.08))",
               border: "1.5px solid rgba(245,197,66,0.42)",
-              boxShadow: "0 0 18px rgba(245,197,66,0.28)",
+              boxShadow: "none",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
@@ -702,7 +688,7 @@ export function BtcCrashCard() {
                 <span style={{
                   fontSize: "11px", fontWeight: 900, color: "#f5c542",
                   letterSpacing: "0.08em", textTransform: "uppercase",
-                  textShadow: "0 0 12px rgba(245,197,66,0.55)",
+                  textShadow: "none",
                 }}>
                   Trading Paused
                 </span>
