@@ -511,8 +511,7 @@ export default function Dashboard() {
       <div className="space-y-5">
 
         {/* ── WALLET ── */}
-        <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
+        <section className="rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-transparent">
           <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <WalletIcon className="h-3.5 w-3.5" />
@@ -526,7 +525,7 @@ export default function Dashboard() {
           {walletAssets.length > 0 && (
             <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               {walletAssets.slice(0, 10).map((b) => (
-                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-card/60 px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
+                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-transparent px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
                   <CoinIcon symbol={b.asset} size={28} />
                   <div className="min-w-0">
                     <div className="text-xs font-bold truncate">{b.asset}</div>
@@ -539,7 +538,7 @@ export default function Dashboard() {
         </section>
 
         {/* ── ACTIVE TRADE ── */}
-        <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
+        <section className={`rounded-2xl border bg-transparent p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
