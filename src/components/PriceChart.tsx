@@ -266,7 +266,7 @@ export function PriceChart({
   const hasLines = priceLines?.some((l) => l.price > 0 && isFinite(l.price));
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden">
+    <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
       <style>{`
         /* ── Header price flash ── */
         @keyframes hdr-up   { 0% { color:#00d4a0; text-shadow:0 0 14px rgba(0,212,160,.8); } 100% { color:inherit; text-shadow:none; } }
@@ -426,7 +426,7 @@ export function PriceChart({
       `}</style>
 
       {/* ── HEADER ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-transparent">
         <div className="flex items-center gap-3 min-w-0">
           <CoinIcon symbol={base} size={28} />
           <div className="flex flex-col gap-0.5 min-w-0">
@@ -455,7 +455,7 @@ export function PriceChart({
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {searchable && (
-            <form onSubmit={submitSearch} className="flex items-center gap-1 bg-muted/40 rounded-lg px-2 py-1">
+            <form onSubmit={submitSearch} className="flex items-center gap-1 bg-transparent border border-border/40 rounded-lg px-2 py-1">
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="e.g. ETH, SOLUSDT"
                 className="bg-transparent text-xs outline-none w-32 sm:w-40 placeholder:text-muted-foreground/60" />
@@ -463,7 +463,7 @@ export function PriceChart({
             </form>
           )}
           {showIntervalControls && (
-            <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-transparent border border-border/40 rounded-lg p-1">
               {INTERVALS.map((i) => (
                 <button key={i} onClick={() => { setIv(i); onIntervalChange?.(i); }}
                   className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${iv === i ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
@@ -477,7 +477,7 @@ export function PriceChart({
 
       {/* ── TP / SL / Entry label strip ── */}
       {hasLines && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-muted/10 flex-wrap">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-transparent flex-wrap">
           {priceLines!.map((spec, i) => {
             if (!spec.price || !isFinite(spec.price)) return null;
             const isEntry = spec.label.toLowerCase().includes("entry");
