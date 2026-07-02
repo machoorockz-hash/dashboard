@@ -173,7 +173,7 @@ export default function PumpScannerCard() {
   const active = !stale && data?.active;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-3">
+    <section className="rounded-2xl border border-border bg-transparent p-4 flex flex-col gap-3">
       <style>{`
         @keyframes pump-slide-in {
           from { opacity: 0; transform: translateX(22px) scale(0.97); }
@@ -284,10 +284,10 @@ export default function PumpScannerCard() {
                 key={k}
                 className={`relative flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 overflow-hidden ${
                   isLatest
-                    ? "pump-latest pump-latest-shimmer border-primary/50 bg-gradient-to-r from-primary/10 to-primary/5"
+                    ? "pump-latest pump-latest-shimmer border-primary/50 bg-transparent"
                     : isNew
-                    ? "pump-new border-emerald-500/40 bg-emerald-500/[0.08]"
-                    : "border-border bg-muted/20"
+                    ? "pump-new border-emerald-500/40 bg-transparent"
+                    : "border-border bg-transparent"
                 }`}
               >
                 {isLatest && (
