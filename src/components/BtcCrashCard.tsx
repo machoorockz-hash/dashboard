@@ -3,9 +3,7 @@ import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
-/* ─────────────────────────────────────────
-   TYPES
-───────────────────────────────────────── */
+/* ─────────────────────────── TYPES ─────────────────────────── */
 interface BotData {
   price: number;
   drop_1m: number; drop_5m: number; drop_15m: number;
@@ -22,18 +20,18 @@ interface BotData {
 }
 interface Snapshot { key: string; updatedAt: string | null; data: BotData | null; }
 
-/* ─────────────────────────────────────────
-   STAGE / LEVEL MAPS
-───────────────────────────────────────── */
-const STAGE: Record<string, { color: string; colorDim: string; glow: string; border: string; label: string; sub: string }> = {
-  SAFE:       { color: "#0dd9aa", colorDim: "rgba(13,217,170,0.55)",  glow: "rgba(13,217,170,0.20)",  border: "rgba(13,217,170,0.28)",  label: "SAFE",  sub: "OK TO TRADE ALTS" },
-  WATCH:      { color: "#f5c542", colorDim: "rgba(245,197,66,0.55)",  glow: "rgba(245,197,66,0.20)",  border: "rgba(245,197,66,0.28)",  label: "WATCH", sub: "BE SELECTIVE" },
-  RISK:       { color: "#f97316", colorDim: "rgba(249,115,22,0.55)",  glow: "rgba(249,115,22,0.20)",  border: "rgba(249,115,22,0.28)",  label: "RISK",  sub: "HOLD OFF NEW BUYS" },
-  SELL_ALERT: { color: "#f87171", colorDim: "rgba(248,113,113,0.55)", glow: "rgba(248,113,113,0.20)", border: "rgba(248,113,113,0.28)", label: "ALERT", sub: "PAUSE BUYING" },
-  DANGER:     { color: "#ef4444", colorDim: "rgba(239,68,68,0.60)",   glow: "rgba(239,68,68,0.25)",   border: "rgba(239,68,68,0.35)",   label: "DANGER",sub: "CONSIDER SELLING" },
+/* ─────────────────────────── CONFIG ─────────────────────────── */
+const STAGE: Record<string, {
+  color: string; colorMid: string; glow: string; border: string; label: string; sub: string;
+}> = {
+  SAFE:       { color: "#0dd9aa", colorMid: "rgba(13,217,170,0.5)",  glow: "rgba(13,217,170,0.18)",  border: "rgba(13,217,170,0.25)",  label: "SAFE",  sub: "OK TO TRADE ALTS" },
+  WATCH:      { color: "#f5c542", colorMid: "rgba(245,197,66,0.5)",  glow: "rgba(245,197,66,0.18)",  border: "rgba(245,197,66,0.25)",  label: "WATCH", sub: "BE SELECTIVE" },
+  RISK:       { color: "#f97316", colorMid: "rgba(249,115,22,0.5)",  glow: "rgba(249,115,22,0.18)",  border: "rgba(249,115,22,0.25)",  label: "RISK",  sub: "HOLD OFF NEW BUYS" },
+  SELL_ALERT: { color: "#f87171", colorMid: "rgba(248,113,113,0.5)", glow: "rgba(248,113,113,0.18)", border: "rgba(248,113,113,0.25)", label: "ALERT", sub: "PAUSE BUYING" },
+  DANGER:     { color: "#ef4444", colorMid: "rgba(239,68,68,0.55)",  glow: "rgba(239,68,68,0.22)",   border: "rgba(239,68,68,0.32)",   label: "DANGER",sub: "CONSIDER SELLING" },
 };
 
-const LVL_COLOR: Record<string, string> = {
+const LVL: Record<string, string> = {
   NORMAL: "#0dd9aa", WATCH: "#f5c542", RISK: "#f97316", DANGER: "#ef4444",
 };
 
@@ -45,9 +43,7 @@ const TF_ROWS = [
   { t: "4h",  dk: "drop_4h"  as keyof BotData, pk: "peak_4h"  as keyof BotData },
 ];
 
-/* ─────────────────────────────────────────
-   HELPERS
-───────────────────────────────────────── */
+/* ─────────────────────────── HELPERS ─────────────────────────── */
 const fmt2   = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtK   = (n: number) => n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
 const fmtFnd = (r: number) => `${r >= 0 ? "+" : ""}${(r * 100).toFixed(4)}%`;
@@ -57,50 +53,79 @@ const since  = (iso: string) => {
 };
 const dropCol = (p: number) => p >= 4 ? "#ef4444" : p >= 2 ? "#f97316" : p >= 1 ? "#f5c542" : "#0dd9aa";
 
-/* ─────────────────────────────────────────
-   ANIMATED PRESSURE BARS
-───────────────────────────────────────── */
+/* ─────────────────────────── PREMIUM BARS ─────────────────────────── */
 function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
-  const [lit, setLit] = useState(0);
-  const col   = inactive ? "rgba(255,255,255,0.06)" : dropCol(pct);
-  const total = 12;
-  const target = inactive ? 0 : Math.round(Math.min(pct / 6, 1) * total);
+  const [animLit, setAnimLit] = useState(0);
+  const color  = inactive ? "#1a2535" : dropCol(pct);
+  const TOTAL  = 14;
+  const target = inactive ? 0 : Math.round(Math.min(pct / 6, 1) * TOTAL);
+  const MIN_H  = 10; // shortest bar px
+  const MAX_H  = 42; // tallest bar px
 
   useEffect(() => {
-    setLit(0);
+    setAnimLit(0);
     if (inactive || target === 0) return;
     let i = 0;
-    const tick = () => { i++; setLit(i); if (i < target) setTimeout(() => requestAnimationFrame(tick), 40); };
-    const t = setTimeout(() => requestAnimationFrame(tick), 100);
-    return () => clearTimeout(t);
+    const tick = () => {
+      i++;
+      setAnimLit(i);
+      if (i < target) setTimeout(() => requestAnimationFrame(tick), 35);
+    };
+    const delay = setTimeout(() => requestAnimationFrame(tick), 120);
+    return () => clearTimeout(delay);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pct, inactive]);
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: "22px" }}>
-      {Array.from({ length: total }).map((_, i) => {
-        const filled = i < lit;
-        const h = 7 + (i / (total - 1)) * 15;
-        const opacity = filled ? (0.55 + (i / total) * 0.45) : 1;
+    <div style={{
+      display: "flex", alignItems: "flex-end", gap: "3px",
+      height: `${MAX_H}px`, paddingBottom: "2px",
+    }}>
+      {Array.from({ length: TOTAL }).map((_, i) => {
+        const ratio  = i / (TOTAL - 1);
+        const fullH  = MIN_H + ratio * (MAX_H - MIN_H);     // natural height when filled
+        const filled = i < animLit;
+        const isTip  = i === animLit - 1 && !inactive;       // the last lit bar
+
         return (
-          <div key={i} style={{
-            width: "5px", height: `${h}px`, borderRadius: "2px",
-            background: filled ? col : "rgba(255,255,255,0.06)",
-            opacity,
-            boxShadow: filled && i >= lit - 1 ? `0 0 6px 1px ${col}` : filled ? `0 0 3px ${col}60` : "none",
-            transition: "background 0.1s, box-shadow 0.1s",
-          }} />
+          <div
+            key={i}
+            style={{
+              width: "5px",
+              height: `${filled ? fullH : Math.max(MIN_H * 0.35, 4)}px`,
+              borderRadius: "3px",
+              position: "relative",
+              transition: filled
+                ? `height 0.18s cubic-bezier(.22,1,.36,1) ${i * 12}ms`
+                : "height 0.12s ease",
+              /* gradient fill: bright at top, fades to ~60% opacity at base */
+              background: filled
+                ? `linear-gradient(to bottom, ${color}, ${color}70)`
+                : "rgba(255,255,255,0.05)",
+              /* tip glow on last lit bar */
+              boxShadow: isTip
+                ? `0 -4px 10px 2px ${color}, 0 0 16px 4px ${color}60`
+                : filled
+                ? `0 0 6px 1px ${color}50`
+                : "none",
+              /* subtle inner left highlight for depth */
+              ...(filled ? {
+                backgroundImage: `
+                  linear-gradient(to right, rgba(255,255,255,0.18) 0%, transparent 35%),
+                  linear-gradient(to bottom, ${color} 0%, ${color}70 100%)
+                `,
+              } : {}),
+            }}
+          />
         );
       })}
     </div>
   );
 }
 
-/* ─────────────────────────────────────────
-   LEVEL BADGE
-───────────────────────────────────────── */
+/* ─────────────────────────── LEVEL BADGE ─────────────────────────── */
 function LvlBadge({ level }: { level: string }) {
-  const c = LVL_COLOR[level] ?? "#0dd9aa";
+  const c = LVL[level] ?? "#0dd9aa";
   return (
     <span style={{
       display: "inline-flex", alignItems: "center",
@@ -108,17 +133,14 @@ function LvlBadge({ level }: { level: string }) {
       background: `${c}16`, border: `1px solid ${c}38`,
       color: c, fontSize: "8px", fontWeight: 900,
       letterSpacing: "0.12em", textTransform: "uppercase",
-      flexShrink: 0,
-      boxShadow: `0 0 8px -2px ${c}40`,
+      flexShrink: 0, boxShadow: `0 0 8px -2px ${c}40`,
     }}>
       {level}
     </span>
   );
 }
 
-/* ─────────────────────────────────────────
-   SIGNAL CARD
-───────────────────────────────────────── */
+/* ─────────────────────────── SIGNAL CARD ─────────────────────────── */
 function SigCard({
   icon, title, value, sub, lvlColor, level, danger,
 }: {
@@ -133,37 +155,33 @@ function SigCard({
       style={{
         position: "relative", overflow: "hidden",
         borderRadius: "14px",
-        border: `1px solid ${hov ? lvlColor + "40" : "rgba(255,255,255,0.07)"}`,
+        border: `1px solid ${hov ? lvlColor + "45" : "rgba(255,255,255,0.07)"}`,
         background: hov
-          ? `linear-gradient(145deg, ${lvlColor}10, rgba(255,255,255,0.03))`
-          : `linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02))`,
+          ? `linear-gradient(145deg, ${lvlColor}12, rgba(255,255,255,0.03))`
+          : `linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))`,
         padding: "14px 12px",
-        display: "flex", flexDirection: "column", gap: "6px",
-        transition: "border-color 0.25s, background 0.25s, box-shadow 0.25s, transform 0.2s",
-        boxShadow: hov ? `0 4px 24px -8px ${lvlColor}50, 0 0 0 1px ${lvlColor}20` : "none",
+        display: "flex", flexDirection: "column", gap: "7px",
+        transition: "all 0.25s ease",
+        boxShadow: hov ? `0 6px 28px -8px ${lvlColor}55, 0 0 0 1px ${lvlColor}20` : "none",
         transform: hov ? "translateY(-2px)" : "none",
         backdropFilter: "blur(12px)",
         cursor: "default",
       }}
     >
-      {/* shimmer on hover */}
       {hov && (
         <div style={{
           position: "absolute", inset: 0, pointerEvents: "none",
-          background: `linear-gradient(105deg, transparent 35%, ${lvlColor}12 50%, transparent 65%)`,
-          animation: "_bc_shimmer 0.7s ease both",
+          background: `linear-gradient(110deg, transparent 30%, ${lvlColor}10 50%, transparent 70%)`,
+          animation: "_bc_shim 0.6s ease both",
         }} />
       )}
-
-      {/* danger glow top edge */}
       {danger && (
         <div style={{
-          position: "absolute", top: 0, left: "15%", right: "15%", height: "1px",
-          background: `linear-gradient(90deg, transparent, ${lvlColor}90, transparent)`,
-          animation: "_bc_edge_pulse 2s ease-in-out infinite",
+          position: "absolute", top: 0, left: "20%", right: "20%", height: "1px",
+          background: `linear-gradient(90deg, transparent, ${lvlColor}85, transparent)`,
+          animation: "_bc_epulse 2.2s ease-in-out infinite",
         }} />
       )}
-
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{
           fontSize: "9px", fontWeight: 800, letterSpacing: "0.12em",
@@ -173,16 +191,16 @@ function SigCard({
         </span>
         {level && <LvlBadge level={level} />}
       </div>
-
       <div style={{
         fontSize: "28px", fontWeight: 900, lineHeight: 1,
         fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
         color: lvlColor,
-        textShadow: danger ? `0 0 20px ${lvlColor}70, 0 0 40px ${lvlColor}30` : `0 0 12px ${lvlColor}40`,
+        textShadow: danger
+          ? `0 0 22px ${lvlColor}80, 0 0 50px ${lvlColor}30`
+          : `0 0 14px ${lvlColor}45`,
       }}>
         {value}
       </div>
-
       {sub && (
         <div style={{
           fontSize: "10px", color: "rgba(255,255,255,0.28)",
@@ -193,17 +211,14 @@ function SigCard({
   );
 }
 
-/* ─────────────────────────────────────────
-   MAIN COMPONENT
-───────────────────────────────────────── */
+/* ─────────────────────────── MAIN ─────────────────────────── */
 export function BtcCrashCard() {
-  const [snap, setSnap]       = useState<Snapshot | null>(null);
-  const [age, setAge]         = useState("");
-  const [price, setPrice]     = useState<number | null>(null);
-  const [flash, setFlash]     = useState<"up" | "down" | null>(null);
-  const prev                  = useRef<number | null>(null);
+  const [snap, setSnap]     = useState<Snapshot | null>(null);
+  const [age, setAge]       = useState("");
+  const [price, setPrice]   = useState<number | null>(null);
+  const [flash, setFlash]   = useState<"up" | "down" | null>(null);
+  const prev                = useRef<number | null>(null);
 
-  /* WebSocket live price */
   useEffect(() => {
     const ws = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@trade");
     ws.onmessage = (e) => {
@@ -218,7 +233,6 @@ export function BtcCrashCard() {
   }, []);
   useEffect(() => { if (!flash) return; const t = setTimeout(() => setFlash(null), 700); return () => clearTimeout(t); }, [flash]);
 
-  /* Bot polling */
   useEffect(() => {
     let alive = true;
     const go = async () => {
@@ -233,7 +247,6 @@ export function BtcCrashCard() {
     return () => clearInterval(id);
   }, [snap?.updatedAt]);
 
-  /* Derived */
   const d          = snap?.data;
   const stage      = d?.status ?? "SAFE";
   const cfg        = STAGE[stage] ?? STAGE.SAFE;
@@ -266,89 +279,80 @@ export function BtcCrashCard() {
   const liqLargest  = d?.liq_largest       ?? 0;
 
   const priceColor = flash === "up" ? "#0dd9aa" : flash === "down" ? "#ef4444" : "#0dd9aa";
-  const netColor   = LVL_COLOR[whaleNetLvl] ?? "#0dd9aa";
+  const netColor   = LVL[whaleNetLvl] ?? "#0dd9aa";
 
-  /* ── RENDER ── */
   return (
     <>
       <style>{`
-        @keyframes _bc_blink       { 0%,100%{opacity:1} 50%{opacity:.1} }
-        @keyframes _bc_breathe     { 0%,100%{opacity:.6} 50%{opacity:1} }
-        @keyframes _bc_price_flash { 0%{filter:brightness(1.6)} 100%{filter:brightness(1)} }
-        @keyframes _bc_price_tick  { 0%{transform:scale(1.008)} 100%{transform:scale(1)} }
-        @keyframes _bc_ring_expand { 0%{transform:scale(1);opacity:.5} 100%{transform:scale(1.75);opacity:0} }
-        @keyframes _bc_slide_in    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-        @keyframes _bc_shimmer     { from{opacity:0} 40%{opacity:1} to{opacity:0} }
-        @keyframes _bc_edge_pulse  { 0%,100%{opacity:.5} 50%{opacity:1} }
-        @keyframes _bc_grad_spin   {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes _bc_count_up    { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+        @keyframes _bc_blink   { 0%,100%{opacity:1} 50%{opacity:.08} }
+        @keyframes _bc_breathe { 0%,100%{opacity:.55} 50%{opacity:1} }
+        @keyframes _bc_pricetick { 0%{transform:scale(1.01)} 100%{transform:scale(1)} }
+        @keyframes _bc_flash_up  { 0%{text-shadow:0 0 50px #0dd9aa,0 0 100px #0dd9aa50} 100%{text-shadow:0 0 18px #0dd9aa30} }
+        @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 50px #ef4444,0 0 100px #ef444450} 100%{text-shadow:0 0 18px #ef444430} }
+        @keyframes _bc_ring_out  { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.8);opacity:0} }
+        @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        @keyframes _bc_shim      { from{opacity:0} 40%{opacity:1} to{opacity:0} }
+        @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
+        @keyframes _bc_orb       { 0%,100%{transform:scale(1) translate(0,0)} 33%{transform:scale(1.06) translate(4px,-4px)} 66%{transform:scale(.96) translate(-3px,3px)} }
       `}</style>
 
       <section style={{
         position: "relative",
         fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
-        borderRadius: "20px",
+        borderRadius: "22px",
         overflow: "hidden",
-        /* layered glass */
         background: `
-          linear-gradient(160deg, rgba(13,217,170,0.04) 0%, transparent 40%),
+          linear-gradient(145deg, rgba(13,217,170,0.05) 0%, transparent 35%),
           oklch(0.55 0.06 210 / 11%)
         `,
-        backdropFilter: "blur(28px) saturate(180%) brightness(1.05)",
-        WebkitBackdropFilter: "blur(28px) saturate(180%) brightness(1.05)",
+        backdropFilter: "blur(30px) saturate(185%) brightness(1.06)",
+        WebkitBackdropFilter: "blur(30px) saturate(185%) brightness(1.06)",
         border: `1px solid ${cfg.border}`,
         boxShadow: `
-          0 0 0 1px rgba(255,255,255,0.06) inset,
-          0 1px 0 0 rgba(255,255,255,0.1) inset,
-          0 8px 80px -20px ${cfg.glow},
-          0 0 160px -60px ${cfg.glow}
+          0 0 0 1px rgba(255,255,255,0.07) inset,
+          0 1px 0 rgba(255,255,255,0.11) inset,
+          0 10px 90px -20px ${cfg.glow},
+          0 0 180px -55px ${cfg.glow}
         `,
-        transition: "border-color 0.5s ease, box-shadow 0.6s ease",
-        display: "flex",
-        flexDirection: "column",
+        transition: "border-color 0.55s ease, box-shadow 0.65s ease",
+        display: "flex", flexDirection: "column",
       }}>
 
-        {/* ── subtle dot-grid texture overlay ── */}
+        {/* dot grid texture */}
         <div aria-hidden style={{
           position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
-          backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)`,
-          backgroundSize: "20px 20px",
-          maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.038) 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
+          maskImage: "radial-gradient(ellipse 75% 70% at 60% 40%, black 20%, transparent 100%)",
         }} />
 
-        {/* ── top gradient glow line ── */}
+        {/* top glow line */}
         <div aria-hidden style={{
           position: "absolute", top: 0, left: 0, right: 0, height: "2px",
-          background: `linear-gradient(90deg, transparent 0%, ${cfg.color}90 30%, ${cfg.color} 50%, ${cfg.color}90 70%, transparent 100%)`,
-          boxShadow: `0 0 12px 2px ${cfg.color}60`,
+          background: `linear-gradient(90deg, transparent, ${cfg.color}85 25%, ${cfg.color} 50%, ${cfg.color}85 75%, transparent)`,
+          boxShadow: `0 0 14px 3px ${cfg.color}55`,
           zIndex: 5, pointerEvents: "none",
-          transition: "background 0.5s, box-shadow 0.5s",
+          transition: "all 0.55s ease",
         }} />
 
-        {/* ── ambient orb ── */}
-        <div aria-hidden className="a" style={{
-          position: "absolute", top: "-80px", right: "-60px",
-          width: "300px", height: "280px", borderRadius: "50%",
-          background: `radial-gradient(ellipse at center, ${cfg.glow} 0%, transparent 70%)`,
+        {/* ambient orb — top right */}
+        <div aria-hidden style={{
+          position: "absolute", top: "-90px", right: "-70px",
+          width: "320px", height: "300px", borderRadius: "50%",
+          background: `radial-gradient(ellipse at center, ${cfg.glow} 0%, transparent 68%)`,
           pointerEvents: "none", zIndex: 0,
-          animation: "_bc_breathe 3s ease-in-out infinite",
+          animation: "_bc_orb 7s ease-in-out infinite, _bc_breathe 3.5s ease-in-out infinite",
           transition: "background 0.6s ease",
         }} />
-        {/* secondary orb — bottom left */}
+        {/* ambient orb — bottom left (always teal) */}
         <div aria-hidden style={{
-          position: "absolute", bottom: "-60px", left: "-40px",
-          width: "200px", height: "180px", borderRadius: "50%",
-          background: `radial-gradient(ellipse at center, rgba(13,217,170,0.08) 0%, transparent 70%)`,
+          position: "absolute", bottom: "-55px", left: "-35px",
+          width: "220px", height: "200px", borderRadius: "50%",
+          background: "radial-gradient(ellipse at center, rgba(13,217,170,0.07) 0%, transparent 70%)",
           pointerEvents: "none", zIndex: 0,
         }} />
 
-        {/* ══════════════════════════════════
-            HEADER
-        ══════════════════════════════════ */}
+        {/* ═══════════════ HEADER ═══════════════ */}
         <div style={{
           position: "relative", zIndex: 2,
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -356,41 +360,34 @@ export function BtcCrashCard() {
           flexWrap: "wrap", gap: "12px",
           borderBottom: "1px solid rgba(255,255,255,0.055)",
         }}>
-          {/* Icon + title */}
           <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <CoinIcon symbol="BTC" size={42} />
-              {/* ring pulse */}
               {d && <span style={{
-                position: "absolute", inset: "-4px", borderRadius: "50%",
-                border: `1.5px solid ${cfg.color}60`,
-                animation: "_bc_ring_expand 2.5s ease-out infinite",
+                position: "absolute", inset: "-5px", borderRadius: "50%",
+                border: `1.5px solid ${cfg.color}55`,
+                animation: "_bc_ring_out 2.8s ease-out infinite",
               }} />}
-              {/* static ring */}
               <span style={{
                 position: "absolute", inset: "-2px", borderRadius: "50%",
-                border: `1px solid ${cfg.color}30`,
-                pointerEvents: "none",
+                border: `1px solid ${cfg.color}25`, pointerEvents: "none",
               }} />
             </div>
-
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "3px" }}>
                 <span style={{
                   fontSize: "15px", fontWeight: 800,
-                  background: `linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.65))`,
+                  background: "linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6))",
                   WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                   backgroundClip: "text", letterSpacing: "-0.015em",
                 }}>
                   BTC Crash Monitor
                 </span>
-                {/* LIVE chip */}
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: "5px",
                   padding: "3px 9px", borderRadius: "999px",
-                  background: "rgba(13,217,170,0.1)",
-                  border: "1px solid rgba(13,217,170,0.32)",
-                  boxShadow: "0 0 10px -2px rgba(13,217,170,0.3)",
+                  background: "rgba(13,217,170,0.1)", border: "1px solid rgba(13,217,170,0.32)",
+                  boxShadow: "0 0 12px -2px rgba(13,217,170,0.3)",
                   fontSize: "8px", fontWeight: 900, letterSpacing: "0.14em",
                   color: "#0dd9aa", textTransform: "uppercase",
                 }}>
@@ -403,36 +400,30 @@ export function BtcCrashCard() {
                   LIVE
                 </span>
               </div>
-              <div style={{
-                fontSize: "10px", color: "rgba(255,255,255,0.25)",
-                fontWeight: 500, letterSpacing: "0.01em",
-              }}>
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", fontWeight: 500 }}>
                 {d ? `updated ${age}` : "waiting for bot data…"}
               </div>
             </div>
           </div>
 
-          {/* Status badge — right */}
+          {/* status badge */}
           <div style={{
-            padding: "8px 16px",
-            borderRadius: "12px",
-            background: `linear-gradient(135deg, ${cfg.color}18, ${cfg.color}08)`,
+            padding: "9px 18px", borderRadius: "12px",
+            background: `linear-gradient(135deg, ${cfg.color}18, ${cfg.color}07)`,
             border: `1px solid ${cfg.border}`,
-            boxShadow: `0 0 20px -4px ${cfg.glow}, inset 0 1px 0 ${cfg.color}20`,
+            boxShadow: `0 0 22px -4px ${cfg.glow}, inset 0 1px 0 ${cfg.color}20`,
             display: "flex", flexDirection: "column", alignItems: "center",
-            minWidth: "80px",
-            transition: "all 0.5s ease",
+            transition: "all 0.55s ease", minWidth: "88px",
           }}>
             <div style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              fontSize: "12px", fontWeight: 900,
-              letterSpacing: "0.1em", color: cfg.color,
-              textShadow: `0 0 12px ${cfg.color}80`,
+              display: "flex", alignItems: "center", gap: "7px",
+              fontSize: "12px", fontWeight: 900, letterSpacing: "0.1em",
+              color: cfg.color, textShadow: `0 0 14px ${cfg.color}80`,
               textTransform: "uppercase",
             }}>
               <span style={{
-                width: "6px", height: "6px", borderRadius: "50%",
-                background: cfg.color, boxShadow: `0 0 8px ${cfg.color}`,
+                width: "7px", height: "7px", borderRadius: "50%",
+                background: cfg.color, boxShadow: `0 0 9px ${cfg.color}`,
                 animation: "_bc_blink 1.8s ease-in-out infinite",
               }} />
               {d ? cfg.label : "OFFLINE"}
@@ -440,7 +431,7 @@ export function BtcCrashCard() {
             {d && (
               <div style={{
                 fontSize: "7px", fontWeight: 700, marginTop: "2px",
-                color: `${cfg.color}80`, letterSpacing: "0.1em", textTransform: "uppercase",
+                color: `${cfg.color}75`, letterSpacing: "0.1em", textTransform: "uppercase",
               }}>
                 {cfg.sub}
               </div>
@@ -448,126 +439,114 @@ export function BtcCrashCard() {
           </div>
         </div>
 
-        {/* ══════════════════════════════════
-            PRICE HERO
-        ══════════════════════════════════ */}
+        {/* ═══════════════ PRICE HERO ═══════════════ */}
         <div style={{
           position: "relative", zIndex: 2,
           padding: "20px 20px 18px",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.018) 0%, transparent 100%)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.016) 0%, transparent 100%)",
         }}>
           <div style={{
             fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em",
-            textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+            textTransform: "uppercase", color: "rgba(255,255,255,0.2)",
             marginBottom: "8px",
           }}>
             Bitcoin · Live Price
           </div>
 
-          {/* Price row */}
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "18px" }}>
             <span
-              key={flash}
+              key={String(flash)}
               style={{
                 fontSize: "50px", fontWeight: 900, lineHeight: 1,
                 fontVariantNumeric: "tabular-nums", letterSpacing: "-0.04em",
                 color: priceColor,
                 transition: "color 0.4s ease",
-                textShadow: flash
-                  ? `0 0 40px ${priceColor}80, 0 0 80px ${priceColor}30`
-                  : `0 0 20px ${priceColor}30`,
-                animation: flash ? "_bc_price_flash 0.7s ease both, _bc_price_tick 0.25s ease both" : "none",
+                animation: flash === "up"
+                  ? "_bc_flash_up 0.7s ease both, _bc_pricetick 0.25s ease both"
+                  : flash === "down"
+                  ? "_bc_flash_dn 0.7s ease both, _bc_pricetick 0.25s ease both"
+                  : "none",
+                textShadow: `0 0 22px ${priceColor}35`,
               }}
             >
               {price ? `$${fmt2(price)}` : "—"}
             </span>
-
-            {/* trend arrow */}
-            <div style={{
-              display: "flex", flexDirection: "column", alignItems: "center",
-              opacity: flash ? 1 : 0.25, transition: "opacity 0.4s",
-            }}>
-              <svg width="16" height="24" viewBox="0 0 16 24" fill="none">
+            {/* arrow */}
+            <div style={{ opacity: flash ? 1 : 0.2, transition: "opacity 0.4s" }}>
+              <svg width="18" height="26" viewBox="0 0 18 26" fill="none">
                 <path
-                  d={flash === "down" ? "M8 20 L2 10 L14 10 Z" : "M8 4 L14 14 L2 14 Z"}
+                  d={flash === "down" ? "M9 22 L2 10 L16 10 Z" : "M9 4 L16 16 L2 16 Z"}
                   fill={flash === "down" ? "#ef4444" : "#0dd9aa"}
-                  style={{ filter: `drop-shadow(0 0 6px ${flash === "down" ? "#ef4444" : "#0dd9aa"})` }}
+                  style={{ filter: `drop-shadow(0 0 7px ${flash === "down" ? "#ef4444" : "#0dd9aa"})` }}
                 />
               </svg>
             </div>
           </div>
 
-          {/* Quick stats — 4 columns */}
+          {/* Stat strip */}
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(4,1fr)",
-            gap: "0",
-            borderRadius: "12px",
+            borderRadius: "12px", overflow: "hidden",
             border: "1px solid rgba(255,255,255,0.06)",
-            overflow: "hidden",
-            background: "rgba(0,0,0,0.2)",
+            background: "rgba(0,0,0,0.22)",
           }}>
             {[
               {
                 label: "SPEED",
                 value: !d ? "—" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%`,
                 unit: "/min",
-                color: !d ? "rgba(255,255,255,0.18)" : d.speed > 0 ? "#0dd9aa" : d.speed < 0 ? "#ef4444" : "rgba(255,255,255,0.4)",
+                color: !d ? "rgba(255,255,255,0.16)" : d.speed > 0 ? "#0dd9aa" : d.speed < 0 ? "#ef4444" : "rgba(255,255,255,0.4)",
               },
               {
                 label: "VOLATILITY",
                 value: !d ? "—" : `${d.volatility.toFixed(2)}%`,
-                color: !d ? "rgba(255,255,255,0.18)" : (d.volatility >= 4 ? "#ef4444" : d.volatility >= 2.5 ? "#f97316" : "rgba(255,255,255,0.75)"),
+                color: !d ? "rgba(255,255,255,0.16)" : d.volatility >= 4 ? "#ef4444" : d.volatility >= 2.5 ? "#f97316" : "rgba(255,255,255,0.7)",
               },
               {
                 label: "CONSEC DROPS",
                 value: !d ? "—" : String(consec),
-                color: !d ? "rgba(255,255,255,0.18)" : (consec >= 5 ? "#ef4444" : consec >= 3 ? "#f97316" : "rgba(255,255,255,0.75)"),
+                color: !d ? "rgba(255,255,255,0.16)" : consec >= 5 ? "#ef4444" : consec >= 3 ? "#f97316" : "rgba(255,255,255,0.7)",
               },
               {
                 label: "↑ VOL SPIKE",
                 value: !d ? "—" : volSpike ? "YES" : "NO",
-                color: !d ? "rgba(255,255,255,0.18)" : volSpike ? "#ef4444" : "#0dd9aa",
+                color: !d ? "rgba(255,255,255,0.16)" : volSpike ? "#ef4444" : "#0dd9aa",
               },
-            ].map(({ label, value, unit, color }, i, arr) => (
+            ].map(({ label, value, unit, color }, i) => (
               <div key={label} style={{
                 padding: "10px 12px",
                 borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.05)" : "none",
               }}>
                 <div style={{
                   fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.14em",
-                  textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
-                  marginBottom: "4px",
+                  textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: "4px",
                 }}>{label}</div>
                 <div style={{
                   fontSize: "14px", fontWeight: 900,
                   fontVariantNumeric: "tabular-nums", color,
                   letterSpacing: "-0.01em",
-                  textShadow: color !== "rgba(255,255,255,0.18)" && color !== "rgba(255,255,255,0.75)" && color !== "rgba(255,255,255,0.4)"
-                    ? `0 0 10px ${color}60` : "none",
+                  textShadow: ["rgba(255,255,255,0.16)", "rgba(255,255,255,0.4)", "rgba(255,255,255,0.7)"].includes(color)
+                    ? "none" : `0 0 10px ${color}55`,
                 }}>
                   {value}
-                  {unit && <span style={{ fontSize: "9px", fontWeight: 600, color: `${color}80`, marginLeft: "1px" }}>{unit}</span>}
+                  {unit && <span style={{ fontSize: "9px", marginLeft: "1px", color: `${color}80` }}>{unit}</span>}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ══════════════════════════════════
-            PRESSURE / DROP TABLE
-        ══════════════════════════════════ */}
+        {/* ═══════════════ PRESSURE / DROP ═══════════════ */}
         <div style={{ position: "relative", zIndex: 2 }}>
-          {/* Header row */}
           <div style={{
             display: "grid", gridTemplateColumns: "36px 1fr 90px 68px",
-            padding: "10px 20px 6px",
-            gap: "8px",
+            padding: "10px 20px 6px", gap: "8px",
           }}>
             {["", "PRESSURE", "PEAK", "DROP"].map((h, i) => (
               <span key={i} style={{
                 fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.15em",
-                textTransform: "uppercase", color: "rgba(255,255,255,0.18)",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.17)",
                 textAlign: i >= 2 ? "right" : "left",
               }}>{h}</span>
             ))}
@@ -583,34 +562,31 @@ export function BtcCrashCard() {
                 style={{
                   display: "grid", gridTemplateColumns: "36px 1fr 90px 68px",
                   gap: "8px", alignItems: "center",
-                  padding: "8px 20px",
+                  padding: "7px 20px",
                   borderTop: "1px solid rgba(255,255,255,0.038)",
-                  transition: "background 0.15s",
-                  cursor: "default",
+                  transition: "background 0.15s", cursor: "default",
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.025)")}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.022)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
                 <span style={{
-                  fontSize: "11px", fontWeight: 800, letterSpacing: "0.01em",
-                  color: "rgba(255,255,255,0.35)", fontVariantNumeric: "tabular-nums",
+                  fontSize: "11px", fontWeight: 800,
+                  color: "rgba(255,255,255,0.32)", fontVariantNumeric: "tabular-nums",
                 }}>{t}</span>
 
                 <PressureBars pct={pct} inactive={!d} />
 
                 <span style={{
                   fontSize: "11px", fontWeight: 500, fontVariantNumeric: "tabular-nums",
-                  color: d ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.1)",
-                  textAlign: "right",
+                  color: d ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.09)", textAlign: "right",
                 }}>
                   {d && peak ? `$${fmt2(peak)}` : "—"}
                 </span>
 
                 <span style={{
                   fontSize: "14px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
-                  color: col, textAlign: "right",
-                  textShadow: d && pct >= 1 ? `0 0 12px ${col}80` : "none",
-                  letterSpacing: "-0.01em",
+                  color: col, textAlign: "right", letterSpacing: "-0.01em",
+                  textShadow: d && pct >= 1 ? `0 0 14px ${col}80` : "none",
                 }}>
                   {d ? `-${pct.toFixed(2)}%` : "—"}
                 </span>
@@ -619,9 +595,7 @@ export function BtcCrashCard() {
           })}
         </div>
 
-        {/* ══════════════════════════════════
-            3-COL SIGNAL CARDS
-        ══════════════════════════════════ */}
+        {/* ═══════════════ 3-COL SIGNAL CARDS ═══════════════ */}
         <div style={{
           position: "relative", zIndex: 2,
           display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
@@ -631,89 +605,75 @@ export function BtcCrashCard() {
           {/* Whale Sells */}
           {(() => {
             const lvl = !d ? "NORMAL" : whaleCount >= 3 ? "DANGER" : whaleCount >= 1 ? "WATCH" : "NORMAL";
-            const col = LVL_COLOR[lvl];
             return (
-              <SigCard
-                icon="≋" title="Whale Sells"
+              <SigCard icon="≋" title="Whale Sells"
                 value={!d ? "—" : `${whaleCount} txn`}
-                sub={d ? (whaleUsd > 0 ? `${fmtK(whaleUsd)} total` : "$0 total") : undefined}
-                lvlColor={col} level={d ? lvl : undefined}
+                sub={d && whaleUsd > 0 ? `${fmtK(whaleUsd)} total` : d ? "$0 total" : undefined}
+                lvlColor={LVL[lvl]} level={d ? lvl : undefined}
                 danger={lvl === "DANGER" || lvl === "RISK"}
               />
             );
           })()}
-
-          {/* Funding */}
-          <SigCard
-            icon="↗" title="Funding"
+          <SigCard icon="↗" title="Funding"
             value={!d ? "—" : fmtFnd(funding)}
-            lvlColor={LVL_COLOR[fundingLvl]}
-            level={d ? fundingLvl : undefined}
+            lvlColor={LVL[fundingLvl]} level={d ? fundingLvl : undefined}
             danger={fundingLvl === "DANGER"}
           />
-
-          {/* Liquidations */}
-          <SigCard
-            icon="↯" title="Liquidations"
+          <SigCard icon="↯" title="Liquidations"
             value={!d ? "—" : fmtK(liqUsd)}
             sub={d && liqLargest > 0 ? `largest ${fmtK(liqLargest)}` : undefined}
-            lvlColor={LVL_COLOR[liqLvl]}
-            level={d ? liqLvl : undefined}
+            lvlColor={LVL[liqLvl]} level={d ? liqLvl : undefined}
             danger={liqLvl === "DANGER"}
           />
         </div>
 
-        {/* ══════════════════════════════════
-            WHALE NET FLOW — full-width
-        ══════════════════════════════════ */}
+        {/* ═══════════════ NET FLOW ROW ═══════════════ */}
         <div style={{
           position: "relative", zIndex: 2,
           margin: "12px 14px",
-          padding: "13px 16px",
+          padding: "14px 18px",
           borderRadius: "14px",
-          background: `linear-gradient(135deg, ${netColor}08, rgba(255,255,255,0.025))`,
-          border: `1px solid ${netColor}25`,
-          boxShadow: `0 0 20px -8px ${netColor}40`,
+          background: `linear-gradient(135deg, ${netColor}09, rgba(255,255,255,0.022))`,
+          border: `1px solid ${netColor}28`,
+          boxShadow: `0 0 24px -8px ${netColor}45`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: "10px",
-          transition: "all 0.4s ease",
+          transition: "all 0.45s ease",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{
               fontSize: "9px", fontWeight: 800, letterSpacing: "0.14em",
-              textTransform: "uppercase", color: "rgba(255,255,255,0.28)",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.27)",
             }}>
               $ Whale Net Flow
             </span>
-            {/* B vs S small pills */}
             {d && (
               <div style={{ display: "flex", gap: "6px" }}>
                 <span style={{
                   fontSize: "9px", fontWeight: 600, fontVariantNumeric: "tabular-nums",
-                  padding: "1px 6px", borderRadius: "4px",
+                  padding: "2px 7px", borderRadius: "5px",
                   background: "rgba(13,217,170,0.1)", color: "#0dd9aa",
                 }}>B {fmtK(whaleBuy)}</span>
                 <span style={{
                   fontSize: "9px", fontWeight: 600, fontVariantNumeric: "tabular-nums",
-                  padding: "1px 6px", borderRadius: "4px",
+                  padding: "2px 7px", borderRadius: "5px",
                   background: "rgba(239,68,68,0.1)", color: "#ef4444",
                 }}>S {fmtK(whaleUsd)}</span>
               </div>
             )}
           </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{
-              fontSize: "22px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
+              fontSize: "24px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.02em", color: netColor,
-              textShadow: `0 0 20px ${netColor}70, 0 0 40px ${netColor}30`,
+              textShadow: `0 0 22px ${netColor}75, 0 0 50px ${netColor}30`,
             }}>
               {!d ? "—" : `${whaleNet >= 0 ? "+" : "−"}${fmtK(Math.abs(whaleNet))}`}
             </span>
             {d && whaleNet !== 0 && (
               <span style={{
-                fontSize: "9px", fontWeight: 600,
-                color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em",
+                fontSize: "9px", fontWeight: 600, color: "rgba(255,255,255,0.28)",
+                letterSpacing: "0.04em",
               }}>
                 {whaleNet < 0 ? "SELL pressure" : "BUY pressure"}
               </span>
@@ -722,27 +682,24 @@ export function BtcCrashCard() {
           </div>
         </div>
 
-        {/* ══════════════════════════════════
-            TRADING PAUSED BANNER
-        ══════════════════════════════════ */}
+        {/* ═══════════════ PAUSED BANNER ═══════════════ */}
         {isPaused && (
           <div style={{
             position: "relative", zIndex: 2,
             margin: "0 14px 14px",
-            padding: "14px 16px",
+            padding: "14px 18px",
             borderRadius: "14px",
-            background: "linear-gradient(135deg, rgba(245,197,66,0.1), rgba(245,197,66,0.04))",
-            border: "1px solid rgba(245,197,66,0.28)",
-            boxShadow: "0 0 24px -8px rgba(245,197,66,0.3), inset 0 1px 0 rgba(245,197,66,0.15)",
+            background: "linear-gradient(135deg, rgba(245,197,66,0.11), rgba(245,197,66,0.04))",
+            border: "1px solid rgba(245,197,66,0.30)",
+            boxShadow: "0 0 28px -8px rgba(245,197,66,0.32), inset 0 1px 0 rgba(245,197,66,0.16)",
             display: "flex", alignItems: "center", gap: "14px",
             animation: "_bc_slide_in 0.35s ease both",
           }}>
-            {/* pause icon circle */}
             <div style={{
               width: "40px", height: "40px", borderRadius: "50%",
-              background: "linear-gradient(135deg, rgba(245,197,66,0.2), rgba(245,197,66,0.08))",
-              border: "1.5px solid rgba(245,197,66,0.40)",
-              boxShadow: "0 0 16px rgba(245,197,66,0.25)",
+              background: "linear-gradient(135deg, rgba(245,197,66,0.22), rgba(245,197,66,0.08))",
+              border: "1.5px solid rgba(245,197,66,0.42)",
+              boxShadow: "0 0 18px rgba(245,197,66,0.28)",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
@@ -751,30 +708,27 @@ export function BtcCrashCard() {
                 <rect x="8.5" y="2" width="3.5" height="10" rx="1.2" />
               </svg>
             </div>
-
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
                 <span style={{
                   fontSize: "11px", fontWeight: 900, color: "#f5c542",
                   letterSpacing: "0.08em", textTransform: "uppercase",
-                  textShadow: "0 0 10px rgba(245,197,66,0.5)",
+                  textShadow: "0 0 12px rgba(245,197,66,0.55)",
                 }}>
                   Trading Paused
                 </span>
                 <span style={{
                   padding: "2px 7px", borderRadius: "4px",
-                  background: "rgba(245,197,66,0.15)",
-                  border: "1px solid rgba(245,197,66,0.35)",
-                  fontSize: "7px", fontWeight: 900,
-                  color: "#f5c542", letterSpacing: "0.12em",
-                  textTransform: "uppercase",
+                  background: "rgba(245,197,66,0.15)", border: "1px solid rgba(245,197,66,0.35)",
+                  fontSize: "7px", fontWeight: 900, color: "#f5c542",
+                  letterSpacing: "0.12em", textTransform: "uppercase",
                 }}>
                   BOT HALTED
                 </span>
               </div>
               <div style={{
-                fontSize: "11px", lineHeight: 1.6,
-                color: "rgba(245,197,66,0.6)", wordBreak: "break-word",
+                fontSize: "11px", lineHeight: 1.65,
+                color: "rgba(245,197,66,0.58)", wordBreak: "break-word",
               }}>
                 {pauseReason}
               </div>
@@ -782,11 +736,11 @@ export function BtcCrashCard() {
           </div>
         )}
 
-        {/* ── bottom glow line ── */}
+        {/* bottom shimmer */}
         <div aria-hidden style={{
           height: "1px",
-          background: `linear-gradient(90deg, transparent, ${cfg.color}25, transparent)`,
-          transition: "background 0.5s",
+          background: `linear-gradient(90deg, transparent, ${cfg.color}28, transparent)`,
+          transition: "background 0.55s",
         }} />
       </section>
     </>
