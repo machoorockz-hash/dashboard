@@ -275,8 +275,8 @@ export function BtcCrashCard() {
         @keyframes _bc_blink   { 0%,100%{opacity:1} 50%{opacity:.08} }
         @keyframes _bc_breathe { 0%,100%{opacity:.55} 50%{opacity:1} }
         @keyframes _bc_pricetick { 0%{transform:scale(1.01)} 100%{transform:scale(1)} }
-        @keyframes _bc_flash_up  { 0%{text-shadow:0 0 18px #0dd9aa,0 0 36px #0dd9aa30} 100%{text-shadow:none} }
-        @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 18px #ef4444,0 0 36px #ef444430} 100%{text-shadow:none} }
+        @keyframes _bc_flash_up  { 0%{text-shadow:0 0 8px #0dd9aa80} 100%{text-shadow:none} }
+        @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 8px #ef444480} 100%{text-shadow:none} }
         @keyframes _bc_ring_out  { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.8);opacity:0} }
         @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
         @keyframes _bc_shim      { from{opacity:0} 40%{opacity:1} to{opacity:0} }
@@ -446,7 +446,7 @@ export function BtcCrashCard() {
             <span
               key={String(flash)}
               style={{
-                fontSize: "50px", fontWeight: 900, lineHeight: 1,
+                fontSize: "40px", fontWeight: 900, lineHeight: 1,
                 fontVariantNumeric: "tabular-nums", letterSpacing: "-0.04em",
                 color: priceColor,
                 transition: "color 0.4s ease",
@@ -455,7 +455,7 @@ export function BtcCrashCard() {
                   : flash === "down"
                   ? "_bc_flash_dn 0.7s ease both, _bc_pricetick 0.25s ease both"
                   : "none",
-                textShadow: `0 0 10px ${priceColor}20`,
+                textShadow: "none",
               }}
             >
               {price ? `$${fmt2(price)}` : "—"}
