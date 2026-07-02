@@ -130,34 +130,16 @@ function SigCard({
   icon: string; title: string; value: string;
   sub?: string; lvlColor: string; level?: string; danger?: boolean;
 }) {
-  const [hov, setHov] = useState(false);
   return (
-    <div
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        position: "relative", overflow: "hidden",
-        borderRadius: "14px",
-        border: `1px solid ${hov ? lvlColor + "45" : "rgba(255,255,255,0.07)"}`,
-        background: hov
-          ? `linear-gradient(145deg, ${lvlColor}12, rgba(255,255,255,0.03))`
-          : `linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))`,
-        padding: "14px 12px",
-        display: "flex", flexDirection: "column", gap: "7px",
-        transition: "all 0.25s ease",
-        boxShadow: "none",
-        transform: hov ? "translateY(-2px)" : "none",
-        backdropFilter: "blur(12px)",
-        cursor: "default",
-      }}
-    >
-      {hov && (
-        <div style={{
-          position: "absolute", inset: 0, pointerEvents: "none",
-          background: `linear-gradient(110deg, transparent 30%, ${lvlColor}10 50%, transparent 70%)`,
-          animation: "_bc_shim 0.6s ease both",
-        }} />
-      )}
+    <div style={{
+      position: "relative", overflow: "hidden",
+      borderRadius: "14px",
+      border: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(255,255,255,0.04)",
+      padding: "14px 12px",
+      display: "flex", flexDirection: "column", gap: "7px",
+      cursor: "default",
+    }}>
       {danger && (
         <div style={{
           position: "absolute", top: 0, left: "20%", right: "20%", height: "1px",
@@ -180,7 +162,7 @@ function SigCard({
         {level && <LvlBadge level={level} />}
       </div>
       <div style={{
-        fontSize: "26px", fontWeight: 900, lineHeight: 1,
+        fontSize: "18px", fontWeight: 900, lineHeight: 1,
         fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
         color: lvlColor, wordBreak: "break-all",
         textShadow: "none",
@@ -275,11 +257,8 @@ export function BtcCrashCard() {
         @keyframes _bc_pricetick { 0%{transform:scale(1.01)} 100%{transform:scale(1)} }
         @keyframes _bc_flash_up  { 0%{text-shadow:0 0 8px #0dd9aa80} 100%{text-shadow:none} }
         @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 8px #ef444480} 100%{text-shadow:none} }
-        @keyframes _bc_ring_out  { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.8);opacity:0} }
         @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-        @keyframes _bc_shim      { from{opacity:0} 40%{opacity:1} to{opacity:0} }
         @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
-        @keyframes _bc_orb       { 0%,100%{transform:scale(1) translate(0,0)} 33%{transform:scale(1.06) translate(4px,-4px)} 66%{transform:scale(.96) translate(-3px,3px)} }
       `}</style>
 
       <section style={{
@@ -287,28 +266,13 @@ export function BtcCrashCard() {
         fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
         borderRadius: "22px",
         overflow: "hidden",
-        background: `
-          linear-gradient(145deg, rgba(13,217,170,0.05) 0%, transparent 35%),
-          oklch(0.55 0.06 210 / 11%)
-        `,
-        backdropFilter: "blur(30px) saturate(185%) brightness(1.06)",
-        WebkitBackdropFilter: "blur(30px) saturate(185%) brightness(1.06)",
+        background: "transparent",
         border: `1px solid ${cfg.border}`,
-        boxShadow: `
-          0 0 0 1px rgba(255,255,255,0.06) inset,
-          0 1px 0 rgba(255,255,255,0.08) inset
-        `,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
         transition: "border-color 0.55s ease, box-shadow 0.65s ease",
         display: "flex", flexDirection: "column",
       }}>
 
-        {/* dot grid texture */}
-        <div aria-hidden style={{
-          position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.038) 1px, transparent 1px)",
-          backgroundSize: "22px 22px",
-          maskImage: "radial-gradient(ellipse 75% 70% at 60% 40%, black 20%, transparent 100%)",
-        }} />
 
         {/* top accent line */}
         <div aria-hidden style={{
@@ -318,14 +282,6 @@ export function BtcCrashCard() {
           transition: "background 0.55s ease",
         }} />
 
-        {/* ambient orb — top right, very subtle */}
-        <div aria-hidden style={{
-          position: "absolute", top: "-90px", right: "-70px",
-          width: "280px", height: "260px", borderRadius: "50%",
-          background: `radial-gradient(ellipse at center, ${cfg.color}0a 0%, transparent 70%)`,
-          pointerEvents: "none", zIndex: 0,
-          transition: "background 0.6s ease",
-        }} />
 
         {/* ═══════════════ HEADER ═══════════════ */}
         <div style={{
@@ -338,15 +294,6 @@ export function BtcCrashCard() {
           <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <CoinIcon symbol="BTC" size={42} />
-              {d && <span style={{
-                position: "absolute", inset: "-5px", borderRadius: "50%",
-                border: `1.5px solid ${cfg.color}55`,
-                animation: "_bc_ring_out 2.8s ease-out infinite",
-              }} />}
-              <span style={{
-                position: "absolute", inset: "-2px", borderRadius: "50%",
-                border: `1px solid ${cfg.color}25`, pointerEvents: "none",
-              }} />
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "3px" }}>
