@@ -94,9 +94,9 @@ function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
               : "rgba(255,255,255,0.07)",
             opacity: brightness,
             boxShadow: isTip
-              ? `0 0 8px 3px ${color}, 0 0 20px 4px ${color}55`
+              ? `0 0 4px 1px ${color}90, 0 0 8px 2px ${color}28`
               : filled
-              ? `0 0 5px 1px ${color}60`
+              ? `0 0 3px 1px ${color}28`
               : "none",
             transition: `background 0.12s ease ${i * 18}ms, box-shadow 0.15s ease`,
           }} />
@@ -275,8 +275,8 @@ export function BtcCrashCard() {
         @keyframes _bc_blink   { 0%,100%{opacity:1} 50%{opacity:.08} }
         @keyframes _bc_breathe { 0%,100%{opacity:.55} 50%{opacity:1} }
         @keyframes _bc_pricetick { 0%{transform:scale(1.01)} 100%{transform:scale(1)} }
-        @keyframes _bc_flash_up  { 0%{text-shadow:0 0 50px #0dd9aa,0 0 100px #0dd9aa50} 100%{text-shadow:0 0 18px #0dd9aa30} }
-        @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 50px #ef4444,0 0 100px #ef444450} 100%{text-shadow:0 0 18px #ef444430} }
+        @keyframes _bc_flash_up  { 0%{text-shadow:0 0 18px #0dd9aa,0 0 36px #0dd9aa30} 100%{text-shadow:none} }
+        @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 18px #ef4444,0 0 36px #ef444430} 100%{text-shadow:none} }
         @keyframes _bc_ring_out  { 0%{transform:scale(1);opacity:.55} 100%{transform:scale(1.8);opacity:0} }
         @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
         @keyframes _bc_shim      { from{opacity:0} 40%{opacity:1} to{opacity:0} }
@@ -455,7 +455,7 @@ export function BtcCrashCard() {
                   : flash === "down"
                   ? "_bc_flash_dn 0.7s ease both, _bc_pricetick 0.25s ease both"
                   : "none",
-                textShadow: `0 0 22px ${priceColor}35`,
+                textShadow: `0 0 10px ${priceColor}20`,
               }}
             >
               {price ? `$${fmt2(price)}` : "—"}
