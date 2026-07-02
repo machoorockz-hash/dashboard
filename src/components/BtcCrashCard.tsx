@@ -185,7 +185,7 @@ export function BtcCrashCard() {
     ws.onmessage=(e)=>{
       try {
         const p=parseFloat(JSON.parse(e.data).p);
-        setFlash(prevRef.current!==null?p>prevRef.current!"up":"dn":null);
+        setFlash(prevRef.current !== null ? (p > prevRef.current! ? "up" : "dn") : null);
         prevRef.current=p;
         setPrice(p);
       } catch{}
