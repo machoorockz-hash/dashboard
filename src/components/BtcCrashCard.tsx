@@ -53,14 +53,13 @@ const since  = (iso: string) => {
 };
 const dropCol = (p: number) => p >= 4 ? "#ef4444" : p >= 2 ? "#f97316" : p >= 1 ? "#f5c542" : "#0dd9aa";
 
-/* ─────────────────────────── PREMIUM BARS ─────────────────────────── */
+/* ─────────────────────────── PRESSURE BARS ─────────────────────────── */
+// Uniform-height segments like the reference — LED bar meter style
 function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
   const [animLit, setAnimLit] = useState(0);
-  const color  = inactive ? "#1a2535" : dropCol(pct);
-  const TOTAL  = 14;
+  const color  = inactive ? "transparent" : dropCol(pct);
+  const TOTAL  = 12;
   const target = inactive ? 0 : Math.round(Math.min(pct / 6, 1) * TOTAL);
-  const MIN_H  = 10; // shortest bar px
-  const MAX_H  = 42; // tallest bar px
 
   useEffect(() => {
     setAnimLit(0);
@@ -69,54 +68,38 @@ function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
     const tick = () => {
       i++;
       setAnimLit(i);
-      if (i < target) setTimeout(() => requestAnimationFrame(tick), 35);
+      if (i < target) setTimeout(() => requestAnimationFrame(tick), 40);
     };
-    const delay = setTimeout(() => requestAnimationFrame(tick), 120);
+    const delay = setTimeout(() => requestAnimationFrame(tick), 100);
     return () => clearTimeout(delay);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pct, inactive]);
 
   return (
-    <div style={{
-      display: "flex", alignItems: "flex-end", gap: "3px",
-      height: `${MAX_H}px`, paddingBottom: "2px",
-    }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
       {Array.from({ length: TOTAL }).map((_, i) => {
-        const ratio  = i / (TOTAL - 1);
-        const fullH  = MIN_H + ratio * (MAX_H - MIN_H);     // natural height when filled
         const filled = i < animLit;
-        const isTip  = i === animLit - 1 && !inactive;       // the last lit bar
+        const isTip  = filled && i === animLit - 1;
+
+        // bars get very subtly brighter toward the right when filled
+        const brightness = filled ? (0.70 + (i / (TOTAL - 1)) * 0.30) : 1;
 
         return (
-          <div
-            key={i}
-            style={{
-              width: "5px",
-              height: `${filled ? fullH : Math.max(MIN_H * 0.35, 4)}px`,
-              borderRadius: "3px",
-              position: "relative",
-              transition: filled
-                ? `height 0.18s cubic-bezier(.22,1,.36,1) ${i * 12}ms`
-                : "height 0.12s ease",
-              /* gradient fill: bright at top, fades to ~60% opacity at base */
-              background: filled
-                ? `linear-gradient(to bottom, ${color}, ${color}70)`
-                : "rgba(255,255,255,0.05)",
-              /* tip glow on last lit bar */
-              boxShadow: isTip
-                ? `0 -4px 10px 2px ${color}, 0 0 16px 4px ${color}60`
-                : filled
-                ? `0 0 6px 1px ${color}50`
-                : "none",
-              /* subtle inner left highlight for depth */
-              ...(filled ? {
-                backgroundImage: `
-                  linear-gradient(to right, rgba(255,255,255,0.18) 0%, transparent 35%),
-                  linear-gradient(to bottom, ${color} 0%, ${color}70 100%)
-                `,
-              } : {}),
-            }}
-          />
+          <div key={i} style={{
+            width: "6px",
+            height: "18px",
+            borderRadius: "3px",
+            background: filled
+              ? color
+              : "rgba(255,255,255,0.07)",
+            opacity: brightness,
+            boxShadow: isTip
+              ? `0 0 8px 3px ${color}, 0 0 20px 4px ${color}55`
+              : filled
+              ? `0 0 5px 1px ${color}60`
+              : "none",
+            transition: `background 0.12s ease ${i * 18}ms, box-shadow 0.15s ease`,
+          }} />
         );
       })}
     </div>
