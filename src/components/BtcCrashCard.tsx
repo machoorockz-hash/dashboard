@@ -165,19 +165,24 @@ function SigCard({
           animation: "_bc_epulse 2.2s ease-in-out infinite",
         }} />
       )}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* title row — wraps on narrow cards */}
+      <div style={{
+        display: "flex", alignItems: "flex-start",
+        justifyContent: "space-between", gap: "6px", flexWrap: "wrap",
+      }}>
         <span style={{
-          fontSize: "9px", fontWeight: 800, letterSpacing: "0.12em",
+          fontSize: "9px", fontWeight: 800, letterSpacing: "0.1em",
           color: "rgba(255,255,255,0.28)", textTransform: "uppercase",
+          lineHeight: 1.3, flexShrink: 1, minWidth: 0,
         }}>
           {icon} {title}
         </span>
         {level && <LvlBadge level={level} />}
       </div>
       <div style={{
-        fontSize: "28px", fontWeight: 900, lineHeight: 1,
+        fontSize: "26px", fontWeight: 900, lineHeight: 1,
         fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
-        color: lvlColor,
+        color: lvlColor, wordBreak: "break-all",
         textShadow: danger
           ? `0 0 22px ${lvlColor}80, 0 0 50px ${lvlColor}30`
           : `0 0 14px ${lvlColor}45`,
@@ -578,10 +583,11 @@ export function BtcCrashCard() {
           })}
         </div>
 
-        {/* ═══════════════ 3-COL SIGNAL CARDS ═══════════════ */}
+        {/* ═══════════════ SIGNAL CARDS — auto-wrap on mobile ═══════════════ */}
         <div style={{
           position: "relative", zIndex: 2,
-          display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
           gap: "8px", padding: "14px 14px 0",
           borderTop: "1px solid rgba(255,255,255,0.055)",
         }}>
