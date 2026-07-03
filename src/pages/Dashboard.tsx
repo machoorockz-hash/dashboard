@@ -568,14 +568,8 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-5">
 
-        {/* ── WALLET CARD — premium futuristic redesign ── */}
-        <section
-          className="rounded-2xl relative overflow-hidden"
-          style={{
-            background: "transparent",
-            border: "1px solid oklch(0.78 0.07 200 / 22%)",
-          }}
-        >
+        {/* ── WALLET CARD — no background, fully transparent ── */}
+        <section className="relative">
 
           <div className="relative p-5 md:p-6">
             {/* ── Header row ── */}
