@@ -639,7 +639,7 @@ export default function Dashboard() {
                 >
                   USD
                 </span>
-                <div className="relative overflow-hidden">
+                <div className="relative" style={{ display: "inline-block" }}>
                   {/* Delta badge — floats up and fades on change */}
                   {balanceDelta !== null && (
                     <div
@@ -671,9 +671,10 @@ export default function Dashboard() {
                   {/* Main balance number */}
                   <span
                     key={`bal-${balanceKey}`}
-                    className={`text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums relative inline-block
+                    className={`text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums
                       ${balanceDir === "up" ? "bal-glow-up bal-scale-pop" : balanceDir === "down" ? "bal-glow-down bal-scale-pop" : ""}`}
                     style={{
+                      display: "inline-block",
                       background:
                         balanceDir === "up"
                           ? "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, #10b981 55%, color-mix(in oklab,var(--primary) 65%,transparent) 100%)"
@@ -687,21 +688,22 @@ export default function Dashboard() {
                     }}
                   >
                     {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
-
-                    {/* Shimmer sweep on change */}
-                    {balanceDir && (
-                      <span
-                        key={`shimmer-${balanceKey}`}
-                        className="bal-shimmer absolute inset-y-0 pointer-events-none"
-                        style={{
-                          width: "30%",
-                          background: `linear-gradient(90deg, transparent, ${balanceDir === "up" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}, transparent)`,
-                          borderRadius: "999px",
-                          left: 0,
-                        }}
-                      />
-                    )}
                   </span>
+
+                  {/* Shimmer sweep — sibling of text span so it doesn't inherit WebkitTextFillColor */}
+                  {balanceDir && (
+                    <span
+                      key={`shimmer-${balanceKey}`}
+                      className="bal-shimmer pointer-events-none"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "30%",
+                        background: `linear-gradient(90deg, transparent, ${balanceDir === "up" ? "rgba(16,185,129,0.28)" : "rgba(239,68,68,0.28)"}, transparent)`,
+                        borderRadius: "999px",
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
