@@ -642,25 +642,6 @@ export default function Dashboard() {
               `}</style>
               <div className="flex items-start gap-2 relative">
                 <div style={{ position: "relative", display: "inline-block" }}>
-                  {/* Delta badge */}
-                  {balanceDelta !== null && (
-                    <div
-                      key={`delta-${balanceKey}`}
-                      className="delta-rise"
-                      style={{ position: "absolute", bottom: "100%", left: 0, pointerEvents: "none", zIndex: 10, marginBottom: "4px" }}
-                    >
-                      <span style={{
-                        fontSize: "12px", fontWeight: 800, fontVariantNumeric: "tabular-nums",
-                        letterSpacing: "-0.01em", padding: "2px 8px", borderRadius: "999px",
-                        color: balanceDelta >= 0 ? "#10b981" : "#ef4444",
-                        background: balanceDelta >= 0 ? "rgba(16,185,129,0.13)" : "rgba(239,68,68,0.13)",
-                        border: `1px solid ${balanceDelta >= 0 ? "rgba(16,185,129,0.32)" : "rgba(239,68,68,0.32)"}`,
-                        whiteSpace: "nowrap",
-                      }}>
-                        {balanceDelta >= 0 ? "▲ +" : "▼ "}${Math.abs(balanceDelta).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  )}
 
                   {/* Glow halo — box-shadow on a sibling, never touches the text */}
                   {balanceDir && (
@@ -747,7 +728,7 @@ export default function Dashboard() {
                         className="text-[9px] font-bold tabular-nums"
                         style={{ color: "oklch(0.82 0.01 200)" }}
                       >
-                        ${fmt(b.usd, 0)}
+                        ${fmt(b.usd, 2)}
                       </span>
                     </div>
                   );
