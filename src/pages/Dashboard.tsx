@@ -600,37 +600,45 @@ export default function Dashboard() {
             {/* ── Balance amount ── */}
             <div className="mt-4">
               <style>{`
+                .bal-text {
+                  display: inline-block;
+                  background-image: linear-gradient(140deg, #f8fafc 0%, var(--primary) 55%, #94d9f5 100%);
+                  -webkit-background-clip: text;
+                  background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  color: transparent;
+                }
                 @keyframes bal-glow-up {
-                  0%   { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #10b981); }
-                  15%  { filter: drop-shadow(0 0 32px color-mix(in oklab,var(--primary) 35%,transparent)) drop-shadow(0 0 28px #10b98188); }
-                  100% { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #10b981); }
+                  0%   { box-shadow: 0 0 0px 0px rgba(16,185,129,0); }
+                  20%  { box-shadow: 0 0 52px 14px rgba(16,185,129,0.42); }
+                  100% { box-shadow: 0 0 0px 0px rgba(16,185,129,0); opacity: 0; }
                 }
                 @keyframes bal-glow-down {
-                  0%   { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #ef4444); }
-                  15%  { filter: drop-shadow(0 0 32px color-mix(in oklab,var(--primary) 35%,transparent)) drop-shadow(0 0 28px #ef444488); }
-                  100% { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #ef4444); }
+                  0%   { box-shadow: 0 0 0px 0px rgba(239,68,68,0); }
+                  20%  { box-shadow: 0 0 52px 14px rgba(239,68,68,0.42); }
+                  100% { box-shadow: 0 0 0px 0px rgba(239,68,68,0); opacity: 0; }
                 }
                 @keyframes bal-shimmer {
-                  0%   { transform: translateX(-120%) skewX(-16deg); opacity: 0; }
-                  20%  { opacity: 1; }
-                  80%  { opacity: 1; }
-                  100% { transform: translateX(220%) skewX(-16deg); opacity: 0; }
+                  0%   { transform: translateX(-130%) skewX(-16deg); opacity: 0; }
+                  15%  { opacity: 0.65; }
+                  85%  { opacity: 0.65; }
+                  100% { transform: translateX(230%) skewX(-16deg); opacity: 0; }
                 }
                 @keyframes delta-rise {
                   0%   { transform: translateY(0px); opacity: 1; }
-                  70%  { opacity: 1; }
-                  100% { transform: translateY(-28px); opacity: 0; }
+                  65%  { opacity: 1; }
+                  100% { transform: translateY(-32px); opacity: 0; }
                 }
                 @keyframes bal-scale-pop {
                   0%   { transform: scale(1); }
-                  12%  { transform: scale(1.018); }
+                  14%  { transform: scale(1.022); }
                   100% { transform: scale(1); }
                 }
-                .bal-glow-up   { animation: bal-glow-up   1.8s ease-out forwards; }
-                .bal-glow-down { animation: bal-glow-down 1.8s ease-out forwards; }
-                .bal-shimmer   { animation: bal-shimmer   0.85s ease-in-out forwards; }
-                .bal-scale-pop { animation: bal-scale-pop 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
-                .delta-rise    { animation: delta-rise    1.9s ease-out forwards; }
+                .bal-glow-up   { animation: bal-glow-up   2s ease-out forwards; }
+                .bal-glow-down { animation: bal-glow-down 2s ease-out forwards; }
+                .bal-shimmer   { animation: bal-shimmer   0.9s ease-in-out forwards; }
+                .bal-scale-pop { animation: bal-scale-pop 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+                .delta-rise    { animation: delta-rise    2s ease-out forwards; }
               `}</style>
               <div className="flex items-start gap-2 relative">
                 <span
@@ -639,71 +647,59 @@ export default function Dashboard() {
                 >
                   USD
                 </span>
-                <div className="relative" style={{ display: "inline-block" }}>
-                  {/* Delta badge — floats up and fades on change */}
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  {/* Delta badge */}
                   {balanceDelta !== null && (
                     <div
                       key={`delta-${balanceKey}`}
-                      className="delta-rise absolute -top-1 left-0 pointer-events-none z-10 flex items-center gap-1"
+                      className="delta-rise"
+                      style={{ position: "absolute", bottom: "100%", left: 0, pointerEvents: "none", zIndex: 10, marginBottom: "4px" }}
                     >
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 800,
-                          fontVariantNumeric: "tabular-nums",
-                          letterSpacing: "-0.01em",
-                          padding: "2px 7px",
-                          borderRadius: "999px",
-                          color: balanceDelta >= 0 ? "#10b981" : "#ef4444",
-                          background: balanceDelta >= 0 ? "rgba(16,185,129,0.14)" : "rgba(239,68,68,0.14)",
-                          border: `1px solid ${balanceDelta >= 0 ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}`,
-                          boxShadow: balanceDelta >= 0
-                            ? "0 0 8px rgba(16,185,129,0.25)"
-                            : "0 0 8px rgba(239,68,68,0.25)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                      <span style={{
+                        fontSize: "12px", fontWeight: 800, fontVariantNumeric: "tabular-nums",
+                        letterSpacing: "-0.01em", padding: "2px 8px", borderRadius: "999px",
+                        color: balanceDelta >= 0 ? "#10b981" : "#ef4444",
+                        background: balanceDelta >= 0 ? "rgba(16,185,129,0.13)" : "rgba(239,68,68,0.13)",
+                        border: `1px solid ${balanceDelta >= 0 ? "rgba(16,185,129,0.32)" : "rgba(239,68,68,0.32)"}`,
+                        whiteSpace: "nowrap",
+                      }}>
                         {balanceDelta >= 0 ? "▲ +" : "▼ "}${Math.abs(balanceDelta).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   )}
 
-                  {/* Main balance number */}
-                  <span
-                    key={`bal-${balanceKey}`}
-                    className={`text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums
-                      ${balanceDir === "up" ? "bal-glow-up bal-scale-pop" : balanceDir === "down" ? "bal-glow-down bal-scale-pop" : ""}`}
-                    style={{
-                      display: "inline-block",
-                      background:
-                        balanceDir === "up"
-                          ? "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, #10b981 55%, color-mix(in oklab,var(--primary) 65%,transparent) 100%)"
-                          : balanceDir === "down"
-                          ? "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, #ef4444 55%, color-mix(in oklab,var(--primary) 65%,transparent) 100%)"
-                          : "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, color-mix(in oklab, var(--primary) 95%, oklch(0.97 0.01 200)) 55%, color-mix(in oklab, var(--primary) 65%, transparent) 100%)",
-                      WebkitBackgroundClip: "text",
-                      backgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                      transition: "background 0.6s ease",
-                    }}
-                  >
-                    {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
-                  </span>
-
-                  {/* Shimmer sweep — sibling of text span so it doesn't inherit WebkitTextFillColor */}
+                  {/* Glow halo — box-shadow on a sibling, never touches the text */}
                   {balanceDir && (
-                    <span
-                      key={`shimmer-${balanceKey}`}
-                      className="bal-shimmer pointer-events-none"
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        width: "30%",
-                        background: `linear-gradient(90deg, transparent, ${balanceDir === "up" ? "rgba(16,185,129,0.28)" : "rgba(239,68,68,0.28)"}, transparent)`,
-                        borderRadius: "999px",
-                      }}
+                    <div
+                      key={`glow-${balanceKey}`}
+                      className={balanceDir === "up" ? "bal-glow-up" : "bal-glow-down"}
+                      style={{ position: "absolute", inset: "-4px", borderRadius: "12px", pointerEvents: "none" }}
                     />
                   )}
+
+                  {/* Scale wrapper — transform-only, safe alongside background-clip:text */}
+                  <div
+                    key={`scale-${balanceKey}`}
+                    className={balanceDir ? "bal-scale-pop" : ""}
+                    style={{ display: "inline-block", position: "relative" }}
+                  >
+                    {/* Gradient text via CSS class — NOT inline styles, avoids React serialisation bugs */}
+                    <span className="bal-text text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums">
+                      {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
+                    </span>
+
+                    {/* Shimmer sweep */}
+                    {balanceDir && (
+                      <div
+                        key={`shimmer-${balanceKey}`}
+                        className="bal-shimmer"
+                        style={{
+                          position: "absolute", inset: 0, width: "32%", borderRadius: "4px", pointerEvents: "none",
+                          background: `linear-gradient(90deg, transparent, ${balanceDir === "up" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}, transparent)`,
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
