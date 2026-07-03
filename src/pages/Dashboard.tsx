@@ -752,8 +752,6 @@ export default function Dashboard() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl md:text-2xl font-black truncate">{primary.symbol}</h2>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider">{primary.type}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${primary.side === "SELL" ? "bg-bear/15 text-bear" : "bg-bull/15 text-bull"}`}>{primary.side}</span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-bull animate-pulse" />
@@ -771,11 +769,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
-                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
+              <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between gap-3 transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
+                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5 shrink-0">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
-                <span className={`text-3xl md:text-4xl font-black tabular-nums transition-colors ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider border border-primary/30">{primary.type}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border ${primary.side === "SELL" ? "bg-bear/15 text-bear border-bear/30" : "bg-bull/15 text-bull border-bull/30"}`}>{primary.side}</span>
+                </div>
+                <span className={`text-3xl md:text-4xl font-black tabular-nums transition-colors shrink-0 ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
                   ${cur ? fmtPrice(cur) : "…"}
                 </span>
               </div>
