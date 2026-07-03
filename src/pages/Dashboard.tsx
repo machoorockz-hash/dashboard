@@ -770,9 +770,7 @@ export default function Dashboard() {
               </div>
 
               <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between gap-3 transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
-                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5 shrink-0">
-                  <Activity className="h-3 w-3" /> Live price
-                </span>
+
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider border border-primary/30">{primary.type}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border ${primary.side === "SELL" ? "bg-bear/15 text-bear border-bear/30" : "bg-bull/15 text-bull border-bull/30"}`}>{primary.side}</span>
