@@ -271,7 +271,6 @@ export function BtcCrashCard() {
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
         transition: "border-color 0.55s ease, box-shadow 0.65s ease",
         display: "flex", flexDirection: "column",
-        zoom: 0.8,
       }}>
 
 
