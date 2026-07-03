@@ -762,7 +762,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className={`text-2xl md:text-4xl font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
+                  <div className={`text-xl md:text-3xl font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
                     {pnlUsd >= 0 ? "+" : ""}${pnlUsd.toFixed(2)}
                   </div>
                   <div className={`text-xs font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
