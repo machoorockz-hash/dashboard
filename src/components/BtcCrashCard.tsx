@@ -24,7 +24,7 @@ interface Snapshot { key: string; updatedAt: string | null; data: BotData | null
 const STAGE: Record<string, {
   color: string; colorMid: string; glow: string; border: string; label: string; sub: string;
 }> = {
-  SAFE:       { color: "#0dd9aa", colorMid: "rgba(13,217,170,0.5)",  glow: "rgba(13,217,170,0.18)",  border: "rgba(13,217,170,0.25)",  label: "SAFE",  sub: "OK TO TRADE ALTS" },
+  SAFE:       { color: "#0dd9aa", colorMid: "rgba(13,217,170,0.5)",  glow: "rgba(13,217,170,0.18)",  border: "rgba(13,217,170,0.25)",  label: "SAFE",  sub: "" },
   WATCH:      { color: "#f5c542", colorMid: "rgba(245,197,66,0.5)",  glow: "rgba(245,197,66,0.18)",  border: "rgba(245,197,66,0.25)",  label: "WATCH", sub: "BE SELECTIVE" },
   RISK:       { color: "#f97316", colorMid: "rgba(249,115,22,0.5)",  glow: "rgba(249,115,22,0.18)",  border: "rgba(249,115,22,0.25)",  label: "RISK",  sub: "HOLD OFF NEW BUYS" },
   SELL_ALERT: { color: "#f87171", colorMid: "rgba(248,113,113,0.5)", glow: "rgba(248,113,113,0.18)", border: "rgba(248,113,113,0.25)", label: "ALERT", sub: "PAUSE BUYING" },
