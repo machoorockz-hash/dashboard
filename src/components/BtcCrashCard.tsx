@@ -303,7 +303,7 @@ export function BtcCrashCard() {
                   WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                   backgroundClip: "text", letterSpacing: "-0.015em",
                 }}>
-                  BTC Crash Monitor
+                  BTC Monitor
                 </span>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: "5px",
