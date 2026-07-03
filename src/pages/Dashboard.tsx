@@ -592,7 +592,7 @@ export default function Dashboard() {
                   style={{ boxShadow: "0 0 6px 2px color-mix(in oklab, var(--primary) 55%, transparent)" }}
                 />
                 <WalletIcon className="h-3.5 w-3.5 shrink-0" />
-                Total Balance
+                Wallet
               </div>
 
             </div>
@@ -641,12 +641,6 @@ export default function Dashboard() {
                 .delta-rise    { animation: delta-rise    2s ease-out forwards; }
               `}</style>
               <div className="flex items-start gap-2 relative">
-                <span
-                  className="text-[13px] font-bold uppercase tracking-widest mt-2 shrink-0"
-                  style={{ color: "color-mix(in oklab, var(--muted-foreground) 50%, transparent)" }}
-                >
-                  USD
-                </span>
                 <div style={{ position: "relative", display: "inline-block" }}>
                   {/* Delta badge */}
                   {balanceDelta !== null && (
@@ -704,24 +698,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ── Meta row ── */}
-            <div
-              className="mt-2 flex items-center gap-2 text-[11px] font-semibold select-none"
-              style={{ color: "color-mix(in oklab, var(--muted-foreground) 65%, transparent)" }}
-            >
-              <span>{walletAssets.length} assets</span>
-              <span
-                className="h-3 w-px"
-                style={{ background: "color-mix(in oklab, var(--muted-foreground) 22%, transparent)" }}
-              />
-              <span className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full bg-bull animate-pulse"
-                  style={{ boxShadow: "0 0 4px 1px color-mix(in oklab, var(--bull) 55%, transparent)" }}
-                />
-                live · Binance
-              </span>
-            </div>
 
             {/* ── Rainbow allocation spectrum bar ── */}
             {walletAssets.length > 0 && totalUsdt > 0 && (
