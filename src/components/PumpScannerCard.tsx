@@ -219,6 +219,12 @@ export default function PumpScannerCard() {
           </div>
           <span className="font-black text-sm tracking-wide uppercase">Pump Scanner</span>
         </div>
+
+        {/* ── SONAR PULSE: shown in header when bot is active ── */}
+        {active && (
+          <SonarPulseAnimation />
+        )}
+
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
           active
             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
@@ -308,13 +314,6 @@ export default function PumpScannerCard() {
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
           {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
-        </div>
-      )}
-
-      {/* ── SONAR PULSE: always shows at bottom when bot is active ── */}
-      {active && data && data.signals.length > 0 && (
-        <div className="flex items-center justify-center pt-1 pb-1">
-          <SonarPulseAnimation />
         </div>
       )}
     </section>
