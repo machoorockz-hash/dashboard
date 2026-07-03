@@ -44,10 +44,10 @@ function formatPrice(p: number) {
 
 function FlareBeamAnimation() {
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div style={{ position: "relative", width: 88, height: 88 }}>
+    <div className="flex flex-col items-center gap-2">
+      <div style={{ position: "relative", width: 52, height: 52 }}>
         {/* outer rings */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
+        <svg width="52" height="52" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <circle
             className="fb-ring"
             cx="44" cy="44" r="40"
@@ -66,7 +66,7 @@ function FlareBeamAnimation() {
         </svg>
 
         {/* rotating beam */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
+        <svg width="52" height="52" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <defs>
             <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.7" />
@@ -95,12 +95,12 @@ function FlareBeamAnimation() {
         <div className="fb-orb" style={{
           position: "absolute", top: "50%", left: "50%",
           transform: "translate(-50%,-50%)",
-          width: 12, height: 12, borderRadius: "50%",
+          width: 7, height: 7, borderRadius: "50%",
           background: "radial-gradient(circle, white 0%, color-mix(in oklab, var(--primary) 90%, white) 40%, color-mix(in oklab, var(--primary) 80%, transparent) 100%)",
         }} />
 
         {/* crosshairs */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
+        <svg width="52" height="52" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
           <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
           <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
           <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
