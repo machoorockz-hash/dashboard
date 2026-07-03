@@ -775,7 +775,7 @@ export default function Dashboard() {
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
-                <span className={`text-2xl md:text-3xl font-black tabular-nums transition-colors ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
+                <span className={`text-3xl md:text-4xl font-black tabular-nums transition-colors ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
                   ${cur ? fmtPrice(cur) : "…"}
                 </span>
               </div>
