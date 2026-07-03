@@ -213,18 +213,12 @@ export default function PumpScannerCard() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          {/* ── SONAR PULSE: replaces icon when bot is active, fallback to icon when offline ── */}
-          {active ? (
-            <SonarPulseAnimation />
-          ) : (
-            <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent">
-              <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
-              <TrendingUp className="relative h-4 w-4 text-primary drop-shadow-[0_0_4px_color-mix(in_oklab,var(--primary)_80%,transparent)]" strokeWidth={2.5} />
-            </div>
-          )}
+          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent">
+            <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
+            <TrendingUp className="relative h-4 w-4 text-primary drop-shadow-[0_0_4px_color-mix(in_oklab,var(--primary)_80%,transparent)]" strokeWidth={2.5} />
+          </div>
           <span className="font-black text-sm tracking-wide uppercase">Pump Scanner</span>
         </div>
-
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
           active
             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
@@ -303,12 +297,24 @@ export default function PumpScannerCard() {
             );
           })}
         </div>
+      ) : active ? (
+        /* ── EMPTY STATE: sonar pulse when active but no signals yet ── */
+        <div className="flex items-center justify-center py-4">
+          <SonarPulseAnimation />
+        </div>
       ) : null}
 
       {/* ── SIGNAL COUNT FOOTER ── */}
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
           {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
+        </div>
+      )}
+
+      {/* ── SONAR PULSE: always shows at bottom when bot is active ── */}
+      {active && data && data.signals.length > 0 && (
+        <div className="flex items-center justify-center pt-1 pb-1">
+          <SonarPulseAnimation />
         </div>
       )}
     </section>
