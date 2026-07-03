@@ -753,10 +753,6 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl md:text-2xl font-black truncate">{primary.symbol}</h2>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-bull animate-pulse" />
-                      Live · {fmt(orderQty, 4)} {orderBase}
-                    </div>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
