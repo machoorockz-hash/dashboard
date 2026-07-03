@@ -699,40 +699,6 @@ export default function Dashboard() {
             </div>
 
 
-            {/* ── Rainbow allocation spectrum bar ── */}
-            {walletAssets.length > 0 && totalUsdt > 0 && (
-              <div className="mt-5">
-                <div
-                  className="flex h-[6px] rounded-full overflow-hidden"
-                  style={{ gap: "2px" }}
-                >
-                  {walletAssets.slice(0, 10).map((b, i) => {
-                    const pct = (b.usd / totalUsdt) * 100;
-                    const color = SPECTRUM_COLORS[i % SPECTRUM_COLORS.length];
-                    const isFirst = i === 0;
-                    const isLast = i === Math.min(walletAssets.length, 10) - 1;
-                    return (
-                      <div
-                        key={b.asset}
-                        title={`${b.asset} ${pct.toFixed(1)}%`}
-                        style={{
-                          flex: pct,
-                          background: `linear-gradient(90deg, ${color}cc, ${color})`,
-                          borderRadius: isFirst
-                            ? "999px 0 0 999px"
-                            : isLast
-                            ? "0 999px 999px 0"
-                            : "0",
-                          boxShadow: `0 0 8px 1px ${color}44`,
-                          minWidth: "4px",
-                          transition: "flex 0.6s ease",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             {/* ── Coin asset cards ── */}
             {walletAssets.length > 0 && (
@@ -747,96 +713,42 @@ export default function Dashboard() {
                   return (
                     <div
                       key={b.asset}
-                      className="shrink-0 flex flex-col rounded-xl relative overflow-hidden cursor-default"
+                      className="shrink-0 flex items-center gap-1.5 rounded-lg relative overflow-hidden cursor-default"
                       style={{
-                        minWidth: "108px",
-                        padding: "7px 9px 8px",
-                        background:
-                          "linear-gradient(160deg, oklch(0.55 0.06 210 / 12%) 0%, oklch(0.50 0.06 210 / 7%) 100%)",
-                        border: `1px solid oklch(0.78 0.07 200 / 14%)`,
-                        backdropFilter: "blur(14px)",
-                        WebkitBackdropFilter: "blur(14px)",
-                        transition: "border-color 0.25s, box-shadow 0.25s, transform 0.2s",
+                        padding: "5px 8px",
+                        background: "oklch(0.55 0.06 210 / 10%)",
+                        border: `1px solid ${accentColor}28`,
+                        backdropFilter: "blur(10px)",
+                        WebkitBackdropFilter: "blur(10px)",
+                        transition: "border-color 0.2s, box-shadow 0.2s",
                       }}
                       onMouseEnter={(e) => {
-                        const el = e.currentTarget as HTMLDivElement;
-                        el.style.borderColor = `${accentColor}45`;
-                        el.style.boxShadow = `0 0 20px -6px ${accentColor}40, inset 0 1px 0 ${accentColor}18`;
-                        el.style.transform = "translateY(-1px)";
+                        (e.currentTarget as HTMLDivElement).style.borderColor = `${accentColor}55`;
+                        (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 12px -4px ${accentColor}40`;
                       }}
                       onMouseLeave={(e) => {
-                        const el = e.currentTarget as HTMLDivElement;
-                        el.style.borderColor = "oklch(0.78 0.07 200 / 14%)";
-                        el.style.boxShadow = "none";
-                        el.style.transform = "translateY(0)";
+                        (e.currentTarget as HTMLDivElement).style.borderColor = `${accentColor}28`;
+                        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
                       }}
                     >
-                      {/* Accent top bar */}
+                      {/* Accent left bar */}
                       <div
-                        className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-xl"
-                        style={{
-                          background: `linear-gradient(90deg, ${accentColor}00 0%, ${accentColor} 40%, ${accentColor}bb 100%)`,
-                        }}
+                        className="absolute inset-y-0 left-0 w-[2px]"
+                        style={{ background: accentColor, opacity: 0.7 }}
                       />
 
-                      {/* Icon + name + percentage */}
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="shrink-0 rounded-full p-[2px]"
-                          style={{
-                            background: `${accentColor}18`,
-                            border: `1.5px solid ${accentColor}35`,
-                            boxShadow: `0 0 8px -2px ${accentColor}40`,
-                          }}
-                        >
-                          <CoinIcon symbol={b.asset} size={20} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[11px] font-black truncate tracking-tight">
-                              {b.asset}
-                            </span>
-                            <span
-                              className="text-[9px] font-bold tabular-nums shrink-0 rounded-md px-1 py-0.5"
-                              style={{
-                                color: accentColor,
-                                background: `${accentColor}18`,
-                                border: `1px solid ${accentColor}30`,
-                              }}
-                            >
-                              {pct.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                      <CoinIcon symbol={b.asset} size={16} />
 
-                      {/* USD value */}
-                      <div className="mt-1.5">
-                        <span
-                          className="text-[11px] font-black tabular-nums tracking-tight"
-                          style={{
-                            color: "oklch(0.96 0.01 200)",
-                          }}
-                        >
-                          ${fmt(b.usd)}
-                        </span>
-                      </div>
+                      <span className="text-[10px] font-black tracking-tight truncate" style={{ maxWidth: "48px" }}>
+                        {b.asset}
+                      </span>
 
-                      {/* Mini allocation bar */}
-                      <div
-                        className="mt-1.5 h-[2px] rounded-full overflow-hidden"
-                        style={{ background: "oklch(0.78 0.07 200 / 10%)" }}
+                      <span
+                        className="text-[9px] font-bold tabular-nums"
+                        style={{ color: "oklch(0.82 0.01 200)" }}
                       >
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${Math.min(100, pct * (100 / Math.max(walletAssets[0]?.usd / totalUsdt * 100, 1)))}%`,
-                            background: `linear-gradient(90deg, ${accentColor}88, ${accentColor})`,
-                            boxShadow: `0 0 6px 1px ${accentColor}50`,
-                            transition: "width 0.6s ease",
-                          }}
-                        />
-                      </div>
+                        ${fmt(b.usd, 0)}
+                      </span>
                     </div>
                   );
                 })}
