@@ -108,14 +108,6 @@ function FlareBeamAnimation() {
         </svg>
       </div>
 
-      <div className="text-center">
-        <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase text-primary">
-          Scanning Markets
-        </div>
-        <div className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground/45 mt-1">
-          monitoring all USDT pairs
-        </div>
-      </div>
     </div>
   );
 }
