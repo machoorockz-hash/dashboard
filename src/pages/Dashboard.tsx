@@ -574,8 +574,6 @@ export default function Dashboard() {
           style={{
             background: "transparent",
             border: "1px solid oklch(0.78 0.07 200 / 22%)",
-            backdropFilter: "blur(32px) saturate(180%)",
-            WebkitBackdropFilter: "blur(32px) saturate(180%)",
           }}
         >
 
