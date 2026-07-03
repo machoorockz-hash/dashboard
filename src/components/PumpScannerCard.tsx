@@ -42,72 +42,17 @@ function formatPrice(p: number) {
   return p.toFixed(8);
 }
 
-function FlareBeamAnimation() {
+function SonarPulseAnimation() {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div style={{ position: "relative", width: 52, height: 52 }}>
-        {/* outer rings */}
-        <svg width="52" height="52" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
-          <circle
-            className="fb-ring"
-            cx="44" cy="44" r="40"
-            fill="none"
-            stroke="color-mix(in oklab, var(--primary) 30%, transparent)"
-            strokeWidth="1"
-            strokeDasharray="3 9"
-          />
-          <circle
-            className="fb-ring"
-            cx="44" cy="44" r="32"
-            fill="none"
-            stroke="color-mix(in oklab, var(--primary) 15%, transparent)"
-            strokeWidth="0.8"
-          />
-        </svg>
-
-        {/* rotating beam */}
-        <svg width="52" height="52" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
-          <defs>
-            <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.7" />
-              <stop offset="40%" stopColor="color-mix(in oklab, var(--primary) 80%, transparent)" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 60%, transparent)" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="fb-beam2-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 70%, white)" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 50%, transparent)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <g className="fb-spin">
-            {/* wide soft sector */}
-            <path d="M44,44 L84,36 L84,52 Z" fill="url(#fb-beam2-cg)" />
-            {/* sharp ray */}
-            <line
-              x1="44" y1="44" x2="84" y2="44"
-              stroke="url(#fb-beam-cg)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </g>
-        </svg>
-
-        {/* centre orb */}
-        <div className="fb-orb" style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%,-50%)",
-          width: 7, height: 7, borderRadius: "50%",
-          background: "radial-gradient(circle, white 0%, color-mix(in oklab, var(--primary) 90%, white) 40%, color-mix(in oklab, var(--primary) 80%, transparent) 100%)",
-        }} />
-
-        {/* crosshairs */}
-        <svg width="52" height="52" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
-          <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="68" y1="44" x2="86" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-        </svg>
-      </div>
-
+    <div style={{ position: "relative", width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {/* pulse rings — each staggered */}
+      <span className="sp-ring sp-r1" />
+      <span className="sp-ring sp-r2" />
+      <span className="sp-ring sp-r3" />
+      {/* inner halo */}
+      <span className="sp-halo" />
+      {/* core orb */}
+      <span className="sp-core" />
     </div>
   );
 }
@@ -221,17 +166,48 @@ export default function PumpScannerCard() {
         .pump-scroll::-webkit-scrollbar-thumb:hover {
           background: color-mix(in oklab, var(--primary) 65%, transparent);
         }
-        @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes fb-orb {
-          0%,100% { box-shadow: 0 0 4px 2px color-mix(in oklab,var(--primary) 25%,transparent), 0 0 8px 3px color-mix(in oklab,var(--primary) 10%,transparent); }
-          50%     { box-shadow: 0 0 6px 3px color-mix(in oklab,var(--primary) 35%,transparent), 0 0 14px 5px color-mix(in oklab,var(--primary) 15%,transparent); }
+        @keyframes sp-pulse {
+          0%   { transform: translate(-50%,-50%) scale(0.18); opacity: 0.7; }
+          100% { transform: translate(-50%,-50%) scale(1);    opacity: 0; }
         }
-        @keyframes fb-ring  { 0%,100%{opacity:.2} 50%{opacity:.5} }
-        @keyframes fb-blink { 0%,100%{opacity:1}  50%{opacity:.3} }
-        .fb-spin  { animation: fb-rotate 4s linear infinite; transform-origin: 44px 44px; }
-        .fb-orb   { animation: fb-orb   2s ease-in-out infinite; }
-        .fb-ring  { animation: fb-ring  2s ease-in-out infinite; }
-        .fb-blink { animation: fb-blink 2s ease-in-out infinite; }
+        @keyframes sp-core-breathe {
+          0%,100% { box-shadow: 0 0 0 0 color-mix(in oklab,var(--primary) 55%,transparent), 0 0 6px 2px color-mix(in oklab,var(--primary) 30%,transparent); }
+          50%     { box-shadow: 0 0 0 5px color-mix(in oklab,var(--primary) 0%,transparent),  0 0 12px 4px color-mix(in oklab,var(--primary) 18%,transparent); }
+        }
+        @keyframes sp-halo-breathe {
+          0%,100% { opacity: 0.18; transform: translate(-50%,-50%) scale(1); }
+          50%     { opacity: 0.32; transform: translate(-50%,-50%) scale(1.08); }
+        }
+        .sp-ring {
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 56px; height: 56px;
+          border-radius: 50%;
+          border: 1px solid color-mix(in oklab, var(--primary) 70%, transparent);
+          animation: sp-pulse 2.4s cubic-bezier(0.25,0.46,0.45,0.94) infinite;
+          pointer-events: none;
+        }
+        .sp-r1 { animation-delay: 0s; }
+        .sp-r2 { animation-delay: 0.8s; }
+        .sp-r3 { animation-delay: 1.6s; }
+        .sp-halo {
+          position: absolute;
+          top: 50%; left: 50%;
+          width: 22px; height: 22px;
+          border-radius: 50%;
+          background: radial-gradient(circle, color-mix(in oklab,var(--primary) 40%,transparent) 0%, transparent 70%);
+          animation: sp-halo-breathe 2s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .sp-core {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%,-50%);
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: radial-gradient(circle, white 0%, color-mix(in oklab,var(--primary) 90%,white) 50%, color-mix(in oklab,var(--primary) 70%,transparent) 100%);
+          animation: sp-core-breathe 2s ease-in-out infinite;
+        }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -322,9 +298,9 @@ export default function PumpScannerCard() {
           })}
         </div>
       ) : active ? (
-        /* ── EMPTY STATE: Flare Beam animation when active but no signals yet ── */
+        /* ── EMPTY STATE: sonar pulse when active but no signals yet ── */
         <div className="flex items-center justify-center py-4">
-          <FlareBeamAnimation />
+          <SonarPulseAnimation />
         </div>
       ) : null}
 
@@ -335,10 +311,10 @@ export default function PumpScannerCard() {
         </div>
       )}
 
-      {/* ── FLARE BEAM: always shows at bottom when bot is active ── */}
+      {/* ── SONAR PULSE: always shows at bottom when bot is active ── */}
       {active && data && data.signals.length > 0 && (
         <div className="flex items-center justify-center pt-1 pb-1">
-          <FlareBeamAnimation />
+          <SonarPulseAnimation />
         </div>
       )}
     </section>
