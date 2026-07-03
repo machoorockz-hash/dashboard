@@ -510,31 +510,357 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-5">
 
-        {/* ── WALLET ── */}
-        <section className="rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-transparent">
-          <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <WalletIcon className="h-3.5 w-3.5" />
-            Wallet
-          </div>
-          <div className="relative mt-3">
-            <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-primary/70 bg-clip-text text-transparent">
-              ${account.isLoading ? "…" : fmt(totalUsdt)}
-            </span>
-          </div>
-          {walletAssets.length > 0 && (
-            <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {walletAssets.slice(0, 10).map((b) => (
-                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-transparent px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
-                  <CoinIcon symbol={b.asset} size={28} />
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold truncate">{b.asset}</div>
-                    <div className="text-[10px] text-muted-foreground tabular-nums">${fmt(b.usd)}</div>
+        {/* ── WALLET CARD (PREMIUM) ── */}
+        <section
+          className="rounded-2xl relative overflow-hidden"
+          style={{
+            padding: "1.25rem 1.5rem",
+            background:
+              "linear-gradient(135deg, color-mix(in oklab, var(--primary) 8%, oklch(0.18 0.05 215 / 70%)) 0%, oklch(0.14 0.04 215 / 65%) 55%, color-mix(in oklab, var(--primary) 4%, oklch(0.16 0.04 215 / 60%)) 100%)",
+            backdropFilter: "blur(28px) saturate(180%)",
+            WebkitBackdropFilter: "blur(28px) saturate(180%)",
+            border: "1px solid color-mix(in oklab, var(--primary) 28%, oklch(0.80 0.06 200 / 12%))",
+            boxShadow:
+              "0 0 0 1px color-mix(in oklab, var(--primary) 6%, transparent), " +
+              "0 0 60px -15px color-mix(in oklab, var(--primary) 28%, transparent), " +
+              "0 20px 60px -20px rgba(0,0,0,0.6), " +
+              "inset 0 1px 0 color-mix(in oklab, var(--primary) 18%, oklch(0.90 0.04 200 / 8%))",
+          }}
+        >
+          <style>{`
+            @keyframes wallet-scan {
+              0%   { top: 0%; opacity: 0; }
+              8%   { opacity: 1; }
+              92%  { opacity: 0.6; }
+              100% { top: 100%; opacity: 0; }
+            }
+            @keyframes wallet-orb-drift {
+              0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.18; }
+              33%       { transform: scale(1.06) translate(6px, -4px); opacity: 0.26; }
+              66%       { transform: scale(0.96) translate(-4px, 3px); opacity: 0.20; }
+            }
+            @keyframes wallet-orb-drift-2 {
+              0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.12; }
+              40%       { transform: scale(1.08) translate(-5px, 4px); opacity: 0.20; }
+              70%       { transform: scale(0.94) translate(3px, -3px); opacity: 0.14; }
+            }
+            @keyframes wallet-border-pulse {
+              0%, 100% { opacity: 0.55; }
+              50%       { opacity: 1; }
+            }
+            @keyframes wallet-chip-shimmer {
+              0%   { transform: translateX(-120%) skewX(-12deg); }
+              100% { transform: translateX(300%) skewX(-12deg); }
+            }
+            @keyframes wallet-number-glow {
+              0%, 100% { filter: drop-shadow(0 0 12px color-mix(in oklab, var(--primary) 22%, transparent)); }
+              50%       { filter: drop-shadow(0 0 28px color-mix(in oklab, var(--primary) 38%, transparent)); }
+            }
+            .wallet-scan-line    { animation: wallet-scan 5s ease-in-out infinite; }
+            .wallet-orb-1        { animation: wallet-orb-drift 7s ease-in-out infinite; }
+            .wallet-orb-2        { animation: wallet-orb-drift-2 9s ease-in-out 1.5s infinite; }
+            .wallet-border-pulse { animation: wallet-border-pulse 3s ease-in-out infinite; }
+            .wallet-chip-shimmer { animation: wallet-chip-shimmer 3.8s ease-in-out infinite; }
+            .wallet-number-glow  { animation: wallet-number-glow 3s ease-in-out infinite; }
+          `}</style>
+
+          {/* ── Ambient orbs ── */}
+          <div
+            className="wallet-orb-1 pointer-events-none absolute rounded-full"
+            style={{
+              top: "-40px", right: "-30px", width: "200px", height: "200px",
+              background: "radial-gradient(circle, color-mix(in oklab, var(--primary) 22%, transparent) 0%, transparent 70%)",
+            }}
+          />
+          <div
+            className="wallet-orb-2 pointer-events-none absolute rounded-full"
+            style={{
+              bottom: "-30px", left: "-20px", width: "140px", height: "140px",
+              background: "radial-gradient(circle, color-mix(in oklab, var(--primary) 14%, transparent) 0%, transparent 70%)",
+            }}
+          />
+
+          {/* ── Scanning line ── */}
+          <div
+            className="wallet-scan-line pointer-events-none absolute inset-x-0 h-px"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--primary) 0%, transparent) 5%, color-mix(in oklab, var(--primary) 80%, transparent) 40%, color-mix(in oklab, var(--primary) 100%, transparent) 50%, color-mix(in oklab, var(--primary) 80%, transparent) 60%, color-mix(in oklab, var(--primary) 0%, transparent) 95%, transparent 100%)",
+              zIndex: 2,
+            }}
+          />
+
+          {/* ── Top edge highlight ── */}
+          <div
+            className="wallet-border-pulse pointer-events-none absolute inset-x-0 top-0 h-px"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--primary) 50%, transparent) 25%, color-mix(in oklab, var(--primary) 90%, transparent) 50%, color-mix(in oklab, var(--primary) 50%, transparent) 75%, transparent 100%)",
+            }}
+          />
+
+          {/* ── Corner brackets ── */}
+          {/* top-left */}
+          <div className="pointer-events-none absolute" style={{ top: 10, left: 10, width: 18, height: 18, borderTop: "1.5px solid var(--primary)", borderLeft: "1.5px solid var(--primary)", opacity: 0.65, borderRadius: "2px 0 0 0" }} />
+          {/* top-right */}
+          <div className="pointer-events-none absolute" style={{ top: 10, right: 10, width: 18, height: 18, borderTop: "1.5px solid var(--primary)", borderRight: "1.5px solid var(--primary)", opacity: 0.65, borderRadius: "0 2px 0 0" }} />
+          {/* bottom-left */}
+          <div className="pointer-events-none absolute" style={{ bottom: 10, left: 10, width: 18, height: 18, borderBottom: "1.5px solid var(--primary)", borderLeft: "1.5px solid var(--primary)", opacity: 0.65, borderRadius: "0 0 0 2px" }} />
+          {/* bottom-right */}
+          <div className="pointer-events-none absolute" style={{ bottom: 10, right: 10, width: 18, height: 18, borderBottom: "1.5px solid var(--primary)", borderRight: "1.5px solid var(--primary)", opacity: 0.65, borderRadius: "0 0 2px 0" }} />
+
+          {/* ── Content ── */}
+          <div className="relative" style={{ zIndex: 3 }}>
+
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {/* Icon box */}
+                <div
+                  className="flex items-center justify-center rounded-lg"
+                  style={{
+                    width: 30, height: 30,
+                    background: "color-mix(in oklab, var(--primary) 14%, oklch(0.55 0.06 210 / 20%))",
+                    border: "1px solid color-mix(in oklab, var(--primary) 30%, transparent)",
+                    boxShadow: "0 0 12px -4px color-mix(in oklab, var(--primary) 40%, transparent), inset 0 1px 0 color-mix(in oklab, var(--primary) 20%, transparent)",
+                  }}
+                >
+                  <WalletIcon style={{ width: 14, height: 14, color: "var(--primary)" }} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5" style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.10em", textTransform: "uppercase", color: "color-mix(in oklab, var(--primary) 85%, var(--muted-foreground))" }}>
+                    Portfolio
+                    <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--primary)", display: "inline-block", boxShadow: "0 0 5px var(--primary)" }} />
+                    <span style={{ color: "color-mix(in oklab, var(--muted-foreground) 55%, transparent)", fontWeight: 600 }}>
+                      {walletAssets.length} assets
+                    </span>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Live pill */}
+              <div
+                className="flex items-center gap-1.5"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  fontSize: 9,
+                  fontWeight: 800,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                  color: "var(--primary)",
+                  background: "color-mix(in oklab, var(--primary) 10%, oklch(0.55 0.06 210 / 12%))",
+                  border: "1px solid color-mix(in oklab, var(--primary) 28%, transparent)",
+                  boxShadow: "0 0 10px -4px color-mix(in oklab, var(--primary) 30%, transparent)",
+                }}
+              >
+                <span className="animate-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--primary)", display: "inline-block", boxShadow: "0 0 4px var(--primary)" }} />
+                Live
+              </div>
             </div>
-          )}
+
+            {/* Total value */}
+            <div className="mt-4">
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "color-mix(in oklab, var(--muted-foreground) 55%, transparent)", marginBottom: 4 }}>
+                Total Portfolio Value
+              </div>
+              <div className="flex items-end gap-3 flex-wrap">
+                {account.isLoading ? (
+                  <span style={{ fontSize: "clamp(2.2rem,7vw,3.5rem)", fontWeight: 900, lineHeight: 1, color: "color-mix(in oklab, var(--muted-foreground) 30%, transparent)", letterSpacing: "-0.03em" }}>
+                    —
+                  </span>
+                ) : (
+                  <span
+                    className="wallet-number-glow"
+                    style={{
+                      fontSize: "clamp(2.2rem,7vw,3.5rem)",
+                      fontWeight: 900,
+                      lineHeight: 1,
+                      letterSpacing: "-0.03em",
+                      background: "linear-gradient(135deg, oklch(0.96 0.01 200) 0%, var(--primary) 55%, color-mix(in oklab, var(--primary) 75%, white) 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    }}
+                  >
+                    ${fmt(totalUsdt)}
+                  </span>
+                )}
+                <div
+                  style={{
+                    marginBottom: 6,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    color: "color-mix(in oklab, var(--primary) 90%, white)",
+                    background: "color-mix(in oklab, var(--primary) 12%, transparent)",
+                    border: "1px solid color-mix(in oklab, var(--primary) 22%, transparent)",
+                  }}
+                >
+                  USDT
+                </div>
+              </div>
+            </div>
+
+            {/* Portfolio allocation bar */}
+            {walletAssets.length > 0 && totalUsdt > 0 && (
+              <div className="mt-4">
+                {/* Segmented bar */}
+                <div
+                  className="flex gap-0.5 overflow-hidden"
+                  style={{ height: 5, borderRadius: 999, background: "color-mix(in oklab, var(--muted-foreground) 8%, transparent)" }}
+                >
+                  {walletAssets.slice(0, 7).map((b, idx) => {
+                    const pct = (b.usd / totalUsdt) * 100;
+                    // Hue rotation through the teal-cyan spectrum for visual variety
+                    const hues = [165, 185, 148, 200, 138, 175, 155];
+                    const lightness = [0.75, 0.70, 0.78, 0.68, 0.80, 0.72, 0.76];
+                    return (
+                      <div
+                        key={b.asset}
+                        style={{
+                          width: `${pct}%`,
+                          minWidth: pct > 0 ? 3 : 0,
+                          height: "100%",
+                          borderRadius: 999,
+                          background: idx === 0
+                            ? `linear-gradient(90deg, color-mix(in oklab, oklch(${lightness[0]} 0.18 ${hues[0]}) 70%, transparent), oklch(${lightness[0]} 0.18 ${hues[0]}))`
+                            : `oklch(${lightness[idx % lightness.length]} 0.14 ${hues[idx % hues.length]})`,
+                          transition: "width 0.7s ease",
+                          opacity: 1 - idx * 0.08,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="mt-2 flex items-center gap-x-3 gap-y-1 flex-wrap">
+                  {walletAssets.slice(0, 5).map((b) => {
+                    const pct = (b.usd / totalUsdt) * 100;
+                    return (
+                      <span key={b.asset} style={{ fontSize: 9, color: "color-mix(in oklab, var(--muted-foreground) 55%, transparent)", fontVariantNumeric: "tabular-nums" }}>
+                        <span style={{ fontWeight: 800, color: "var(--muted-foreground)" }}>{b.asset}</span>
+                        {" "}{pct.toFixed(1)}%
+                      </span>
+                    );
+                  })}
+                  {walletAssets.length > 5 && (
+                    <span style={{ fontSize: 9, color: "color-mix(in oklab, var(--muted-foreground) 38%, transparent)" }}>
+                      +{walletAssets.length - 5} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Asset chips ── */}
+            {walletAssets.length > 0 && (
+              <div
+                className="mt-4 flex gap-2 pb-1 -mx-1 px-1"
+                style={{ overflowX: "auto", scrollbarWidth: "none" }}
+              >
+                {walletAssets.slice(0, 10).map((b, idx) => {
+                  const pct = totalUsdt > 0 ? (b.usd / totalUsdt) * 100 : 0;
+                  const isTop = idx === 0;
+
+                  return (
+                    <div
+                      key={b.asset}
+                      className="shrink-0 relative overflow-hidden"
+                      style={{
+                        minWidth: 158,
+                        padding: "10px 12px",
+                        borderRadius: 14,
+                        cursor: "default",
+                        background: isTop
+                          ? "linear-gradient(135deg, color-mix(in oklab, var(--primary) 14%, oklch(0.22 0.06 215 / 60%)) 0%, color-mix(in oklab, var(--primary) 6%, oklch(0.18 0.05 215 / 55%)) 100%)"
+                          : "oklch(0.18 0.05 215 / 45%)",
+                        border: isTop
+                          ? "1px solid color-mix(in oklab, var(--primary) 38%, transparent)"
+                          : "1px solid color-mix(in oklab, var(--primary) 10%, oklch(0.80 0.06 200 / 10%))",
+                        backdropFilter: "blur(14px)",
+                        WebkitBackdropFilter: "blur(14px)",
+                        boxShadow: isTop
+                          ? "0 0 24px -8px color-mix(in oklab, var(--primary) 35%, transparent), inset 0 1px 0 color-mix(in oklab, var(--primary) 18%, transparent), 0 4px 16px -6px rgba(0,0,0,0.5)"
+                          : "inset 0 1px 0 oklch(0.90 0.04 200 / 5%), 0 2px 10px -4px rgba(0,0,0,0.4)",
+                        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+                      }}
+                    >
+                      {/* Shimmer sweep on top chip */}
+                      {isTop && (
+                        <div
+                          className="wallet-chip-shimmer pointer-events-none absolute inset-y-0"
+                          style={{
+                            width: "35%",
+                            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)",
+                            borderRadius: 14,
+                          }}
+                        />
+                      )}
+
+                      {/* Top row: icon + percentage */}
+                      <div className="flex items-center justify-between mb-2">
+                        <CoinIcon symbol={b.asset} size={26} />
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            fontVariantNumeric: "tabular-nums",
+                            color: isTop
+                              ? "var(--primary)"
+                              : "color-mix(in oklab, var(--muted-foreground) 55%, transparent)",
+                            letterSpacing: "-0.01em",
+                            ...(isTop
+                              ? { filter: "drop-shadow(0 0 4px color-mix(in oklab, var(--primary) 55%, transparent))" }
+                              : {}),
+                          }}
+                        >
+                          {pct.toFixed(1)}%
+                        </span>
+                      </div>
+
+                      {/* Asset name */}
+                      <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: "-0.01em", lineHeight: 1.1, color: "var(--foreground)" }}>
+                        {b.asset}
+                      </div>
+
+                      {/* USD value */}
+                      <div style={{ fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums", marginTop: 2, color: "color-mix(in oklab, var(--muted-foreground) 75%, transparent)" }}>
+                        ${fmt(b.usd)}
+                      </div>
+
+                      {/* Mini allocation bar */}
+                      <div
+                        style={{
+                          marginTop: 8,
+                          height: 2,
+                          borderRadius: 999,
+                          background: "color-mix(in oklab, var(--muted-foreground) 10%, transparent)",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${Math.min(100, pct)}%`,
+                            height: "100%",
+                            borderRadius: 999,
+                            background: isTop
+                              ? "linear-gradient(90deg, color-mix(in oklab, var(--primary) 55%, transparent), var(--primary))"
+                              : "color-mix(in oklab, var(--primary) 32%, transparent)",
+                            boxShadow: isTop ? "0 0 4px var(--primary)" : "none",
+                            transition: "width 0.7s ease",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* ── ACTIVE TRADE ── */}
