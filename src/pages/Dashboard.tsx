@@ -629,7 +629,7 @@ export default function Dashboard() {
             {/* ── Coin asset cards ── */}
             {walletAssets.length > 0 && (
               <div
-                className="mt-4 flex gap-3 overflow-x-auto pb-1 -mx-1 px-1"
+                className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
               >
                 {walletAssets.slice(0, 10).map((b, i) => {
@@ -641,8 +641,8 @@ export default function Dashboard() {
                       key={b.asset}
                       className="shrink-0 flex flex-col rounded-xl relative overflow-hidden cursor-default"
                       style={{
-                        minWidth: "140px",
-                        padding: "10px 12px 10px",
+                        minWidth: "108px",
+                        padding: "7px 9px 8px",
                         background:
                           "linear-gradient(160deg, oklch(0.55 0.06 210 / 12%) 0%, oklch(0.50 0.06 210 / 7%) 100%)",
                         border: `1px solid oklch(0.78 0.07 200 / 14%)`,
@@ -681,15 +681,15 @@ export default function Dashboard() {
                             boxShadow: `0 0 8px -2px ${accentColor}40`,
                           }}
                         >
-                          <CoinIcon symbol={b.asset} size={26} />
+                          <CoinIcon symbol={b.asset} size={20} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-[13px] font-black truncate tracking-tight">
+                            <span className="text-[11px] font-black truncate tracking-tight">
                               {b.asset}
                             </span>
                             <span
-                              className="text-[10px] font-bold tabular-nums shrink-0 rounded-md px-1.5 py-0.5"
+                              className="text-[9px] font-bold tabular-nums shrink-0 rounded-md px-1 py-0.5"
                               style={{
                                 color: accentColor,
                                 background: `${accentColor}18`,
@@ -703,9 +703,9 @@ export default function Dashboard() {
                       </div>
 
                       {/* USD value */}
-                      <div className="mt-2.5">
+                      <div className="mt-1.5">
                         <span
-                          className="text-[13px] font-black tabular-nums tracking-tight"
+                          className="text-[11px] font-black tabular-nums tracking-tight"
                           style={{
                             color: "oklch(0.96 0.01 200)",
                           }}
@@ -716,7 +716,7 @@ export default function Dashboard() {
 
                       {/* Mini allocation bar */}
                       <div
-                        className="mt-2 h-[3px] rounded-full overflow-hidden"
+                        className="mt-1.5 h-[2px] rounded-full overflow-hidden"
                         style={{ background: "oklch(0.78 0.07 200 / 10%)" }}
                       >
                         <div
