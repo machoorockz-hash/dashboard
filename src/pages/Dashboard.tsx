@@ -1,10 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import {
-  TrendingUp, Target, Shield, Activity, Layers, Clock,
-  ArrowUpRight, ArrowDownRight,
-} from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
@@ -13,6 +9,13 @@ import PumpScannerCard from "../components/PumpScannerCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+
+// Spectrum palette for the wallet allocation bar & coin accent colours
+const SPECTRUM_COLORS = [
+  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
+  "#10b981", "#14b8a6", "#06b6d4", "#3b82f6",
+  "#8b5cf6", "#ec4899",
+];
 
 function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
@@ -24,103 +27,288 @@ function fmtPrice(p: number) {
   if (p >= 0.01) return fmt(p, 5);
   return fmt(p, 6);
 }
+
+/** Format a unix-ms timestamp into UAE (Asia/Dubai, UTC+4) date & time strings */
 function fmtUAE(ts: number): { date: string; time: string } {
+  const dtf_date = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dubai",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  const dtf_time = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Dubai",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
   const d = new Date(ts);
-  const date = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dubai", day: "2-digit", month: "2-digit", year: "numeric" }).format(d);
-  const time = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Dubai", hour: "2-digit", minute: "2-digit", hour12: true }).format(d).toLowerCase();
+  // en-GB gives DD/MM/YYYY
+  const date = dtf_date.format(d);
+  // en-US h12 gives e.g. "08:04 AM" — lowercase it
+  const time = dtf_time.format(d).toLowerCase();
   return { date, time };
 }
 
-/* ── DCA STEPPER ─────────────────────────────────────────────────────────── */
-function DcaStepper({
-  step, total, stepAmounts, stepTimestamps,
+function StepSegments({
+  step,
+  total,
+  stepAmounts,
+  stepTimestamps,
 }: {
-  step: number; total: number;
-  stepAmounts?: number[]; stepTimestamps?: number[];
+  step: number;
+  total: number;
+  stepAmounts?: number[];
+  stepTimestamps?: number[];
 }) {
-  const [hovered, setHovered] = useState<number | null>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
-      {Array.from({ length: total }).map((_, i) => {
-        const isPast   = i < step - 1;
-        const isActive = i === step - 1;
-        const isPending = !isPast && !isActive;
-        const amount = stepAmounts?.[i];
-        const ts = stepTimestamps?.[i];
+    <>
+      <style>{`
+        @keyframes dca-node-breathe {
+          0%, 100% {
+            box-shadow:
+              0 0 0 3px color-mix(in oklab, var(--primary) 15%, transparent),
+              0 0 10px 2px color-mix(in oklab, var(--primary) 20%, transparent),
+              0 0 22px 4px color-mix(in oklab, var(--primary) 10%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent),
+              0 0 16px 4px color-mix(in oklab, var(--primary) 28%, transparent),
+              0 0 32px 8px color-mix(in oklab, var(--primary) 12%, transparent);
+          }
+        }
+        @keyframes dca-ring-spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes dca-check-pop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          60%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes dca-tooltip-in {
+          0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+        }
+        .dca-node-breathe { animation: dca-node-breathe 2.4s ease-in-out infinite; }
+        .dca-check-pop    { animation: dca-check-pop    0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+        .dca-tooltip-in   { animation: dca-tooltip-in   0.22s cubic-bezier(0.22,1,0.36,1) both; }
+      `}</style>
 
-        return (
-          <div
-            key={i}
-            style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, position: "relative" }}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            {/* Tooltip */}
-            {hovered === i && (
-              <div style={{
-                position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
-                background: "oklch(0.18 0.025 230)", border: "1px solid oklch(0.28 0.03 230)",
-                borderRadius: 8, padding: "7px 10px", zIndex: 50, whiteSpace: "nowrap", pointerEvents: "none",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-                fontSize: 11, minWidth: 90,
-              }}>
-                <div style={{ fontWeight: 700, color: "var(--muted-foreground)", fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                  Step {i + 1}
+      {/* Outer row — nodes + connectors; labels sit below each node */}
+      <div style={{ display: "flex", alignItems: "flex-start", width: "100%" }}>
+        {Array.from({ length: total }).map((_, i) => {
+          const filled    = i < step;
+          const isActive  = i === step - 1;
+          const isPast    = filled && !isActive;
+          const isLast    = i === total - 1;
+          const isHovered = hoveredIdx === i;
+
+          const nodeSize      = isActive ? 30 : isPast ? 22 : 20;
+          const borderW       = isActive ? 2 : isPast ? 0 : 1.5;
+          const NODE_CONTAINER = 32; // fixed height so connector always centres correctly
+
+          const statusLabel  = isPast ? "Completed" : isActive ? "Active" : "Pending";
+          const statusColor  = isPast || isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
+          const statusBg     = isPast ? "color-mix(in oklab,var(--primary) 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
+          const statusBorder = isPast || isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
+
+          const amount    = stepAmounts?.[i];
+          const timestamp = stepTimestamps?.[i];
+          const timeStr   = timestamp ? fmtUAE(timestamp) : null;
+
+          return (
+            <div
+              key={i}
+              style={{ display: "flex", alignItems: "flex-start", flex: isLast ? "0 0 auto" : 1 }}
+            >
+              {/* ── Node column: circle + USDT label stacked ── */}
+              <div
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", flexShrink: 0, position: "relative" }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              >
+                {/* ── Tooltip ── */}
+                {isHovered && (
+                  <div
+                    className="dca-tooltip-in"
+                    style={{
+                      position: "absolute",
+                      bottom: `calc(100% + 10px)`,
+                      left: "50%",
+                      zIndex: 50,
+                      pointerEvents: "none",
+                      minWidth: "110px",
+                      maxWidth: "160px",
+                    }}
+                  >
+                    <div style={{
+                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      backdropFilter: "blur(14px)",
+                      WebkitBackdropFilter: "blur(14px)",
+                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      borderRadius: "10px",
+                      padding: "8px 10px",
+                      boxShadow: "0 8px 24px -4px rgba(0,0,0,0.45), 0 2px 8px -2px rgba(0,0,0,0.3)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+                          Step {i + 1}
+                        </span>
+                        <span style={{
+                          fontSize: "8px", fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase",
+                          padding: "2px 6px", borderRadius: "999px", lineHeight: 1.4,
+                          color: statusColor, background: statusBg, border: `1px solid ${statusBorder}`,
+                          ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 60%,transparent))" } : {}),
+                        }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div style={{ margin: "6px 0", height: "1px", background: `linear-gradient(90deg,transparent,color-mix(in oklab,var(--primary) ${isPast || isActive ? "25%" : "10%"},transparent),transparent)` }} />
+                      {amount != null ? (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                          <span style={{ fontSize: "9px", color: "color-mix(in oklab,var(--muted-foreground) 70%,transparent)", fontWeight: 600 }}>Buy</span>
+                          <span style={{ fontSize: "11px", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em", color: isActive ? "var(--primary)" : isPast ? "var(--foreground)" : "color-mix(in oklab,var(--muted-foreground) 60%,transparent)" }}>
+                            ${fmt(amount, 2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "5px" }}>
+                          <span style={{ display: "inline-block", width: "32px", height: "5px", borderRadius: "999px", background: "color-mix(in oklab,var(--muted-foreground) 12%,transparent)" }} />
+                          <span style={{ display: "inline-block", width: "20px", height: "5px", borderRadius: "999px", background: "color-mix(in oklab,var(--muted-foreground) 7%,transparent)" }} />
+                        </div>
+                      )}
+                      {timeStr && (
+                        <div style={{ marginTop: "4px", fontSize: "9px", fontVariantNumeric: "tabular-nums", color: "color-mix(in oklab,var(--muted-foreground) 55%,transparent)", fontWeight: 500 }}>
+                          {timeStr.date} · {timeStr.time}
+                        </div>
+                      )}
+                    </div>
+                    {/* Arrow */}
+                    <div style={{
+                      position: "absolute", bottom: "-5px", left: "50%",
+                      transform: "translateX(-50%) rotate(45deg)",
+                      width: "9px", height: "9px",
+                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      backdropFilter: "blur(14px)",
+                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      borderTop: "none", borderLeft: "none",
+                    }} />
+                  </div>
+                )}
+
+                {/* ── Fixed-height node container so connector always aligns ── */}
+                <div style={{ width: `${NODE_CONTAINER}px`, height: `${NODE_CONTAINER}px`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                  <div
+                    className={isActive ? "dca-node-breathe" : ""}
+                    style={{
+                      width: `${nodeSize}px`,
+                      height: `${nodeSize}px`,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.35s ease",
+                      cursor: "default",
+                      position: "relative",
+                      background: isActive
+                        ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
+                        : isPast ? "var(--primary)"
+                        : "color-mix(in oklab,var(--primary) 7%,var(--card))",
+                      border: isActive
+                        ? `${borderW}px solid var(--primary)`
+                        : isPast ? "none"
+                        : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
+                      ...(isHovered && !isActive ? {
+                        transform: "scale(1.12)",
+                        boxShadow: `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
+                      } : {}),
+                    }}
+                  >
+                    {isActive && (
+                      <div style={{
+                        position: "absolute", inset: "-5px", borderRadius: "50%",
+                        border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
+                        animation: "dca-ring-spin 8s linear infinite",
+                      }} />
+                    )}
+                    {isPast ? (
+                      <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="var(--card)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="2,6 5,9.5 10,3" />
+                      </svg>
+                    ) : (
+                      <span style={{
+                        fontSize: isActive ? "12px" : "9px", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", transition: "all 0.4s ease",
+                        color: isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
+                        ...(isActive ? { filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 80%,transparent))", textShadow: "0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)" } : {}),
+                      }}>
+                        {i + 1}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {amount != null && (
-                  <div style={{ fontWeight: 800, color: isActive ? "var(--primary)" : isPast ? "var(--foreground)" : "oklch(0.45 0.02 230)", marginTop: 3, fontSize: 13 }}>
-                    ${fmt(amount, 0)}
-                  </div>
-                )}
-                {ts && (
-                  <div style={{ color: "oklch(0.50 0.02 230)", fontSize: 10, marginTop: 2 }}>
-                    {fmtUAE(ts).time}
-                  </div>
-                )}
-              </div>
-            )}
 
-            {/* Bar */}
-            <div style={{
-              height: isActive ? 32 : isPast ? 24 : 16,
-              borderRadius: 4,
-              transition: "height 0.3s ease",
-              background: isActive
-                ? "var(--primary)"
-                : isPast
-                ? "color-mix(in oklab, var(--primary) 45%, oklch(0.22 0.03 230))"
-                : "oklch(0.20 0.025 230)",
-              position: "relative",
-              overflow: "hidden",
-            }}>
-              {isActive && (
-                <div style={{
-                  position: "absolute", inset: 0,
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)",
-                }} />
+                {/* ── USDT amount label below the node ── */}
+                <div style={{ height: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {amount != null ? (
+                    <span style={{
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      fontVariantNumeric: "tabular-nums",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      color: isActive
+                        ? "var(--primary)"
+                        : isPast
+                        ? "color-mix(in oklab,var(--primary) 65%,var(--muted-foreground))"
+                        : "color-mix(in oklab,var(--muted-foreground) 30%,transparent)",
+                      ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 55%,transparent))" } : {}),
+                    }}>
+                      ${fmt(amount, 0)}
+                    </span>
+                  ) : (isPast || isActive) ? (
+                    <span style={{
+                      display: "inline-block", width: "18px", height: "3px", borderRadius: "999px",
+                      background: isPast
+                        ? "color-mix(in oklab,var(--primary) 22%,transparent)"
+                        : "color-mix(in oklab,var(--primary) 14%,transparent)",
+                    }} />
+                  ) : null}
+                </div>
+              </div>
+
+              {/* ── Connector line — marginTop centres it with the node circles ── */}
+              {!isLast && (
+                <div style={{ flex: 1, height: "1.5px", marginTop: `${NODE_CONTAINER / 2 - 0.75}px`, position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", inset: 0, background: "color-mix(in oklab,var(--primary) 8%,var(--card))" }} />
+                  <div style={{
+                    position: "absolute", inset: 0, transition: "background 0.5s ease",
+                    background: isPast
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 70%,transparent), color-mix(in oklab,var(--primary) 50%,transparent))"
+                      : isActive
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)"
+                      : "transparent",
+                  }} />
+                </div>
               )}
             </div>
-
-            {/* Label below */}
-            <div style={{
-              textAlign: "center", fontSize: 9, fontWeight: 700,
-              color: isActive ? "var(--primary)" : isPast ? "oklch(0.55 0.04 200)" : "oklch(0.38 0.02 230)",
-              letterSpacing: "0.03em",
-            }}>
-              {amount != null ? `$${fmt(amount, 0)}` : `${i + 1}`}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
-/* ── DATA HOOKS ───────────────────────────────────────────────────────────── */
 interface DcaData {
-  dca_step?: number; dca_total_steps?: number; status?: string;
-  dca_step_amounts?: number[]; dca_step_timestamps?: number[];
+  dca_step?: number;
+  dca_total_steps?: number;
+  status?: string;
+  dca_step_amounts?: number[];      // USDT spent per step, e.g. [50, 100, 150]
+  dca_step_timestamps?: number[];   // unix-ms per step
 }
 
 function useDcaData() {
@@ -131,7 +319,10 @@ function useDcaData() {
     async function poll() {
       try {
         const r = await fetch(`${API_BASE}/api/bot/data?key=dca`);
-        if (r.ok) { const j = await r.json(); if (alive && j?.data) setData(j.data); }
+        if (r.ok) {
+          const json = await r.json();
+          if (alive && json?.data) setData(json.data as DcaData);
+        }
       } catch {}
       timer = setTimeout(poll, 3000);
     }
@@ -141,77 +332,97 @@ function useDcaData() {
   return data;
 }
 
+/** Remembers the last active symbol in localStorage so we can fetch its
+ *  trade history even after the order is no longer open. */
 const LAST_SYMBOL_KEY = "dashboard_last_order_symbol";
-interface LastTrade { symbol: string; base: string; price: number; qty: number; quoteQty: number; time: number; }
+
+interface LastTrade {
+  symbol: string;
+  base: string;
+  price: number;
+  qty: number;
+  quoteQty: number;
+  time: number; // unix ms
+}
 
 function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
-  const [storedSymbol, setStoredSymbol] = useState<string | undefined>(() => localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined);
+  // Keep storedSymbol in state so React re-renders when it changes
+  const [storedSymbol, setStoredSymbol] = useState<string | undefined>(
+    () => localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined,
+  );
+
+  // Persist the last seen active symbol — update both localStorage AND state
   useEffect(() => {
-    if (activeSymbol) { localStorage.setItem(LAST_SYMBOL_KEY, activeSymbol); setStoredSymbol(activeSymbol); }
+    if (activeSymbol) {
+      localStorage.setItem(LAST_SYMBOL_KEY, activeSymbol);
+      setStoredSymbol(activeSymbol);
+    }
   }, [activeSymbol]);
+
+  // Only query when there is NO active trade
   const querySymbol = activeSymbol ? undefined : storedSymbol;
+
   const tradesQuery = useQuery({
     queryKey: ["lastTrades", querySymbol],
     queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
-    enabled: !!querySymbol, staleTime: 0, refetchOnWindowFocus: true,
+    enabled: !!querySymbol,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
+
   return useMemo(() => {
-    if (!tradesQuery.data?.length || !querySymbol) return null;
+    if (!tradesQuery.data || tradesQuery.data.length === 0 || !querySymbol) return null;
+    // Find the most recent SELL trade (trade where isBuyer === false means we sold)
     const sells = tradesQuery.data.filter((t) => !t.isBuyer);
-    if (!sells.length) return null;
+    if (sells.length === 0) return null;
     const latest = sells.reduce((a, b) => (b.time > a.time ? b : a));
+    const base = querySymbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
     return {
       symbol: querySymbol,
-      base: querySymbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, ""),
-      price: parseFloat(latest.price), qty: parseFloat(latest.qty),
-      quoteQty: parseFloat(latest.quoteQty ?? "0"), time: latest.time,
+      base,
+      price: parseFloat(latest.price),
+      qty: parseFloat(latest.qty),
+      quoteQty: parseFloat(latest.quoteQty ?? "0"),
+      time: latest.time,
     };
   }, [tradesQuery.data, querySymbol]);
 }
 
-/* ── SHARED COMPONENTS ───────────────────────────────────────────────────── */
-function Divider() {
-  return <div style={{ height: 1, background: "oklch(0.22 0.025 230 / 70%)", margin: "0 0" }} />;
-}
-
-function StatLabel({ children }: { children: ReactNode }) {
-  return (
-    <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "oklch(0.48 0.03 220)" }}>
-      {children}
-    </div>
-  );
-}
-
-/* ── MAIN DASHBOARD ──────────────────────────────────────────────────────── */
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders  = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
-  const prices  = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
   const dcaData = useDcaData();
 
-  const allOrders  = orders.data ?? [];
-  const primary    = allOrders[0];
+  const allOrders = orders.data ?? [];
+  const primary = allOrders[0];
   const sameSymbol = allOrders.filter((o) => o.symbol === primary?.symbol);
-  const tpOrder    = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") === 0) ?? primary;
-  const slOrder    = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") > 0);
+  const tpOrder = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") === 0) ?? primary;
+  const slOrder = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") > 0);
   const orderSymbol = primary?.symbol;
-  const orderBase   = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
+  const orderBase = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
 
   const trades = useQuery({
     queryKey: ["trades", orderSymbol],
     queryFn: () => getMyTrades({ data: { symbol: orderSymbol!, limit: 200 } }),
-    enabled: !!orderSymbol, refetchInterval: 60_000,
+    enabled: !!orderSymbol,
+    refetchInterval: 60_000,
   });
 
+  // Last closed trade — shown when no active order
   const lastTrade = useLastTrade(orderSymbol);
 
   const avgEntry = useMemo(() => {
-    if (!trades.data?.length) return 0;
+    if (!trades.data || trades.data.length === 0) return 0;
     let cost = 0, qty = 0;
     for (const t of trades.data) {
       const p = parseFloat(t.price), q = parseFloat(t.qty);
       if (t.isBuyer) { cost += p * q; qty += q; }
-      else if (qty > 0) { const r = Math.min(q, qty) / qty; cost *= (1 - r); qty -= Math.min(q, qty); }
+      else if (qty > 0) {
+        const ratio = Math.min(q, qty) / qty;
+        cost = cost * (1 - ratio);
+        qty -= Math.min(q, qty);
+      }
     }
     return qty > 0 ? cost / qty : 0;
   }, [trades.data]);
@@ -231,10 +442,17 @@ export default function Dashboard() {
     };
     return () => ws.close();
   }, [orderSymbol]);
-  useEffect(() => { if (!flash) return; const t = setTimeout(() => setFlash(null), 600); return () => clearTimeout(t); }, [flash]);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 500);
+    return () => clearTimeout(t);
+  }, [flash]);
 
-  const [chartSymbol, setChartSymbol] = useState("BTCUSDT");
-  useEffect(() => { setChartSymbol(orderSymbol ?? "BTCUSDT"); }, [orderSymbol]);
+  const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
+  useEffect(() => {
+    if (orderSymbol) setChartSymbol(orderSymbol);
+    else setChartSymbol("BTCUSDT");
+  }, [orderSymbol]);
 
   const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
@@ -245,23 +463,39 @@ export default function Dashboard() {
     });
   }, [account.data, prices.data]);
 
-  const walletAssets = useMemo(() => allAssets.filter((b) => b.usd >= 2).sort((a, b) => b.usd - a.usd), [allAssets]);
+  const walletAssets = useMemo(
+    () => allAssets.filter((b) => b.usd >= 2).sort((a, b) => b.usd - a.usd),
+    [allAssets],
+  );
+
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
 
-  const tpPrice  = tpOrder ? parseFloat(tpOrder.price) : 0;
-  const slPrice  = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
+  const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
+  const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
   const orderQty = primary ? parseFloat(primary.origQty) : 0;
-  const entry    = avgEntry > 0 ? avgEntry : (primary ? parseFloat(primary.price) : 0);
-  const cur      = livePrice ?? (orderSymbol ? prices.data?.[orderSymbol] : undefined);
+  const entry = avgEntry > 0 ? avgEntry : (primary ? parseFloat(primary.price) : 0);
+  const side = primary?.side ?? "";
+  const dirMult = side === "SELL" ? 1 : 1;
+  const cur = livePrice ?? (orderSymbol ? prices.data?.[orderSymbol] : undefined);
 
-  const pnlPct = cur && entry ? ((cur - entry) / entry) * 100 : 0;
-  const pnlUsd = cur && entry ? (cur - entry) * orderQty : 0;
-  const targetPct  = tpPrice && entry ? ((tpPrice - entry) / entry) * 100 : 0;
-  const stopPct    = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
+  const pnlPct = cur && entry ? ((cur - entry) / entry) * 100 * dirMult : 0;
+  const pnlUsd = cur && entry ? (cur - entry) * orderQty * dirMult : 0;
+  const targetPct = tpPrice && entry ? ((tpPrice - entry) / entry) * 100 : 0;
+  const stopPct = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
   const distToTpPct = cur && tpPrice ? ((tpPrice - cur) / cur) * 100 : 0;
   const distToSlPct = cur && slPrice ? ((cur - slPrice) / cur) * 100 : 0;
-  const tpProgress = cur && tpPrice && entry && tpPrice !== entry ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry))) : 0;
-  const slProgress = cur && slPrice && entry && entry !== slPrice ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice))) : 0;
+
+  // ── FIXED BAR CALCULATIONS ──────────────────────────────────────────────────
+  const tpProgress =
+    cur && tpPrice && entry && tpPrice !== entry
+      ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry)))
+      : 0;
+
+  const slProgress =
+    cur && slPrice && entry && entry !== slPrice
+      ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice)))
+      : 0;
+  // ───────────────────────────────────────────────────────────────────────────
 
   const dcaStep       = dcaData?.dca_step ?? 0;
   const dcaTotal      = dcaData?.dca_total_steps ?? 6;
@@ -272,461 +506,451 @@ export default function Dashboard() {
   const chartLines = useMemo(() => {
     const out: Array<{ price: number; label: string; color: string }> = [];
     if (orderSymbol && chartSymbol === orderSymbol) {
-      if (entry > 0)   out.push({ price: entry,   label: `Entry ${fmtPrice(entry)}`,   color: "oklch(0.65 0.04 220)" });
-      if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`,    color: "oklch(0.78 0.20 155)" });
-      if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`,    color: "oklch(0.65 0.24 18)" });
+      if (entry > 0) out.push({ price: entry, label: `Entry ${fmtPrice(entry)}`, color: "#a3b1c2" });
+      if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`, color: "#10b981" });
+      if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`, color: "#ef4444" });
     }
     return out;
   }, [orderSymbol, chartSymbol, entry, tpPrice, slPrice]);
 
-  /* hue bands for allocation bar */
-  const HUE  = [165, 185, 148, 200, 140, 175, 158];
-  const LITE = [0.72, 0.67, 0.75, 0.65, 0.78, 0.69, 0.73];
-
   return (
     <AppLayout>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="space-y-5">
 
-        {/* ══════════════════════════════════════════════
-            PORTFOLIO PANEL
-        ══════════════════════════════════════════════ */}
-        <Panel>
-          {/* Header */}
-          <PanelHeader
-            left={
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "oklch(0.55 0.04 210)" }}>
-                  Portfolio
-                </span>
-                <LiveDot />
-              </div>
-            }
-            right={
-              <span style={{ fontSize: 11, color: "oklch(0.50 0.03 220)", fontWeight: 500 }}>
-                {walletAssets.length} assets
-              </span>
-            }
+        {/* ── WALLET CARD — premium futuristic redesign ── */}
+        <section
+          className="rounded-2xl relative overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, oklch(0.17 0.06 212 / 88%) 0%, oklch(0.13 0.08 202 / 92%) 55%, oklch(0.15 0.07 218 / 88%) 100%)",
+            border: "1px solid oklch(0.78 0.07 200 / 22%)",
+            backdropFilter: "blur(32px) saturate(180%)",
+            WebkitBackdropFilter: "blur(32px) saturate(180%)",
+            boxShadow: [
+              "0 2px 0 0 oklch(0.90 0.04 200 / 10%) inset",
+              "0 -1px 0 0 oklch(0.50 0.06 210 / 8%) inset",
+              "0 0 80px -20px color-mix(in oklab, var(--primary) 22%, transparent)",
+              "0 8px 40px -16px rgba(0,0,0,0.6)",
+            ].join(", "),
+          }}
+        >
+          {/* Decorative scanline grid overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(oklch(0.85 0.04 200 / 4%) 1px, transparent 1px), linear-gradient(90deg, oklch(0.85 0.04 200 / 4%) 1px, transparent 1px)",
+              backgroundSize: "36px 36px",
+            }}
           />
 
-          <Divider />
+          {/* Ambient glow orb — top-right */}
+          <div
+            className="absolute -top-16 -right-16 w-72 h-72 rounded-full pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle, color-mix(in oklab, var(--primary) 14%, transparent) 0%, transparent 65%)",
+            }}
+          />
+          {/* Ambient glow orb — bottom-left accent */}
+          <div
+            className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle, oklch(0.55 0.18 260 / 8%) 0%, transparent 65%)",
+            }}
+          />
 
-          {/* Total value */}
-          <div style={{ padding: "20px 20px 0" }}>
-            <StatLabel>Total Portfolio Value</StatLabel>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 6 }}>
-              {account.isLoading ? (
-                <span style={{ fontSize: "clamp(2rem,7vw,3.2rem)", fontWeight: 900, letterSpacing: "-0.04em", color: "oklch(0.30 0.02 230)" }}>—</span>
-              ) : (
-                <span style={{
-                  fontSize: "clamp(2rem,7vw,3.2rem)", fontWeight: 900,
-                  letterSpacing: "-0.04em", lineHeight: 1,
-                  color: "oklch(0.97 0.01 200)",
-                }}>
-                  ${fmt(totalUsdt)}
-                </span>
-              )}
-              <span style={{ fontSize: 13, fontWeight: 600, color: "oklch(0.50 0.03 220)", letterSpacing: "0.04em" }}>USDT</span>
+          {/* Top shimmer line */}
+          <div
+            className="absolute inset-x-0 top-0 h-px pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--primary) 55%, transparent) 35%, oklch(0.92 0.04 200 / 35%) 55%, transparent 100%)",
+            }}
+          />
+
+          <div className="relative p-5 md:p-6">
+            {/* ── Header row ── */}
+            <div className="flex items-center justify-between">
+              <div
+                className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold"
+                style={{ color: "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))" }}
+              >
+                {/* Pulsing status dot */}
+                <span
+                  className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0"
+                  style={{ boxShadow: "0 0 6px 2px color-mix(in oklab, var(--primary) 55%, transparent)" }}
+                />
+                <WalletIcon className="h-3.5 w-3.5 shrink-0" />
+                Total Balance
+              </div>
+
+              {/* 3×3 grid icon button */}
+              <div
+                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background:
+                    "linear-gradient(135deg, color-mix(in oklab, var(--primary) 12%, oklch(0.50 0.06 210 / 25%)) 0%, oklch(0.50 0.06 210 / 15%) 100%)",
+                  border: "1px solid color-mix(in oklab, var(--primary) 28%, oklch(0.78 0.07 200 / 15%))",
+                  boxShadow:
+                    "0 0 14px -4px color-mix(in oklab, var(--primary) 25%, transparent), inset 0 1px 0 oklch(0.90 0.04 200 / 10%)",
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  {[0, 1, 2].flatMap((row) =>
+                    [0, 1, 2].map((col) => (
+                      <rect
+                        key={`${row}-${col}`}
+                        x={col * 5 + 0.5}
+                        y={row * 5 + 0.5}
+                        width="3.2"
+                        height="3.2"
+                        rx="0.9"
+                        fill="currentColor"
+                        style={{
+                          color: "var(--primary)",
+                          opacity: row === 1 && col === 1 ? 1 : 0.65,
+                        }}
+                      />
+                    ))
+                  )}
+                </svg>
+              </div>
             </div>
-          </div>
 
-          {/* Allocation bar */}
-          {walletAssets.length > 0 && totalUsdt > 0 && (
-            <div style={{ padding: "16px 20px 0" }}>
-              <div style={{ display: "flex", height: 6, borderRadius: 999, overflow: "hidden", gap: 2, background: "oklch(0.20 0.02 230)" }}>
-                {walletAssets.slice(0, 8).map((b, i) => {
-                  const pct = (b.usd / totalUsdt) * 100;
+            {/* ── Balance amount ── */}
+            <div className="mt-4">
+              <div className="flex items-start gap-2">
+                <span
+                  className="text-[13px] font-bold uppercase tracking-widest mt-2 shrink-0"
+                  style={{ color: "color-mix(in oklab, var(--muted-foreground) 50%, transparent)" }}
+                >
+                  USD
+                </span>
+                <span
+                  className="text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums"
+                  style={{
+                    background:
+                      "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, color-mix(in oklab, var(--primary) 95%, oklch(0.97 0.01 200)) 55%, color-mix(in oklab, var(--primary) 65%, transparent) 100%)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter:
+                      "drop-shadow(0 0 24px color-mix(in oklab, var(--primary) 28%, transparent))",
+                  }}
+                >
+                  {account.isLoading ? "…" : `$${fmt(totalUsdt)}`}
+                </span>
+              </div>
+            </div>
+
+            {/* ── Meta row ── */}
+            <div
+              className="mt-2 flex items-center gap-2 text-[11px] font-semibold select-none"
+              style={{ color: "color-mix(in oklab, var(--muted-foreground) 65%, transparent)" }}
+            >
+              <span>{walletAssets.length} assets</span>
+              <span
+                className="h-3 w-px"
+                style={{ background: "color-mix(in oklab, var(--muted-foreground) 22%, transparent)" }}
+              />
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-bull animate-pulse"
+                  style={{ boxShadow: "0 0 4px 1px color-mix(in oklab, var(--bull) 55%, transparent)" }}
+                />
+                live · Binance
+              </span>
+            </div>
+
+            {/* ── Rainbow allocation spectrum bar ── */}
+            {walletAssets.length > 0 && totalUsdt > 0 && (
+              <div className="mt-5">
+                <div
+                  className="flex h-[6px] rounded-full overflow-hidden"
+                  style={{ gap: "2px" }}
+                >
+                  {walletAssets.slice(0, 10).map((b, i) => {
+                    const pct = (b.usd / totalUsdt) * 100;
+                    const color = SPECTRUM_COLORS[i % SPECTRUM_COLORS.length];
+                    const isFirst = i === 0;
+                    const isLast = i === Math.min(walletAssets.length, 10) - 1;
+                    return (
+                      <div
+                        key={b.asset}
+                        title={`${b.asset} ${pct.toFixed(1)}%`}
+                        style={{
+                          flex: pct,
+                          background: `linear-gradient(90deg, ${color}cc, ${color})`,
+                          borderRadius: isFirst
+                            ? "999px 0 0 999px"
+                            : isLast
+                            ? "0 999px 999px 0"
+                            : "0",
+                          boxShadow: `0 0 8px 1px ${color}44`,
+                          minWidth: "4px",
+                          transition: "flex 0.6s ease",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Coin asset cards ── */}
+            {walletAssets.length > 0 && (
+              <div
+                className="mt-4 flex gap-3 overflow-x-auto pb-1 -mx-1 px-1"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+              >
+                {walletAssets.slice(0, 10).map((b, i) => {
+                  const pct = totalUsdt > 0 ? (b.usd / totalUsdt) * 100 : 0;
+                  const accentColor = SPECTRUM_COLORS[i % SPECTRUM_COLORS.length];
+
                   return (
-                    <div key={b.asset} style={{
-                      width: `${pct}%`, minWidth: pct > 0 ? 3 : 0, height: "100%",
-                      background: `oklch(${LITE[i % LITE.length]} 0.16 ${HUE[i % HUE.length]})`,
-                      opacity: 0.9 - i * 0.07,
-                      borderRadius: 999,
-                      transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
-                    }} />
+                    <div
+                      key={b.asset}
+                      className="shrink-0 flex flex-col rounded-xl relative overflow-hidden cursor-default"
+                      style={{
+                        minWidth: "140px",
+                        padding: "10px 12px 10px",
+                        background:
+                          "linear-gradient(160deg, oklch(0.55 0.06 210 / 12%) 0%, oklch(0.50 0.06 210 / 7%) 100%)",
+                        border: `1px solid oklch(0.78 0.07 200 / 14%)`,
+                        backdropFilter: "blur(14px)",
+                        WebkitBackdropFilter: "blur(14px)",
+                        transition: "border-color 0.25s, box-shadow 0.25s, transform 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        const el = e.currentTarget as HTMLDivElement;
+                        el.style.borderColor = `${accentColor}45`;
+                        el.style.boxShadow = `0 0 20px -6px ${accentColor}40, inset 0 1px 0 ${accentColor}18`;
+                        el.style.transform = "translateY(-1px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        const el = e.currentTarget as HTMLDivElement;
+                        el.style.borderColor = "oklch(0.78 0.07 200 / 14%)";
+                        el.style.boxShadow = "none";
+                        el.style.transform = "translateY(0)";
+                      }}
+                    >
+                      {/* Accent top bar */}
+                      <div
+                        className="absolute inset-x-0 top-0 h-[2.5px] rounded-t-xl"
+                        style={{
+                          background: `linear-gradient(90deg, ${accentColor}00 0%, ${accentColor} 40%, ${accentColor}bb 100%)`,
+                        }}
+                      />
+
+                      {/* Icon + name + percentage */}
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="shrink-0 rounded-full p-[2px]"
+                          style={{
+                            background: `${accentColor}18`,
+                            border: `1.5px solid ${accentColor}35`,
+                            boxShadow: `0 0 8px -2px ${accentColor}40`,
+                          }}
+                        >
+                          <CoinIcon symbol={b.asset} size={26} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[13px] font-black truncate tracking-tight">
+                              {b.asset}
+                            </span>
+                            <span
+                              className="text-[10px] font-bold tabular-nums shrink-0 rounded-md px-1.5 py-0.5"
+                              style={{
+                                color: accentColor,
+                                background: `${accentColor}18`,
+                                border: `1px solid ${accentColor}30`,
+                              }}
+                            >
+                              {pct.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* USD value */}
+                      <div className="mt-2.5">
+                        <span
+                          className="text-[13px] font-black tabular-nums tracking-tight"
+                          style={{
+                            color: "oklch(0.96 0.01 200)",
+                          }}
+                        >
+                          ${fmt(b.usd)}
+                        </span>
+                      </div>
+
+                      {/* Mini allocation bar */}
+                      <div
+                        className="mt-2 h-[3px] rounded-full overflow-hidden"
+                        style={{ background: "oklch(0.78 0.07 200 / 10%)" }}
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, pct * (100 / Math.max(walletAssets[0]?.usd / totalUsdt * 100, 1)))}%`,
+                            background: `linear-gradient(90deg, ${accentColor}88, ${accentColor})`,
+                            boxShadow: `0 0 6px 1px ${accentColor}50`,
+                            transition: "width 0.6s ease",
+                          }}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </section>
 
-          {/* Asset table */}
-          {walletAssets.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              {/* Table header */}
-              <div style={{
-                display: "grid", gridTemplateColumns: "1fr 1fr 1fr 80px",
-                padding: "6px 20px",
-                background: "oklch(0.15 0.02 230 / 60%)",
-                borderTop: "1px solid oklch(0.20 0.025 230)",
-                borderBottom: "1px solid oklch(0.20 0.025 230)",
-              }}>
-                {["Asset", "Balance", "Value (USD)", "Alloc"].map((h) => (
-                  <span key={h} style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "oklch(0.42 0.03 220)" }}>
-                    {h}
-                  </span>
-                ))}
-              </div>
-
-              {/* Table rows */}
-              {walletAssets.slice(0, 8).map((b, i) => {
-                const pct = totalUsdt > 0 ? (b.usd / totalUsdt) * 100 : 0;
-                const isTop = i === 0;
-                return (
-                  <div
-                    key={b.asset}
-                    style={{
-                      display: "grid", gridTemplateColumns: "1fr 1fr 1fr 80px",
-                      alignItems: "center",
-                      padding: "11px 20px",
-                      borderBottom: i < walletAssets.slice(0, 8).length - 1 ? "1px solid oklch(0.19 0.022 230 / 60%)" : "none",
-                      background: isTop ? "oklch(0.17 0.03 230 / 40%)" : "transparent",
-                      transition: "background 0.15s ease",
-                    }}
-                  >
-                    {/* Asset name + icon */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <CoinIcon symbol={b.asset} size={28} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.92 0.02 200)", letterSpacing: "-0.01em" }}>
-                          {b.asset}
-                        </div>
-                        {isTop && (
-                          <div style={{ fontSize: 9, fontWeight: 600, color: "var(--primary)", letterSpacing: "0.04em", marginTop: 1 }}>
-                            TOP HOLD
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Balance */}
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "oklch(0.65 0.03 215)", fontVariantNumeric: "tabular-nums" }}>
-                      {fmt(b.total, b.total < 1 ? 6 : b.total < 100 ? 4 : 2)}
-                    </span>
-
-                    {/* USD value */}
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "oklch(0.88 0.02 200)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>
-                      ${fmt(b.usd)}
-                    </span>
-
-                    {/* Allocation mini-bar */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "oklch(0.62 0.04 210)", fontVariantNumeric: "tabular-nums" }}>
-                        {pct.toFixed(1)}%
-                      </span>
-                      <div style={{ height: 3, borderRadius: 999, background: "oklch(0.22 0.02 230)", overflow: "hidden" }}>
-                        <div style={{
-                          width: `${Math.min(100, pct)}%`, height: "100%", borderRadius: 999,
-                          background: `oklch(${LITE[i % LITE.length]} 0.16 ${HUE[i % HUE.length]})`,
-                          transition: "width 0.8s ease",
-                        }} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Panel>
-
-        {/* ══════════════════════════════════════════════
-            ACTIVE TRADE PANEL
-        ══════════════════════════════════════════════ */}
-        <Panel accent={!!primary}>
+        {/* ── ACTIVE TRADE ── */}
+        <section className={`rounded-2xl border bg-transparent p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
-              {/* Trade header */}
-              <PanelHeader
-                left={
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ position: "relative" }}>
-                      <CoinIcon symbol={orderBase} size={40} />
-                      <div style={{
-                        position: "absolute", bottom: 0, right: 0,
-                        width: 9, height: 9, borderRadius: "50%",
-                        background: "var(--bull)",
-                        border: "2px solid oklch(0.14 0.025 230)",
-                      }} />
-                    </div>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em", color: "oklch(0.96 0.01 200)" }}>
-                          {primary.symbol}
-                        </span>
-                        <Badge color={primary.side === "SELL" ? "bear" : "bull"}>{primary.side}</Badge>
-                        <Badge color="neutral">{primary.type}</Badge>
-                      </div>
-                      <div style={{ fontSize: 11, color: "oklch(0.50 0.03 220)", marginTop: 3, fontWeight: 500 }}>
-                        {fmt(orderQty, 4)} {orderBase} · open position
-                      </div>
-                    </div>
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+              <div className="relative flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative">
+                    <CoinIcon symbol={orderBase} size={52} className="ring-2 ring-primary/40" />
+                    <span className="absolute -inset-1 rounded-full ring-2 ring-primary/40 animate-ping opacity-30" />
                   </div>
-                }
-                right={
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{
-                      fontSize: 22, fontWeight: 900, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
-                      color: pnlUsd >= 0 ? "var(--bull)" : "var(--bear)",
-                    }}>
-                      {pnlUsd >= 0 ? "+" : ""}${pnlUsd.toFixed(2)}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl md:text-2xl font-black truncate">{primary.symbol}</h2>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider">{primary.type}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${primary.side === "SELL" ? "bg-bear/15 text-bear" : "bg-bull/15 text-bull"}`}>{primary.side}</span>
                     </div>
-                    <div style={{
-                      fontSize: 12, fontWeight: 600, fontVariantNumeric: "tabular-nums",
-                      color: pnlPct >= 0 ? "var(--bull)" : "var(--bear)",
-                      display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", marginTop: 2,
-                    }}>
-                      {pnlPct >= 0
-                        ? <ArrowUpRight size={13} />
-                        : <ArrowDownRight size={13} />}
-                      {Math.abs(pnlPct).toFixed(2)}%
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-bull animate-pulse" />
+                      Live · {fmt(orderQty, 4)} {orderBase}
                     </div>
-                  </div>
-                }
-              />
-
-              <Divider />
-
-              {/* Live price — the hero number */}
-              <div style={{
-                padding: "0 20px",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                transition: "background 0.3s ease",
-                background: flash === "up"
-                  ? "color-mix(in oklab, var(--bull) 5%, transparent)"
-                  : flash === "down"
-                  ? "color-mix(in oklab, var(--bear) 5%, transparent)"
-                  : "transparent",
-              }}>
-                <div style={{ padding: "16px 0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <Activity size={12} style={{ color: "oklch(0.52 0.04 210)" }} />
-                    <StatLabel>Live Price</StatLabel>
-                  </div>
-                  <div style={{
-                    fontSize: "clamp(1.8rem,6vw,3rem)", fontWeight: 900, letterSpacing: "-0.04em",
-                    fontVariantNumeric: "tabular-nums", lineHeight: 1,
-                    color: flash === "up" ? "var(--bull)" : flash === "down" ? "var(--bear)" : "oklch(0.97 0.01 200)",
-                    transition: "color 0.3s ease",
-                  }}>
-                    ${cur ? fmtPrice(cur) : "—"}
                   </div>
                 </div>
-
-                {/* Entry / TP / SL stat strip */}
-                <div style={{ display: "flex", gap: 24 }}>
-                  <StatItem label="Entry" value={`$${fmtPrice(entry)}`} />
-                  <StatItem label="Take Profit" value={tpPrice ? `$${fmtPrice(tpPrice)}` : "—"} color="bull" />
-                  <StatItem label="Stop Loss"   value={slPrice ? `$${fmtPrice(slPrice)}` : "—"} color="bear" />
+                <div className="text-right shrink-0">
+                  <div className={`text-2xl md:text-4xl font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
+                    {pnlUsd >= 0 ? "+" : ""}${pnlUsd.toFixed(2)}
+                  </div>
+                  <div className={`text-xs font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
+                    {pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%
+                  </div>
                 </div>
               </div>
 
-              <Divider />
-
-              {/* TP / SL Progress bars */}
-              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-                <TradeBar
-                  label="Take Profit"
-                  icon={<Target size={12} />}
-                  progress={tpProgress}
-                  color="bull"
-                  leftNote={`+${targetPct.toFixed(2)}% target`}
-                  rightNote={tpPrice && cur ? `${distToTpPct >= 0 ? "+" : ""}${distToTpPct.toFixed(2)}% remaining` : ""}
-                />
-                <TradeBar
-                  label="Stop Loss"
-                  icon={<Shield size={12} />}
-                  progress={slProgress}
-                  color="bear"
-                  leftNote={`${stopPct.toFixed(2)}% from entry`}
-                  rightNote={slPrice && cur ? `${distToSlPct.toFixed(2)}% buffer` : ""}
-                />
+              <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
+                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
+                  <Activity className="h-3 w-3" /> Live price
+                </span>
+                <span className={`text-2xl md:text-3xl font-black tabular-nums transition-colors ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
+                  ${cur ? fmtPrice(cur) : "…"}
+                </span>
               </div>
 
-              {/* DCA Section */}
+              {/* ── DCA STEP ── */}
               {showDca && (
-                <>
-                  <Divider />
-                  <div style={{ padding: "16px 20px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <Layers size={12} style={{ color: "var(--primary)" }} />
-                        <StatLabel>DCA Progress</StatLabel>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                        <span style={{ fontSize: 20, fontWeight: 900, color: "var(--primary)", letterSpacing: "-0.02em" }}>
-                          {dcaStep}
-                        </span>
-                        <span style={{ fontSize: 13, color: "oklch(0.42 0.03 220)", fontWeight: 700 }}>
-                          / {dcaTotal}
-                        </span>
-                        <span style={{ fontSize: 10, color: "oklch(0.50 0.03 220)", marginLeft: 4, fontWeight: 600 }}>
-                          steps completed
-                        </span>
-                      </div>
+                <div
+                  className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 8%,var(--card)) 0%, color-mix(in oklab,var(--primary) 4%,var(--card)) 100%)",
+                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
+                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
+                  }}
+                >
+                  <div
+                    className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
+                  />
+                  <div
+                    className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
+                  />
+
+                  <div className="relative flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
+                      <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "color-mix(in oklab,var(--primary) 80%,var(--muted-foreground))" }}>
+                        DCA Step
+                      </span>
                     </div>
-                    <DcaStepper
-                      step={dcaStep} total={dcaTotal}
-                      stepAmounts={dcaAmounts} stepTimestamps={dcaTimestamps}
-                    />
+                    <div className="flex items-baseline gap-1">
+                      <span
+                        className="text-2xl font-black tabular-nums leading-none"
+                        style={{
+                          color: "var(--primary)",
+                          textShadow: "0 0 16px color-mix(in oklab,var(--primary) 70%,transparent)",
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        {dcaStep}
+                      </span>
+                      <span
+                        className="text-base font-black leading-none"
+                        style={{ color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)" }}
+                      >
+                        /{dcaTotal}
+                      </span>
+                    </div>
                   </div>
-                </>
+
+                  <StepSegments
+                    step={dcaStep}
+                    total={dcaTotal}
+                    stepAmounts={dcaAmounts}
+                    stepTimestamps={dcaTimestamps}
+                  />
+                </div>
               )}
+
+              <div className="relative mt-4 grid sm:grid-cols-2 gap-3">
+                <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
+                  fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={tpPrice ? `TP $${fmtPrice(tpPrice)}` : "—"}
+                  pct={tpProgress} rightValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
+                  hint={tpPrice && cur ? `${distToTpPct >= 0 ? "+" : ""}${distToTpPct.toFixed(2)}% to TP` : ""} color="bull" />
+                <ProgressTrack icon={<Shield className="h-3.5 w-3.5" />} label="Stop loss"
+                  fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={slPrice ? `SL $${fmtPrice(slPrice)}` : "—"}
+                  pct={slProgress} rightValue={slPrice ? `${stopPct.toFixed(2)}%` : "—"}
+                  hint={slPrice && cur ? `${distToSlPct.toFixed(2)}% buffer` : ""} color="bear" />
+              </div>
+
+              <div className="relative mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <Cell label="Entry (avg)" value={`$${fmtPrice(entry)}`} />
+                <Cell label="Qty" value={`${fmt(orderQty, 4)} ${orderBase}`} />
+                <Cell label="Take Profit" value={tpPrice ? `$${fmtPrice(tpPrice)}` : "—"} accent />
+                <Cell label="Stop Loss" value={slPrice ? `$${fmtPrice(slPrice)}` : "—"} danger />
+              </div>
             </>
           ) : (
+            /* ── NO ACTIVE TRADE — show last closed trade ── */
             <NoActiveTrade lastTrade={lastTrade} />
           )}
-        </Panel>
+        </section>
 
         <BtcCrashCard />
+
         <PumpScannerCard />
+
         <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
       </div>
-
     </AppLayout>
   );
 }
 
-/* ── SUB-COMPONENTS ──────────────────────────────────────────────────────── */
-
-function Panel({ children, accent }: { children: ReactNode; accent?: boolean }) {
-  return (
-    <div style={{
-      borderRadius: 14,
-      background: "oklch(0.14 0.022 230 / 80%)",
-      backdropFilter: "blur(20px)",
-      WebkitBackdropFilter: "blur(20px)",
-      border: `1px solid ${accent ? "color-mix(in oklab, var(--primary) 18%, oklch(0.24 0.03 230))" : "oklch(0.22 0.025 230)"}`,
-      boxShadow: accent
-        ? "0 0 0 1px transparent, 0 20px 48px -16px rgba(0,0,0,0.6), 0 0 40px -20px color-mix(in oklab, var(--primary) 15%, transparent)"
-        : "0 8px 32px -12px rgba(0,0,0,0.5)",
-      overflow: "hidden",
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function PanelHeader({ left, right }: { left: ReactNode; right?: ReactNode }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "14px 20px",
-    }}>
-      {left}
-      {right && right}
-    </div>
-  );
-}
-
-function LiveDot() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-      <span style={{
-        width: 6, height: 6, borderRadius: "50%", background: "var(--primary)",
-        display: "inline-block",
-      }} />
-      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.06em" }}>LIVE</span>
-    </div>
-  );
-}
-
-function Badge({ children, color }: { children: ReactNode; color: "bull" | "bear" | "neutral" }) {
-  const styles = {
-    bull:    { bg: "color-mix(in oklab, var(--bull) 12%, transparent)",  border: "color-mix(in oklab, var(--bull) 25%, transparent)",  text: "var(--bull)" },
-    bear:    { bg: "color-mix(in oklab, var(--bear) 12%, transparent)",  border: "color-mix(in oklab, var(--bear) 25%, transparent)",  text: "var(--bear)" },
-    neutral: { bg: "oklch(0.20 0.025 230)", border: "oklch(0.28 0.03 230)", text: "oklch(0.60 0.04 215)" },
-  }[color];
-  return (
-    <span style={{
-      fontSize: 9, fontWeight: 800, letterSpacing: "0.07em", textTransform: "uppercase",
-      padding: "3px 7px", borderRadius: 5,
-      background: styles.bg, border: `1px solid ${styles.border}`, color: styles.text,
-    }}>
-      {children}
-    </span>
-  );
-}
-
-function StatItem({ label, value, color }: { label: string; value: string; color?: "bull" | "bear" }) {
-  const valueColor = color === "bull" ? "var(--bull)" : color === "bear" ? "var(--bear)" : "oklch(0.88 0.02 200)";
-  return (
-    <div style={{ textAlign: "right" }}>
-      <StatLabel>{label}</StatLabel>
-      <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: valueColor, marginTop: 4, letterSpacing: "-0.01em" }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function TradeBar({ label, icon, progress, color, leftNote, rightNote }: {
-  label: string; icon: ReactNode; progress: number;
-  color: "bull" | "bear"; leftNote: string; rightNote: string;
-}) {
-  const w = Math.max(1, Math.min(100, progress * 100));
-  const isBull = color === "bull";
-  const c = isBull ? "var(--bull)" : "var(--bear)";
-
-  const [displayW, setDisplayW] = useState(w);
-  const prevRef = useRef(w);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => {
-    const start = prevRef.current, end = w;
-    prevRef.current = w;
-    if (Math.abs(end - start) < 0.1) return;
-    if (timerRef.current) clearInterval(timerRef.current);
-    let step = 0;
-    timerRef.current = setInterval(() => {
-      step++;
-      const t = step / 24;
-      setDisplayW(start + (end - start) * (1 - Math.pow(1 - t, 3)));
-      if (step >= 24) { setDisplayW(end); clearInterval(timerRef.current!); }
-    }, 700 / 24);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [w]);
-
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ color: c, opacity: 0.8 }}>{icon}</span>
-          <StatLabel>{label}</StatLabel>
-        </div>
-        <span style={{ fontSize: 11, fontWeight: 700, color: c, fontVariantNumeric: "tabular-nums" }}>
-          {displayW.toFixed(1)}%
-        </span>
-      </div>
-
-      {/* Track */}
-      <div style={{ position: "relative", height: 5, borderRadius: 999, background: "oklch(0.20 0.02 230)", overflow: "hidden" }}>
-        <div style={{
-          position: "absolute", inset: 0, width: `${w}%`, borderRadius: 999,
-          background: isBull
-            ? `linear-gradient(90deg, color-mix(in oklab, var(--bull) 40%, transparent), var(--bull))`
-            : `linear-gradient(90deg, color-mix(in oklab, var(--bear) 40%, transparent), var(--bear))`,
-          transition: "width 0.7s cubic-bezier(0.4,0,0.2,1)",
-        }} />
-      </div>
-
-      {/* Notes */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-        <span style={{ fontSize: 10, color: "oklch(0.48 0.03 220)", fontWeight: 500 }}>{leftNote}</span>
-        <span style={{ fontSize: 10, color: "oklch(0.48 0.03 220)", fontWeight: 500 }}>{rightNote}</span>
-      </div>
-    </div>
-  );
-}
-
+/* ─────────────────────────────────────────────────────────────────────────────
+   NoActiveTrade — renders last closed trade info, or a generic placeholder
+   when no trade history is available yet.
+───────────────────────────────────────────────────────────────────────────── */
 function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
   if (!lastTrade) {
     return (
-      <div style={{ padding: "48px 20px", textAlign: "center" }}>
-        <TrendingUp size={36} style={{ color: "oklch(0.35 0.03 220)", margin: "0 auto 12px" }} />
-        <div style={{ fontSize: 16, fontWeight: 800, color: "oklch(0.72 0.03 210)", letterSpacing: "-0.01em" }}>
-          No Active Trade
-        </div>
-        <div style={{ fontSize: 13, color: "oklch(0.45 0.03 220)", marginTop: 6, fontWeight: 500 }}>
-          Place a limit or OCO order on Binance to get started.
-        </div>
+      <div className="py-10 text-center">
+        <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground/40" />
+        <h2 className="mt-3 text-xl font-black">No Active Trade</h2>
+        <p className="text-sm text-muted-foreground mt-1">Place a limit or OCO order on Binance and it will appear here.</p>
       </div>
     );
   }
@@ -734,50 +958,309 @@ function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
   const { date, time } = fmtUAE(lastTrade.time);
 
   return (
-    <>
-      <PanelHeader
-        left={
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "oklch(0.45 0.03 220)" }} />
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "oklch(0.50 0.03 220)" }}>
-              Last Closed Trade
-            </span>
-          </div>
-        }
-      />
-      <Divider />
-      <div style={{ padding: "20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <CoinIcon symbol={lastTrade.base} size={48} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.02em", color: "oklch(0.94 0.02 200)" }}>
-              {lastTrade.base}
-              <span style={{ fontSize: 13, fontWeight: 500, color: "oklch(0.48 0.03 220)", marginLeft: 6 }}>/USDT</span>
-            </div>
-            <div style={{ fontSize: 13, color: "oklch(0.58 0.04 210)", marginTop: 4, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-              Sold at ${fmtPrice(lastTrade.price)}
-              {lastTrade.quoteQty > 0 && (
-                <span style={{ color: "oklch(0.42 0.03 220)", marginLeft: 8 }}>≈ ${fmt(lastTrade.quoteQty)}</span>
-              )}
-            </div>
-          </div>
-          <Badge color="bear">Sold</Badge>
+    <div className="py-6">
+      {/* Header label */}
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-5">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+        Last Closed Trade
+      </div>
+
+      {/* Coin row */}
+      <div className="flex items-center gap-4">
+        {/* Coin logo */}
+        <div className="relative shrink-0">
+          <div className="absolute inset-0 rounded-full bg-muted/40 blur-md scale-110" />
+          <CoinIcon symbol={lastTrade.base} size={56} className="relative" />
         </div>
 
-        <div style={{
-          marginTop: 16, display: "flex", alignItems: "center", gap: 10,
-          padding: "11px 14px", borderRadius: 10,
-          background: "oklch(0.16 0.022 230 / 60%)", border: "1px solid oklch(0.22 0.025 230)",
-        }}>
-          <Clock size={14} style={{ color: "oklch(0.50 0.03 220)" }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "oklch(0.70 0.03 215)", fontVariantNumeric: "tabular-nums" }}>
-            {date}
-          </span>
-          <span style={{ fontSize: 13, color: "oklch(0.50 0.03 220)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-            {time} <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em" }}>UAE</span>
-          </span>
+        {/* Coin name + symbol */}
+        <div className="min-w-0 flex-1">
+          <div className="text-2xl md:text-3xl font-black tracking-tight truncate">
+            {lastTrade.base}
+            <span className="text-sm font-semibold text-muted-foreground ml-1.5">/ USDT</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5 font-medium truncate">
+            Sold · ${fmtPrice(lastTrade.price)}
+            {lastTrade.quoteQty > 0 && (
+              <span className="ml-2 text-muted-foreground/60">≈ ${fmt(lastTrade.quoteQty)}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Sold badge */}
+        <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-bear/10 text-bear border border-bear/20 uppercase tracking-wider">
+          Sold
+        </span>
+      </div>
+
+      {/* Date & time row */}
+      <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-3">
+        <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold tabular-nums">
+          <span>{date}</span>
+          <span className="text-muted-foreground">{time} <span className="text-[10px] font-bold uppercase tracking-widest ml-0.5">UAE</span></span>
         </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+function Cell({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${danger ? "border-bear/30 bg-bear/10" : accent ? "border-bull/30 bg-bull/10" : "border-border bg-muted/30"}`}>
+      <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
+      <div className={`text-sm font-black mt-0.5 truncate tabular-nums ${danger ? "text-bear" : accent ? "text-bull" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
+function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint, color }: {
+  icon: React.ReactNode; label: string; fromLabel: string; toLabel: string;
+  pct: number; rightValue: string; hint?: string; color: "bull" | "bear";
+}) {
+  const w = Math.max(2, Math.min(100, pct * 100));
+  const isBull = color === "bull";
+
+  // Animated counter — smoothly counts from old value to new value
+  const [displayPct, setDisplayPct] = useState(w);
+  const prevWRef = useRef(w);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const start = prevWRef.current;
+    const end = w;
+    prevWRef.current = w;
+
+    if (Math.abs(end - start) < 0.05) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const STEPS = 28;
+    const DURATION_MS = 700;
+    let step = 0;
+
+    timerRef.current = setInterval(() => {
+      step++;
+      // ease-out cubic
+      const t = step / STEPS;
+      const eased = 1 - Math.pow(1 - t, 3);
+      const next = start + (end - start) * eased;
+      setDisplayPct(next);
+      if (step >= STEPS) {
+        setDisplayPct(end);
+        if (timerRef.current) clearInterval(timerRef.current);
+      }
+    }, DURATION_MS / STEPS);
+
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [w]);
+
+  // badge pops in when value changes
+  const [popKey, setPopKey] = useState(0);
+  const prevRounded = useRef(Math.round(w * 10));
+  useEffect(() => {
+    const next = Math.round(w * 10);
+    if (next !== prevRounded.current) {
+      prevRounded.current = next;
+      setPopKey((k) => k + 1);
+    }
+  }, [w]);
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
+      <style>{`
+        @keyframes progress-glow-bull {
+          0%, 100% {
+            box-shadow:
+              0 0 2px 0px color-mix(in oklab, var(--bull) 12%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bull) 5%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bull) 18%, transparent),
+              0 0 6px 1px color-mix(in oklab, var(--bull) 8%, transparent);
+          }
+        }
+        @keyframes progress-glow-bear {
+          0%, 100% {
+            box-shadow:
+              0 0 2px 0px color-mix(in oklab, var(--bear) 12%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bear) 5%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bear) 18%, transparent),
+              0 0 6px 1px color-mix(in oklab, var(--bear) 8%, transparent);
+          }
+        }
+        @keyframes progress-shimmer {
+          0%   { transform: translateX(-160%) skewX(-12deg); opacity: 0; }
+          20%  { opacity: 0.6; }
+          80%  { opacity: 0.6; }
+          100% { transform: translateX(280%) skewX(-12deg); opacity: 0; }
+        }
+        @keyframes progress-tip-beat-bull {
+          0%, 100% {
+            transform: translateY(-50%) scale(1);
+            box-shadow:
+              0 0 2px 1px color-mix(in oklab, var(--bull) 20%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bull) 9%, transparent);
+          }
+          50% {
+            transform: translateY(-50%) scale(1.15);
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bull) 28%, transparent),
+              0 0 6px 2px color-mix(in oklab, var(--bull) 12%, transparent);
+          }
+        }
+        @keyframes progress-tip-beat-bear {
+          0%, 100% {
+            transform: translateY(-50%) scale(1);
+            box-shadow:
+              0 0 2px 1px color-mix(in oklab, var(--bear) 20%, transparent),
+              0 0 4px 1px color-mix(in oklab, var(--bear) 9%, transparent);
+          }
+          50% {
+            transform: translateY(-50%) scale(1.15);
+            box-shadow:
+              0 0 3px 1px color-mix(in oklab, var(--bear) 28%, transparent),
+              0 0 6px 2px color-mix(in oklab, var(--bear) 12%, transparent);
+          }
+        }
+        @keyframes pct-badge-pop {
+          0%   { transform: translateX(-50%) scale(0.75); opacity: 0; }
+          60%  { transform: translateX(-50%) scale(1.12); opacity: 1; }
+          100% { transform: translateX(-50%) scale(1);    opacity: 1; }
+        }
+        @keyframes pct-digit-up {
+          0%   { transform: translateY(60%); opacity: 0; }
+          100% { transform: translateY(0);   opacity: 1; }
+        }
+        .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; }
+        .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; }
+        .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; }
+        .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; }
+        .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; }
+        .pct-badge-pop           { animation: pct-badge-pop 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+        .pct-digit-up            { animation: pct-digit-up 0.22s ease-out both; }
+      `}</style>
+
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+        <span className="flex items-center gap-1.5">{icon}{label}</span>
+        <span className={`text-sm font-black tabular-nums ${isBull ? "text-bull" : "text-bear"}`}>{rightValue}</span>
+      </div>
+
+      {/* Track — extra top padding to make room for the floating badge */}
+      <div className="relative mt-5" style={{ paddingBottom: "2px" }}>
+        <div className="relative h-2 rounded-full bg-muted/60" style={{ overflow: "visible" }}>
+
+          {/* Filled bar */}
+          <div
+            className={`relative h-full rounded-full transition-[width] duration-700 overflow-hidden ${isBull ? "progress-bar-glow-bull" : "progress-bar-glow-bear"}`}
+            style={{
+              width: `${w}%`,
+              background: isBull
+                ? "linear-gradient(90deg, color-mix(in oklab, var(--bull) 55%, transparent) 0%, var(--bull) 100%)"
+                : "linear-gradient(90deg, color-mix(in oklab, var(--bear) 55%, transparent) 0%, var(--bear) 100%)",
+            }}
+          >
+            {/* Shimmer sweep */}
+            <div
+              className="progress-shimmer absolute inset-y-0 pointer-events-none"
+              style={{
+                width: "38%",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent)",
+                borderRadius: "999px",
+              }}
+            />
+          </div>
+
+          {/* Glowing tip dot */}
+          {w > 3 && (
+            <div
+              className={isBull ? "progress-tip-bull" : "progress-tip-bear"}
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: `calc(${w}% - 5px)`,
+                width: "10px",
+                height: "10px",
+                borderRadius: "999px",
+                background: isBull ? "var(--bull)" : "var(--bear)",
+                zIndex: 10,
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          {/* ── Floating percentage badge above tip ── */}
+          {w > 3 && (
+            <div
+              key={popKey}
+              className="pct-badge-pop"
+              style={{
+                position: "absolute",
+                top: "-26px",
+                left: `${w}%`,
+                transform: "translateX(-50%)",
+                pointerEvents: "none",
+                zIndex: 20,
+              }}
+            >
+              {/* Badge pill */}
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                  padding: "2px 6px",
+                  borderRadius: "999px",
+                  fontSize: "9px",
+                  fontWeight: 900,
+                  fontVariantNumeric: "tabular-nums",
+                  letterSpacing: "0.01em",
+                  lineHeight: 1,
+                  whiteSpace: "nowrap",
+                  background: isBull
+                    ? "color-mix(in oklab, var(--bull) 18%, var(--card))"
+                    : "color-mix(in oklab, var(--bear) 18%, var(--card))",
+                  border: isBull
+                    ? "1px solid color-mix(in oklab, var(--bull) 50%, transparent)"
+                    : "1px solid color-mix(in oklab, var(--bear) 50%, transparent)",
+                  color: isBull ? "var(--bull)" : "var(--bear)",
+                  boxShadow: isBull
+                    ? "0 0 2px 0px color-mix(in oklab, var(--bull) 10%, transparent)"
+                    : "0 0 2px 0px color-mix(in oklab, var(--bear) 10%, transparent)",
+                }}
+              >
+                <span key={`${popKey}-num`} className="pct-digit-up">
+                  {displayPct.toFixed(1)}%
+                </span>
+              </div>
+              {/* Connector line from badge to dot */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  top: "100%",
+                  width: "1px",
+                  height: "8px",
+                  background: isBull
+                    ? "linear-gradient(to bottom, color-mix(in oklab, var(--bull) 60%, transparent), transparent)"
+                    : "linear-gradient(to bottom, color-mix(in oklab, var(--bear) 60%, transparent), transparent)",
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span className="truncate">{fromLabel}</span>
+        <span className="truncate">{toLabel}</span>
+      </div>
+      {hint && <div className="mt-1 text-[10px] font-bold text-muted-foreground">{hint}</div>}
+    </div>
   );
 }
