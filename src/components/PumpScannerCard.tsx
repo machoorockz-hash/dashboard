@@ -303,11 +303,6 @@ export default function PumpScannerCard() {
             );
           })}
         </div>
-      ) : active ? (
-        /* ── EMPTY STATE: sonar pulse when active but no signals yet ── */
-        <div className="flex items-center justify-center py-4">
-          <SonarPulseAnimation />
-        </div>
       ) : null}
 
       {/* ── SIGNAL COUNT FOOTER ── */}
