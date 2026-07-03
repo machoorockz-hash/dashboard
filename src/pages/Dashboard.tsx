@@ -388,6 +388,56 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
   }, [tradesQuery.data, querySymbol]);
 }
 
+function useAnimatedBalance(target: number) {
+  const [display, setDisplay] = useState(target);
+  const [direction, setDirection] = useState<"up" | "down" | null>(null);
+  const [delta, setDelta] = useState<number | null>(null);
+  const [changeKey, setChangeKey] = useState(0);
+  const prevRef = useRef(target);
+  const rafRef = useRef<number | null>(null);
+  const dirTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    if (Math.abs(target - prev) < 0.001) return;
+    const diff = target - prev;
+    prevRef.current = target;
+
+    setDirection(diff > 0 ? "up" : "down");
+    setDelta(diff);
+    setChangeKey((k) => k + 1);
+
+    if (dirTimerRef.current) clearTimeout(dirTimerRef.current);
+    dirTimerRef.current = setTimeout(() => {
+      setDirection(null);
+      setDelta(null);
+    }, 2000);
+
+    const DURATION = 950;
+    const startTime = performance.now();
+    const startVal = prev;
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / DURATION, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      setDisplay(startVal + diff * eased);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplay(target);
+      }
+    };
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target]);
+
+  return { display, direction, delta, changeKey };
+}
+
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
   const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
@@ -469,6 +519,7 @@ export default function Dashboard() {
   );
 
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
+  const { display: animatedTotal, direction: balanceDir, delta: balanceDelta, changeKey: balanceKey } = useAnimatedBalance(totalUsdt);
 
   const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
   const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
@@ -548,27 +599,110 @@ export default function Dashboard() {
 
             {/* ── Balance amount ── */}
             <div className="mt-4">
-              <div className="flex items-start gap-2">
+              <style>{`
+                @keyframes bal-glow-up {
+                  0%   { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #10b981); }
+                  15%  { filter: drop-shadow(0 0 32px color-mix(in oklab,var(--primary) 35%,transparent)) drop-shadow(0 0 28px #10b98188); }
+                  100% { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #10b981); }
+                }
+                @keyframes bal-glow-down {
+                  0%   { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #ef4444); }
+                  15%  { filter: drop-shadow(0 0 32px color-mix(in oklab,var(--primary) 35%,transparent)) drop-shadow(0 0 28px #ef444488); }
+                  100% { filter: drop-shadow(0 0 24px color-mix(in oklab,var(--primary) 28%,transparent)) drop-shadow(0 0 0px #ef4444); }
+                }
+                @keyframes bal-shimmer {
+                  0%   { transform: translateX(-120%) skewX(-16deg); opacity: 0; }
+                  20%  { opacity: 1; }
+                  80%  { opacity: 1; }
+                  100% { transform: translateX(220%) skewX(-16deg); opacity: 0; }
+                }
+                @keyframes delta-rise {
+                  0%   { transform: translateY(0px); opacity: 1; }
+                  70%  { opacity: 1; }
+                  100% { transform: translateY(-28px); opacity: 0; }
+                }
+                @keyframes bal-scale-pop {
+                  0%   { transform: scale(1); }
+                  12%  { transform: scale(1.018); }
+                  100% { transform: scale(1); }
+                }
+                .bal-glow-up   { animation: bal-glow-up   1.8s ease-out forwards; }
+                .bal-glow-down { animation: bal-glow-down 1.8s ease-out forwards; }
+                .bal-shimmer   { animation: bal-shimmer   0.85s ease-in-out forwards; }
+                .bal-scale-pop { animation: bal-scale-pop 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
+                .delta-rise    { animation: delta-rise    1.9s ease-out forwards; }
+              `}</style>
+              <div className="flex items-start gap-2 relative">
                 <span
                   className="text-[13px] font-bold uppercase tracking-widest mt-2 shrink-0"
                   style={{ color: "color-mix(in oklab, var(--muted-foreground) 50%, transparent)" }}
                 >
                   USD
                 </span>
-                <span
-                  className="text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums"
-                  style={{
-                    background:
-                      "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, color-mix(in oklab, var(--primary) 95%, oklch(0.97 0.01 200)) 55%, color-mix(in oklab, var(--primary) 65%, transparent) 100%)",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    filter:
-                      "drop-shadow(0 0 24px color-mix(in oklab, var(--primary) 28%, transparent))",
-                  }}
-                >
-                  {account.isLoading ? "…" : `$${fmt(totalUsdt)}`}
-                </span>
+                <div className="relative overflow-hidden">
+                  {/* Delta badge — floats up and fades on change */}
+                  {balanceDelta !== null && (
+                    <div
+                      key={`delta-${balanceKey}`}
+                      className="delta-rise absolute -top-1 left-0 pointer-events-none z-10 flex items-center gap-1"
+                    >
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 800,
+                          fontVariantNumeric: "tabular-nums",
+                          letterSpacing: "-0.01em",
+                          padding: "2px 7px",
+                          borderRadius: "999px",
+                          color: balanceDelta >= 0 ? "#10b981" : "#ef4444",
+                          background: balanceDelta >= 0 ? "rgba(16,185,129,0.14)" : "rgba(239,68,68,0.14)",
+                          border: `1px solid ${balanceDelta >= 0 ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}`,
+                          boxShadow: balanceDelta >= 0
+                            ? "0 0 8px rgba(16,185,129,0.25)"
+                            : "0 0 8px rgba(239,68,68,0.25)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {balanceDelta >= 0 ? "▲ +" : "▼ "}${Math.abs(balanceDelta).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Main balance number */}
+                  <span
+                    key={`bal-${balanceKey}`}
+                    className={`text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums relative inline-block
+                      ${balanceDir === "up" ? "bal-glow-up bal-scale-pop" : balanceDir === "down" ? "bal-glow-down bal-scale-pop" : ""}`}
+                    style={{
+                      background:
+                        balanceDir === "up"
+                          ? "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, #10b981 55%, color-mix(in oklab,var(--primary) 65%,transparent) 100%)"
+                          : balanceDir === "down"
+                          ? "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, #ef4444 55%, color-mix(in oklab,var(--primary) 65%,transparent) 100%)"
+                          : "linear-gradient(140deg, oklch(0.97 0.01 200) 0%, color-mix(in oklab, var(--primary) 95%, oklch(0.97 0.01 200)) 55%, color-mix(in oklab, var(--primary) 65%, transparent) 100%)",
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      transition: "background 0.6s ease",
+                    }}
+                  >
+                    {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
+
+                    {/* Shimmer sweep on change */}
+                    {balanceDir && (
+                      <span
+                        key={`shimmer-${balanceKey}`}
+                        className="bal-shimmer absolute inset-y-0 pointer-events-none"
+                        style={{
+                          width: "30%",
+                          background: `linear-gradient(90deg, transparent, ${balanceDir === "up" ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"}, transparent)`,
+                          borderRadius: "999px",
+                          left: 0,
+                        }}
+                      />
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
 
