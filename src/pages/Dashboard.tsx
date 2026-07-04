@@ -311,11 +311,6 @@ interface DcaData {
   dca_step_timestamps?: number[];   // unix-ms per step
 }
 
-// FIX 1: Slowed DCA polling from 3 s → 15 s.
-// DCA step status changes at most once per bot cycle, not per second.
-// The old 3 s interval was hitting your internal /api/bot/data endpoint
-// 20× per minute — and if that handler proxies any Binance calls, those
-// counted against your Binance rate limit too.
 function useDcaData() {
   const [data, setData] = useState<DcaData | null>(null);
   useEffect(() => {
@@ -329,7 +324,7 @@ function useDcaData() {
           if (alive && json?.data) setData(json.data as DcaData);
         }
       } catch {}
-      timer = setTimeout(poll, 15_000); // was 3_000 — reduced to 15 s
+      timer = setTimeout(poll, 3000);
     }
     poll();
     return () => { alive = false; clearTimeout(timer); };
@@ -350,22 +345,7 @@ interface LastTrade {
   time: number; // unix ms
 }
 
-// FIX 2 & 3: Two rate-limit bugs fixed here.
-//
-// Bug A — double fire on every page load:
-//   While `orders` is still loading, `activeSymbol` is undefined, so
-//   `querySymbol` pointed at the localStorage value and fired getMyTrades
-//   immediately. Then ~300 ms later `orders` resolved, `orderSymbol` became
-//   defined, and the main `trades` query also fired — two getMyTrades calls
-//   back-to-back on every mount. Fixed by accepting `ordersLoading` and
-//   keeping this hook disabled while orders haven't settled yet.
-//
-// Bug B — getMyTrades on every tab switch:
-//   `staleTime: 0` + `refetchOnWindowFocus: true` meant every time the user
-//   alt-tabbed back to the dashboard (common for traders) a fresh getMyTrades
-//   call was fired. getMyTrades costs weight-20 on Binance. Fixed by raising
-//   staleTime to 5 min and disabling window-focus refetch.
-function useLastTrade(activeSymbol: string | undefined, ordersLoading: boolean): LastTrade | null {
+function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
   // Keep storedSymbol in state so React re-renders when it changes
   const [storedSymbol, setStoredSymbol] = useState<string | undefined>(
     () => localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined,
@@ -379,17 +359,15 @@ function useLastTrade(activeSymbol: string | undefined, ordersLoading: boolean):
     }
   }, [activeSymbol]);
 
-  // Only query when:
-  //  - orders have finished loading (prevents double-fire race on mount)
-  //  - there is NO active trade right now
-  const querySymbol = (activeSymbol || ordersLoading) ? undefined : storedSymbol;
+  // Only query when there is NO active trade
+  const querySymbol = activeSymbol ? undefined : storedSymbol;
 
   const tradesQuery = useQuery({
     queryKey: ["lastTrades", querySymbol],
     queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
     enabled: !!querySymbol,
-    staleTime: 5 * 60 * 1000,  // was 0 — keep data fresh for 5 min
-    refetchOnWindowFocus: false, // was true — stop refiring on every tab switch
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   return useMemo(() => {
@@ -481,9 +459,8 @@ export default function Dashboard() {
     refetchInterval: 60_000,
   });
 
-  // FIX: pass orders.isLoading so the hook stays disabled while orders settle,
-  // preventing the double getMyTrades call that fired on every page load.
-  const lastTrade = useLastTrade(orderSymbol, orders.isLoading);
+  // Last closed trade — shown when no active order
+  const lastTrade = useLastTrade(orderSymbol);
 
   const avgEntry = useMemo(() => {
     if (!trades.data || trades.data.length === 0) return 0;
