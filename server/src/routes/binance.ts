@@ -2,14 +2,46 @@ import { Router } from "express";
 
 const router = Router();
 
+// ── Binance base URLs (tried in order; skip on 4xx/5xx block codes) ──────────
 const PRIVATE_BASES = [
   "https://api-gcp.binance.com",
   "https://api1.binance.com",
   "https://api2.binance.com",
   "https://api3.binance.com",
+  "https://api4.binance.com",
   "https://api.binance.com",
 ];
 
+// ── Clock-drift correction ────────────────────────────────────────────────────
+// Render free-tier servers can drift by several seconds; Binance rejects
+// timestamps that are >10 s off its clock (-1021 error).
+// We fetch Binance server time on startup and every 30 min and apply the delta.
+
+let timeOffset = 0; // ms to ADD to Date.now() before signing
+
+async function syncBinanceTime(): Promise<void> {
+  for (const base of PRIVATE_BASES) {
+    try {
+      const res = await fetch(`${base}/api/v3/time`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) continue;
+      const { serverTime } = (await res.json()) as { serverTime: number };
+      timeOffset = serverTime - Date.now();
+      console.log(`[binance] time synced via ${base}, offset=${timeOffset}ms`);
+      return;
+    } catch {
+      // try next base
+    }
+  }
+  console.warn("[binance] time sync failed on all bases — using offset=0");
+}
+
+// Sync on startup, then every 30 minutes
+syncBinanceTime();
+setInterval(syncBinanceTime, 30 * 60 * 1000);
+
+// ── Keys ──────────────────────────────────────────────────────────────────────
 function getKeys() {
   const apiKey = process.env.BINANCE_API_KEY;
   const apiSecret = process.env.BINANCE_API_SECRET;
@@ -17,6 +49,7 @@ function getKeys() {
   return { apiKey, apiSecret };
 }
 
+// ── HMAC-SHA256 ───────────────────────────────────────────────────────────────
 async function hmacSha256Hex(secret: string, msg: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -25,67 +58,58 @@ async function hmacSha256Hex(secret: string, msg: string): Promise<string> {
     false, ["sign"],
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(msg));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-// ── Server time sync ───────────────────────────────────────────────────────
-// Keeps a running offset (ms) between local clock and Binance server time.
-// This prevents -1021 "Timestamp outside recvWindow" errors caused by
-// server clock drift (common on Render free tier after cold starts).
-
-let timeOffset = 0; // local + timeOffset ≈ Binance server time
-
-async function syncBinanceTime(): Promise<void> {
-  try {
-    const before = Date.now();
-    const res = await fetch("https://api.binance.com/api/v3/time", {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return;
-    const after = Date.now();
-    const { serverTime } = await res.json() as { serverTime: number };
-    // Use midpoint of the request as local time estimate
-    const localMid = Math.floor((before + after) / 2);
-    timeOffset = serverTime - localMid;
-  } catch {
-    // Non-fatal — keep previous offset
-  }
-}
-
-// Sync once on startup, then every 30 minutes
-syncBinanceTime();
-setInterval(syncBinanceTime, 30 * 60 * 1000);
-
-function binanceTimestamp(): number {
-  return Date.now() + timeOffset;
-}
-
-// ──────────────────────────────────────────────────────────────────────────
-
-async function signedGet<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
+// ── Signed GET with fallback + clock-drift correction ─────────────────────────
+async function signedGet<T>(
+  path: string,
+  params: Record<string, string | number> = {},
+): Promise<T> {
   const { apiKey, apiSecret } = getKeys();
+
+  // Apply clock-drift offset so the timestamp matches Binance's clock
+  const correctedNow = Date.now() + timeOffset;
+
   const q = new URLSearchParams({
     ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
     recvWindow: "15000",
-    timestamp: String(binanceTimestamp()),
+    timestamp: String(correctedNow),
   });
   q.append("signature", await hmacSha256Hex(apiSecret, q.toString()));
 
-  let lastError = "";
+  const RETRY_STATUS = new Set([451, 403, 418, 429, 500, 502, 503, 504]);
+  let lastError = "no bases tried";
+
   for (const base of PRIVATE_BASES) {
-    const res = await fetch(`${base}${path}?${q.toString()}`, {
-      headers: { "X-MBX-APIKEY": apiKey },
-      signal: AbortSignal.timeout(10000),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${base}${path}?${q.toString()}`, {
+        headers: { "X-MBX-APIKEY": apiKey },
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (fetchErr) {
+      lastError = `${base} fetch-error: ${String(fetchErr)}`;
+      continue; // network error — try next base
+    }
+
     if (res.ok) return res.json() as Promise<T>;
-    lastError = `${base} ${res.status}`;
-    if (![451, 403, 418, 429, 500, 502, 503, 504].includes(res.status)) break;
+
+    // Read body to surface the real Binance error code/message
+    let body = "";
+    try { body = await res.text(); } catch { /* ignore */ }
+    lastError = `${base} HTTP-${res.status}: ${body}`;
+    console.warn(`[binance] ${path} → ${lastError}`);
+
+    if (!RETRY_STATUS.has(res.status)) break; // e.g. 400 bad request — no point retrying
   }
+
   throw new Error(`Binance ${path} failed: ${lastError}`);
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
@@ -98,15 +122,13 @@ async function batchSettled<T>(
   const results: PromiseSettledResult<T>[] = [];
   for (let i = 0; i < fns.length; i += batchSize) {
     const batch = fns.slice(i, i + batchSize);
-    const batchResults = await Promise.allSettled(batch.map((fn) => fn()));
-    results.push(...batchResults);
+    results.push(...await Promise.allSettled(batch.map((fn) => fn())));
     if (i + batchSize < fns.length) await sleep(delayMs);
   }
   return results;
 }
 
-// ── Generic in-memory cache ────────────────────────────────────────────────
-
+// ── In-memory cache ───────────────────────────────────────────────────────────
 interface CacheEntry<T> { data: T; expiresAt: number; }
 const cache = new Map<string, CacheEntry<unknown>>();
 
@@ -120,38 +142,11 @@ function setCache<T>(key: string, data: T, ttlMs: number) {
   cache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
 
-// ── In-flight deduplication ────────────────────────────────────────────────
-// If multiple requests arrive while a fetch is already in-flight, they all
-// wait for the same promise instead of each spawning their own Binance call.
+const ACCOUNT_TTL   = 30_000; // 30 s — weight 20
+const ORDERS_TTL    = 15_000; // 15 s — weight 40
+const MY_TRADES_TTL = 30_000; // 30 s — weight 20/symbol
 
-const inFlight = new Map<string, Promise<unknown>>();
-
-async function cachedSignedGet<T>(
-  cacheKey: string,
-  ttlMs: number,
-  fetcher: () => Promise<T>,
-): Promise<T> {
-  const cached = getCache<T>(cacheKey);
-  if (cached !== undefined) return cached;
-
-  const existing = inFlight.get(cacheKey) as Promise<T> | undefined;
-  if (existing) return existing;
-
-  const promise: Promise<T> = fetcher().then((data) => {
-    setCache(cacheKey, data, ttlMs);
-    inFlight.delete(cacheKey);
-    return data;
-  }).catch((err) => {
-    inFlight.delete(cacheKey);
-    throw err;
-  });
-
-  inFlight.set(cacheKey, promise as Promise<unknown>);
-  return promise;
-}
-
-// ── Coin logo resolver (CoinGecko → cached server-side) ────────────────────
-
+// ── Coin logo (CoinGecko, server-side cached 24 h) ────────────────────────────
 const logoInFlight = new Map<string, Promise<string | null>>();
 
 async function resolveCoinLogo(symbol: string): Promise<string | null> {
@@ -166,23 +161,17 @@ async function resolveCoinLogo(symbol: string): Promise<string | null> {
     try {
       const resp = await fetch(
         `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(symbol)}`,
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(6000),
-        },
+        { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(6000) },
       );
       if (!resp.ok) return null;
-
       const body = await resp.json() as {
         coins?: Array<{ symbol: string; thumb?: string; large?: string }>;
       };
-
       const exact = body.coins?.find(
         (c) => c.symbol.toUpperCase() === symbol.toUpperCase(),
       );
       const coin = exact ?? body.coins?.[0];
       const url = coin?.large ?? coin?.thumb ?? null;
-
       setCache(key, url, 24 * 60 * 60 * 1000);
       return url;
     } catch {
@@ -197,11 +186,9 @@ async function resolveCoinLogo(symbol: string): Promise<string | null> {
   return promise;
 }
 
-// GET /api/coin-logo/:symbol
 router.get("/coin-logo/:symbol", async (req, res) => {
   const symbol = (req.params["symbol"] ?? "").toUpperCase();
   if (!symbol) { res.status(400).json({ error: "symbol required" }); return; }
-
   const url = await resolveCoinLogo(symbol);
   if (url) {
     res.setHeader("Cache-Control", "public, max-age=86400, immutable");
@@ -211,86 +198,86 @@ router.get("/coin-logo/:symbol", async (req, res) => {
   }
 });
 
-// ── Binance signed routes ──────────────────────────────────────────────────
-
-// Account — cached 12 s (frontend polls every 15 s; avoids duplicate Binance
-// calls and protects against rate-limit spikes on cold-start / tab reopens).
+// ── /api/binance/account ──────────────────────────────────────────────────────
 router.get("/binance/account", async (_req, res) => {
   try {
-    type RawAccount = {
+    const cached = getCache<object>("account");
+    if (cached) { res.json(cached); return; }
+
+    const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
       canTrade: boolean;
       accountType: string;
-    };
-
-    const acc = await cachedSignedGet<RawAccount>(
-      "account",
-      12_000, // 12 s TTL
-      () => signedGet<RawAccount>("/api/v3/account"),
-    );
+    }>("/api/v3/account");
 
     const balances = acc.balances
       .map((b) => ({ asset: b.asset, free: parseFloat(b.free), locked: parseFloat(b.locked) }))
       .filter((b) => b.free + b.locked > 0);
 
-    res.json({ balances, canTrade: acc.canTrade, accountType: acc.accountType });
+    const result = { balances, canTrade: acc.canTrade, accountType: acc.accountType };
+    setCache("account", result, ACCOUNT_TTL);
+    res.json(result);
   } catch (err) {
+    console.error("[binance] /account error:", err);
     res.status(502).json({ error: String(err) });
   }
 });
 
-// Open orders — cached 6 s (frontend polls every 8 s).
+// ── /api/binance/openOrders ───────────────────────────────────────────────────
 router.get("/binance/openOrders", async (_req, res) => {
   try {
-    type RawOrder = {
+    const cached = getCache<unknown[]>("openOrders");
+    if (cached) { res.json(cached); return; }
+
+    const orders = await signedGet<Array<{
       symbol: string; orderId: number; price: string; origQty: string;
       executedQty: string; status: string; type: string; side: string;
       stopPrice: string; time: number;
-    };
+    }>>("/api/v3/openOrders");
 
-    const orders = await cachedSignedGet<RawOrder[]>(
-      "openOrders",
-      6_000, // 6 s TTL
-      () => signedGet<RawOrder[]>("/api/v3/openOrders"),
-    );
-
+    setCache("openOrders", orders, ORDERS_TTL);
     res.json(orders);
   } catch (err) {
+    console.error("[binance] /openOrders error:", err);
     res.status(502).json({ error: String(err) });
   }
 });
 
+// ── /api/binance/myTrades ─────────────────────────────────────────────────────
 router.get("/binance/myTrades", async (req, res) => {
   try {
     const symbol = req.query["symbol"] as string;
     const limit = req.query["limit"] ? Number(req.query["limit"]) : 50;
     if (!symbol) { res.status(400).json({ error: "symbol required" }); return; }
+
+    const sym = symbol.toUpperCase();
+    const cacheKey = `myTrades:${sym}:${limit}`;
+    const cached = getCache<unknown[]>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     const trades = await signedGet<Array<{
       symbol: string; id: number; orderId: number; price: string; qty: string;
       quoteQty: string; commission: string; commissionAsset: string;
       time: number; isBuyer: boolean; isMaker: boolean;
-    }>>("/api/v3/myTrades", { symbol: symbol.toUpperCase(), limit });
+    }>>("/api/v3/myTrades", { symbol: sym, limit });
+
+    setCache(cacheKey, trades, MY_TRADES_TTL);
     res.json(trades);
   } catch (err) {
+    console.error("[binance] /myTrades error:", err);
     res.status(502).json({ error: String(err) });
   }
 });
 
+// ── /api/binance/allTrades ────────────────────────────────────────────────────
 router.get("/binance/allTrades", async (_req, res) => {
   try {
     const cached = getCache<unknown[]>("allTrades");
     if (cached) { res.json(cached); return; }
 
-    type RawAccount = {
+    const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
-    };
-
-    // Re-use the cached account snapshot if available; fall back to a fresh call
-    const acc = await cachedSignedGet<RawAccount>(
-      "account",
-      12_000,
-      () => signedGet<RawAccount>("/api/v3/account"),
-    );
+    }>("/api/v3/account");
 
     const assets = acc.balances
       .filter((b) => parseFloat(b.free) + parseFloat(b.locked) > 0)
@@ -308,7 +295,6 @@ router.get("/binance/allTrades", async (_req, res) => {
     );
 
     const results = await batchSettled(fns, 3, 400);
-
     const allTrades = results
       .filter((r): r is PromiseFulfilledResult<RawTrade[]> => r.status === "fulfilled")
       .flatMap((r) => r.value)
@@ -317,6 +303,7 @@ router.get("/binance/allTrades", async (_req, res) => {
     setCache("allTrades", allTrades, 3 * 60 * 1000);
     res.json(allTrades);
   } catch (err) {
+    console.error("[binance] /allTrades error:", err);
     res.status(502).json({ error: String(err) });
   }
 });
