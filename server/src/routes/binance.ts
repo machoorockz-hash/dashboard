@@ -12,6 +12,31 @@ const PRIVATE_BASES = [
   "https://api.binance.com",
 ];
 
+// ── Circuit breaker ───────────────────────────────────────────────────────────
+// When Binance bans the IP (-1003, HTTP 418) it tells us exactly when the ban
+// lifts via the "banned until <ms>" message. We parse that timestamp and refuse
+// ALL Binance calls until it passes — stopping the retry storm that would
+// otherwise extend the ban.
+
+let bannedUntil = 0; // Unix ms; 0 = not banned
+
+function checkCircuitBreaker() {
+  if (Date.now() < bannedUntil) {
+    const secsLeft = Math.ceil((bannedUntil - Date.now()) / 1000);
+    throw new Error(`Binance IP banned — ${secsLeft}s remaining. Try again later.`);
+  }
+}
+
+function recordBan(body: string) {
+  // Response body: {"code":-1003,"msg":"...banned until 1783163570886..."}
+  const match = body.match(/banned until (\d+)/);
+  if (match) {
+    bannedUntil = parseInt(match[1], 10);
+    const secsLeft = Math.ceil((bannedUntil - Date.now()) / 1000);
+    console.warn(`[binance] IP banned by Binance for ${secsLeft}s (until ${new Date(bannedUntil).toISOString()})`);
+  }
+}
+
 // ── Clock-drift correction ────────────────────────────────────────────────────
 // Render free-tier servers can drift by several seconds; Binance rejects
 // timestamps that are >10 s off its clock (-1021 error).
@@ -68,6 +93,9 @@ async function signedGet<T>(
   path: string,
   params: Record<string, string | number> = {},
 ): Promise<T> {
+  // Refuse immediately if IP is currently banned — don't waste calls
+  checkCircuitBreaker();
+
   const { apiKey, apiSecret } = getKeys();
 
   // Apply clock-drift offset so the timestamp matches Binance's clock
@@ -80,7 +108,8 @@ async function signedGet<T>(
   });
   q.append("signature", await hmacSha256Hex(apiSecret, q.toString()));
 
-  const RETRY_STATUS = new Set([451, 403, 418, 429, 500, 502, 503, 504]);
+  // Only retry on these — 418 means IP ban, stop all bases immediately
+  const RETRY_STATUS = new Set([500, 502, 503, 504]);
   let lastError = "no bases tried";
 
   for (const base of PRIVATE_BASES) {
@@ -103,7 +132,19 @@ async function signedGet<T>(
     lastError = `${base} HTTP-${res.status}: ${body}`;
     console.warn(`[binance] ${path} → ${lastError}`);
 
-    if (!RETRY_STATUS.has(res.status)) break; // e.g. 400 bad request — no point retrying
+    // 418 = IP ban — record expiry and stop trying all other bases
+    if (res.status === 418) {
+      recordBan(body);
+      break;
+    }
+
+    // 429 = rate limit warning — stop before we trigger a ban
+    if (res.status === 429) {
+      console.warn(`[binance] 429 rate limit hit on ${base}, stopping`);
+      break;
+    }
+
+    if (!RETRY_STATUS.has(res.status)) break; // 400, 401, etc — no point retrying
   }
 
   throw new Error(`Binance ${path} failed: ${lastError}`);
@@ -142,9 +183,9 @@ function setCache<T>(key: string, data: T, ttlMs: number) {
   cache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
 
-const ACCOUNT_TTL   = 30_000; // 30 s — weight 20
-const ORDERS_TTL    = 15_000; // 15 s — weight 40
-const MY_TRADES_TTL = 30_000; // 30 s — weight 20/symbol
+const ACCOUNT_TTL   = 60_000;  // 60 s — weight 20
+const ORDERS_TTL    = 30_000;  // 30 s — weight 40
+const MY_TRADES_TTL = 60_000;  // 60 s — weight 20/symbol
 
 // ── Coin logo (CoinGecko, server-side cached 24 h) ────────────────────────────
 const logoInFlight = new Map<string, Promise<string | null>>();
