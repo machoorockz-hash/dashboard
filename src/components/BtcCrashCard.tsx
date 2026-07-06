@@ -640,22 +640,6 @@ export function BtcCrashCard() {
                 }}>
                   BTC MONITOR
                 </span>
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: "5px",
-                  padding: "3px 9px", borderRadius: "999px",
-                  background: "rgba(13,217,170,0.1)", border: "1px solid rgba(13,217,170,0.32)",
-                  boxShadow: "none",
-                  fontSize: "8px", fontWeight: 900, letterSpacing: "0.14em",
-                  color: "#0dd9aa", textTransform: "uppercase",
-                }}>
-                  <span style={{
-                    width: "5px", height: "5px", borderRadius: "50%",
-                    background: "#0dd9aa",
-                    animation: "_bc_blink 1.5s ease-in-out infinite",
-                    display: "inline-block",
-                  }} />
-                  LIVE
-                </span>
               </div>
               <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", fontWeight: 500 }}>
                 {d ? `updated ${age}` : "waiting for bot data…"}
