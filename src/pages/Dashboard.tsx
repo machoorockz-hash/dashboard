@@ -752,12 +752,10 @@ export default function Dashboard() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl md:text-2xl font-black truncate">{primary.symbol}</h2>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider">{primary.type}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${primary.side === "SELL" ? "bg-bear/15 text-bear" : "bg-bull/15 text-bull"}`}>{primary.side}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-bull animate-pulse" />
-                      Live · {fmt(orderQty, 4)} {orderBase}
                     </div>
                   </div>
                 </div>
