@@ -548,6 +548,11 @@ export function BtcCrashCard() {
   const cfg        = STAGE[stage] ?? STAGE.SAFE;
   const isPaused   = d?.trade_mode === "Pause";
 
+  // When paused, override the whole card's colour theme to yellow
+  const displayCfg = isPaused
+    ? { color: "#f5c542", colorMid: "rgba(245,197,66,0.5)", glow: "rgba(245,197,66,0.18)", border: "rgba(245,197,66,0.35)", label: "PAUSED", sub: "TRADING HALTED" }
+    : cfg;
+
   const pauseReason = (() => {
     if (!d) return "";
     if (d.pause_reason?.trim()) return d.pause_reason.trim();
@@ -595,7 +600,7 @@ export function BtcCrashCard() {
         borderRadius: "22px",
         overflow: "hidden",
         background: "transparent",
-        border: `1px solid ${cfg.border}`,
+        border: `1px solid ${displayCfg.border}`,
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
         transition: "border-color 0.55s ease, box-shadow 0.65s ease",
         display: "flex", flexDirection: "column",
@@ -604,7 +609,7 @@ export function BtcCrashCard() {
         {/* top accent line */}
         <div aria-hidden style={{
           position: "absolute", top: 0, left: 0, right: 0, height: "1px",
-          background: `linear-gradient(90deg, transparent, ${cfg.color}55 30%, ${cfg.color}80 50%, ${cfg.color}55 70%, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${displayCfg.color}55 30%, ${displayCfg.color}80 50%, ${displayCfg.color}55 70%, transparent)`,
           zIndex: 5, pointerEvents: "none",
           transition: "background 0.55s ease",
         }} />
@@ -661,31 +666,31 @@ export function BtcCrashCard() {
           {/* status badge */}
           <div style={{
             padding: "9px 18px", borderRadius: "12px",
-            background: `linear-gradient(135deg, ${cfg.color}18, ${cfg.color}07)`,
-            border: `1px solid ${cfg.border}`,
-            boxShadow: `inset 0 1px 0 ${cfg.color}15`,
+            background: `linear-gradient(135deg, ${displayCfg.color}18, ${displayCfg.color}07)`,
+            border: `1px solid ${displayCfg.border}`,
+            boxShadow: `inset 0 1px 0 ${displayCfg.color}15`,
             display: "flex", flexDirection: "column", alignItems: "center",
             transition: "all 0.55s ease", minWidth: "88px",
           }}>
             <div style={{
               display: "flex", alignItems: "center", gap: "7px",
               fontSize: "12px", fontWeight: 900, letterSpacing: "0.1em",
-              color: cfg.color,
+              color: displayCfg.color,
               textTransform: "uppercase",
             }}>
               <span style={{
                 width: "7px", height: "7px", borderRadius: "50%",
-                background: cfg.color,
+                background: displayCfg.color,
                 animation: "_bc_blink 1.8s ease-in-out infinite",
               }} />
-              {d ? cfg.label : "OFFLINE"}
+              {d ? displayCfg.label : "OFFLINE"}
             </div>
             {d && (
               <div style={{
                 fontSize: "7px", fontWeight: 700, marginTop: "2px",
-                color: `${cfg.color}75`, letterSpacing: "0.1em", textTransform: "uppercase",
+                color: `${displayCfg.color}75`, letterSpacing: "0.1em", textTransform: "uppercase",
               }}>
-                {cfg.sub}
+                {displayCfg.sub}
               </div>
             )}
           </div>
@@ -993,7 +998,7 @@ export function BtcCrashCard() {
         {/* bottom shimmer */}
         <div aria-hidden style={{
           height: "1px",
-          background: `linear-gradient(90deg, transparent, ${cfg.color}28, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${displayCfg.color}28, transparent)`,
           transition: "background 0.55s",
         }} />
       </section>
