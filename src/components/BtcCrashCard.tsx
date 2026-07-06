@@ -204,16 +204,6 @@ function CycleProgressBar({ pct, phase }: { pct: number; phase: string }) {
 
   return (
     <div>
-      {/* Unicode bar */}
-      <div style={{
-        fontFamily: "monospace", fontSize: "12px", letterSpacing: "1px",
-        color: fillColor, marginBottom: "6px", lineHeight: 1,
-        userSelect: "none",
-      }}>
-        {"█".repeat(filled)}
-        <span style={{ color: "rgba(255,255,255,0.12)" }}>{"░".repeat(barLen - filled)}</span>
-      </div>
-
       {/* Smooth bar */}
       <div style={{
         height: "5px", borderRadius: "99px",
