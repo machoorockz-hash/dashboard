@@ -10,6 +10,13 @@ import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/bin
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
+// Spectrum palette for the wallet allocation bar & coin accent colours
+const SPECTRUM_COLORS = [
+  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
+  "#10b981", "#14b8a6", "#06b6d4", "#3b82f6",
+  "#8b5cf6", "#ec4899",
+];
+
 function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
 }
@@ -381,6 +388,56 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
   }, [tradesQuery.data, querySymbol]);
 }
 
+function useAnimatedBalance(target: number) {
+  const [display, setDisplay] = useState(target);
+  const [direction, setDirection] = useState<"up" | "down" | null>(null);
+  const [delta, setDelta] = useState<number | null>(null);
+  const [changeKey, setChangeKey] = useState(0);
+  const prevRef = useRef(target);
+  const rafRef = useRef<number | null>(null);
+  const dirTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    if (Math.abs(target - prev) < 0.001) return;
+    const diff = target - prev;
+    prevRef.current = target;
+
+    setDirection(diff > 0 ? "up" : "down");
+    setDelta(diff);
+    setChangeKey((k) => k + 1);
+
+    if (dirTimerRef.current) clearTimeout(dirTimerRef.current);
+    dirTimerRef.current = setTimeout(() => {
+      setDirection(null);
+      setDelta(null);
+    }, 2000);
+
+    const DURATION = 950;
+    const startTime = performance.now();
+    const startVal = prev;
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / DURATION, 1);
+      const eased = 1 - Math.pow(1 - t, 4);
+      setDisplay(startVal + diff * eased);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplay(target);
+      }
+    };
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target]);
+
+  return { display, direction, delta, changeKey };
+}
+
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
   const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
@@ -462,6 +519,7 @@ export default function Dashboard() {
   );
 
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
+  const { display: animatedTotal, direction: balanceDir, delta: balanceDelta, changeKey: balanceKey } = useAnimatedBalance(totalUsdt);
 
   const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
   const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
@@ -510,36 +568,178 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-5">
 
-        {/* ── WALLET ── */}
-        <section className="glow-card rounded-2xl p-5 md:p-6 relative overflow-hidden border border-border bg-card">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_60%)] pointer-events-none" />
-          <div className="relative flex items-center gap-2 text-[11px] uppercase tracking-widest text-primary/80 font-bold">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <WalletIcon className="h-3.5 w-3.5" />
-            Wallet
-          </div>
-          <div className="relative mt-3">
-            <span className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-primary/70 bg-clip-text text-transparent">
-              ${account.isLoading ? "…" : fmt(totalUsdt)}
-            </span>
-          </div>
-          {walletAssets.length > 0 && (
-            <div className="relative mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-              {walletAssets.slice(0, 10).map((b) => (
-                <div key={b.asset} className="shrink-0 rounded-xl border border-border bg-card/60 px-3 py-2 flex items-center gap-2 min-w-[150px] hover:border-primary/40 transition-colors">
-                  <CoinIcon symbol={b.asset} size={28} />
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold truncate">{b.asset}</div>
-                    <div className="text-[10px] text-muted-foreground tabular-nums">${fmt(b.usd)}</div>
+        {/* ── WALLET CARD — premium futuristic redesign ── */}
+        <section
+          className="rounded-2xl relative overflow-hidden"
+          style={{
+            background: "transparent",
+            border: "1px solid oklch(0.78 0.07 200 / 22%)",
+            backdropFilter: "blur(32px) saturate(180%)",
+            WebkitBackdropFilter: "blur(32px) saturate(180%)",
+          }}
+        >
+
+          <div className="relative p-5 md:p-6">
+            {/* ── Header row ── */}
+            <div className="flex items-center justify-between">
+              <div
+                className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold"
+                style={{ color: "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))" }}
+              >
+                {/* Pulsing status dot */}
+                <span
+                  className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0"
+                  style={{ boxShadow: "0 0 6px 2px color-mix(in oklab, var(--primary) 55%, transparent)" }}
+                />
+                <WalletIcon className="h-3.5 w-3.5 shrink-0" />
+                Wallet
+              </div>
+
+            </div>
+
+            {/* ── Balance amount ── */}
+            <div className="mt-4">
+              <style>{`
+                .bal-text {
+                  display: inline-block;
+                  background-image: linear-gradient(140deg, #f8fafc 0%, var(--primary) 55%, #94d9f5 100%);
+                  -webkit-background-clip: text;
+                  background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  color: transparent;
+                }
+                @keyframes bal-glow-up {
+                  0%   { box-shadow: 0 0 0px 0px rgba(16,185,129,0); }
+                  20%  { box-shadow: 0 0 52px 14px rgba(16,185,129,0.42); }
+                  100% { box-shadow: 0 0 0px 0px rgba(16,185,129,0); opacity: 0; }
+                }
+                @keyframes bal-glow-down {
+                  0%   { box-shadow: 0 0 0px 0px rgba(239,68,68,0); }
+                  20%  { box-shadow: 0 0 52px 14px rgba(239,68,68,0.42); }
+                  100% { box-shadow: 0 0 0px 0px rgba(239,68,68,0); opacity: 0; }
+                }
+                @keyframes bal-shimmer {
+                  0%   { transform: translateX(-130%) skewX(-16deg); opacity: 0; }
+                  15%  { opacity: 0.65; }
+                  85%  { opacity: 0.65; }
+                  100% { transform: translateX(230%) skewX(-16deg); opacity: 0; }
+                }
+                @keyframes delta-rise {
+                  0%   { transform: translateY(0px); opacity: 1; }
+                  65%  { opacity: 1; }
+                  100% { transform: translateY(-32px); opacity: 0; }
+                }
+                @keyframes bal-scale-pop {
+                  0%   { transform: scale(1); }
+                  14%  { transform: scale(1.022); }
+                  100% { transform: scale(1); }
+                }
+                .bal-glow-up   { animation: bal-glow-up   2s ease-out forwards; }
+                .bal-glow-down { animation: bal-glow-down 2s ease-out forwards; }
+                .bal-shimmer   { animation: bal-shimmer   0.9s ease-in-out forwards; }
+                .bal-scale-pop { animation: bal-scale-pop 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+                .delta-rise    { animation: delta-rise    2s ease-out forwards; }
+              `}</style>
+              <div className="flex items-start gap-2 relative">
+                <div style={{ position: "relative", display: "inline-block" }}>
+
+                  {/* Glow halo — box-shadow on a sibling, never touches the text */}
+                  {balanceDir && (
+                    <div
+                      key={`glow-${balanceKey}`}
+                      className={balanceDir === "up" ? "bal-glow-up" : "bal-glow-down"}
+                      style={{ position: "absolute", inset: "-4px", borderRadius: "12px", pointerEvents: "none" }}
+                    />
+                  )}
+
+                  {/* Scale wrapper — transform-only, safe alongside background-clip:text */}
+                  <div
+                    key={`scale-${balanceKey}`}
+                    className={balanceDir ? "bal-scale-pop" : ""}
+                    style={{ display: "inline-block", position: "relative" }}
+                  >
+                    {/* Gradient text via CSS class — NOT inline styles, avoids React serialisation bugs */}
+                    <span className="bal-text text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums">
+                      {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
+                    </span>
+
+                    {/* Shimmer sweep */}
+                    {balanceDir && (
+                      <div
+                        key={`shimmer-${balanceKey}`}
+                        className="bal-shimmer"
+                        style={{
+                          position: "absolute", inset: 0, width: "32%", borderRadius: "4px", pointerEvents: "none",
+                          background: `linear-gradient(90deg, transparent, ${balanceDir === "up" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}, transparent)`,
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
+
+
+
+            {/* ── Coin asset cards ── */}
+            {walletAssets.length > 0 && (
+              <div
+                className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+              >
+                {walletAssets.slice(0, 10).map((b, i) => {
+                  const pct = totalUsdt > 0 ? (b.usd / totalUsdt) * 100 : 0;
+                  const accentColor = SPECTRUM_COLORS[i % SPECTRUM_COLORS.length];
+
+                  return (
+                    <div
+                      key={b.asset}
+                      className="shrink-0 flex items-center gap-1.5 rounded-lg relative overflow-hidden cursor-default"
+                      style={{
+                        padding: "5px 8px",
+                        background: "oklch(0.55 0.06 210 / 10%)",
+                        border: `1px solid ${accentColor}28`,
+                        backdropFilter: "blur(10px)",
+                        WebkitBackdropFilter: "blur(10px)",
+                        transition: "border-color 0.2s, box-shadow 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.borderColor = `${accentColor}55`;
+                        (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 12px -4px ${accentColor}40`;
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.borderColor = `${accentColor}28`;
+                        (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+                      }}
+                    >
+                      {/* Accent left bar */}
+                      <div
+                        className="absolute inset-y-0 left-0 w-[2px]"
+                        style={{ background: accentColor, opacity: 0.7 }}
+                      />
+
+                      <CoinIcon symbol={b.asset} size={16} />
+
+                      <span className="text-[10px] font-black tracking-tight truncate" style={{ maxWidth: "48px" }}>
+                        {b.asset}
+                      </span>
+
+                      <span
+                        className="text-[9px] font-bold tabular-nums"
+                        style={{ color: "oklch(0.82 0.01 200)" }}
+                      >
+                        ${fmt(b.usd, 2)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* ── ACTIVE TRADE ── */}
-        <section className={`rounded-2xl border bg-card p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
+        <section className={`rounded-2xl border bg-transparent p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
           {primary ? (
             <>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
