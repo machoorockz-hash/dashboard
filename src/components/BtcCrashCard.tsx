@@ -625,12 +625,15 @@ export function BtcCrashCard() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "3px" }}>
                 <span style={{
-                  fontSize: "15px", fontWeight: 800,
-                  background: "linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6))",
+                  fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
+                  fontSize: "13.2px", fontWeight: 900,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
                   WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                  backgroundClip: "text", letterSpacing: "-0.015em",
+                  backgroundClip: "text",
                 }}>
-                  BTC Monitor
+                  BTC MONITOR
                 </span>
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: "5px",
