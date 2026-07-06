@@ -7,6 +7,7 @@ import botRouter from "./routes/bot.js";
 import binanceRouter from "./routes/binance.js";
 import pumpRouter from "./routes/pump.js";
 import delistRouter from "./routes/delist.js";
+import cycleRouter from "./routes/cycle.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,7 @@ app.use("/api", botRouter);
 app.use("/api", binanceRouter);
 app.use("/api", pumpRouter);
 app.use("/api", delistRouter);
+app.use("/api", cycleRouter);
 
 app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
 
