@@ -251,7 +251,7 @@ export default function PumpScannerCard() {
           </div>
           <span style={{
             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-            fontSize: "11px",
+            fontSize: "13.2px",
             fontWeight: 900,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
