@@ -751,7 +751,7 @@ export default function Dashboard() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-xl md:text-2xl truncate" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>{primary.symbol}</h2>
+                      <h2 className="text-xl md:text-2xl font-black truncate">{primary.symbol}</h2>
                     </div>
                     <div className="mt-1 flex items-center gap-1.5">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider">{primary.type}</span>
@@ -773,7 +773,7 @@ export default function Dashboard() {
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
-                <span className="text-[1.95rem] md:text-[2.4375rem] tabular-nums transition-colors" style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                <span className={`text-[1.95rem] md:text-[2.4375rem] font-black tabular-nums transition-colors ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
                   ${cur ? fmtPrice(cur) : "…"}
                 </span>
               </div>
