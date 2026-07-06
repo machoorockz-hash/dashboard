@@ -20,6 +20,22 @@ interface BotData {
 }
 interface Snapshot { key: string; updatedAt: string | null; data: BotData | null; }
 
+interface CycleData {
+  last_event_type: string;
+  last_event_date: string;
+  last_event_price: number;
+  next_event_type: string;
+  next_event_date: string;
+  next_event_days: number;
+  phase: string;
+  cycle_elapsed: number;
+  cycle_total: number;
+  cycle_pct: number;
+  current_price: number;
+  change_since_last: number;
+}
+interface CycleSnapshot { updatedAt: string | null; data: CycleData | null; }
+
 /* ─────────────────────────── CONFIG ─────────────────────────── */
 const STAGE: Record<string, {
   color: string; colorMid: string; glow: string; border: string; label: string; sub: string;
@@ -54,7 +70,6 @@ const since  = (iso: string) => {
 const dropCol = (p: number) => p >= 4 ? "#ef4444" : p >= 2 ? "#f97316" : p >= 1 ? "#f5c542" : "#0dd9aa";
 
 /* ─────────────────────────── PRESSURE BARS ─────────────────────────── */
-// Uniform-height segments like the reference — LED bar meter style
 function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
   const [animLit, setAnimLit] = useState(0);
   const color  = inactive ? "transparent" : dropCol(pct);
@@ -80,18 +95,13 @@ function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
       {Array.from({ length: TOTAL }).map((_, i) => {
         const filled = i < animLit;
         const isTip  = filled && i === animLit - 1;
-
-        // bars get very subtly brighter toward the right when filled
         const brightness = filled ? (0.70 + (i / (TOTAL - 1)) * 0.30) : 1;
-
         return (
           <div key={i} style={{
             width: "6px",
             height: "18px",
             borderRadius: "3px",
-            background: filled
-              ? color
-              : "rgba(255,255,255,0.07)",
+            background: filled ? color : "rgba(255,255,255,0.07)",
             opacity: brightness,
             boxShadow: isTip
               ? `0 0 4px 1px ${color}90, 0 0 8px 2px ${color}28`
@@ -147,7 +157,6 @@ function SigCard({
           animation: "_bc_epulse 2.2s ease-in-out infinite",
         }} />
       )}
-      {/* title row — wraps on narrow cards */}
       <div style={{
         display: "flex", alignItems: "flex-start",
         justifyContent: "space-between", gap: "6px", flexWrap: "wrap",
@@ -179,13 +188,333 @@ function SigCard({
   );
 }
 
+/* ─────────────────────────── CYCLE PROGRESS BAR ─────────────────────────── */
+function CycleProgressBar({ pct, phase }: { pct: number; phase: string }) {
+  const [animPct, setAnimPct] = useState(0);
+  const isDeclining = phase === "declining";
+  const fillColor   = isDeclining ? "#ef4444" : "#0dd9aa";
+  const barLen      = 44;
+  const filled      = Math.round(Math.min(pct, 100) / 100 * barLen);
+
+  useEffect(() => {
+    setAnimPct(0);
+    const t = setTimeout(() => setAnimPct(pct), 80);
+    return () => clearTimeout(t);
+  }, [pct]);
+
+  return (
+    <div>
+      {/* Unicode bar */}
+      <div style={{
+        fontFamily: "monospace", fontSize: "12px", letterSpacing: "1px",
+        color: fillColor, marginBottom: "6px", lineHeight: 1,
+        userSelect: "none",
+      }}>
+        {"█".repeat(filled)}
+        <span style={{ color: "rgba(255,255,255,0.12)" }}>{"░".repeat(barLen - filled)}</span>
+      </div>
+
+      {/* Smooth bar */}
+      <div style={{
+        height: "5px", borderRadius: "99px",
+        background: "rgba(255,255,255,0.07)",
+        overflow: "hidden",
+        marginBottom: "8px",
+      }}>
+        <div style={{
+          height: "100%",
+          width: `${animPct}%`,
+          borderRadius: "99px",
+          background: isDeclining
+            ? "linear-gradient(90deg, #f97316, #ef4444)"
+            : "linear-gradient(90deg, #0dd9aa, #06b6d4)",
+          transition: "width 1.2s cubic-bezier(0.22,1,0.36,1)",
+          boxShadow: isDeclining
+            ? "0 0 8px 2px rgba(239,68,68,0.35)"
+            : "0 0 8px 2px rgba(13,217,170,0.35)",
+        }} />
+      </div>
+
+      <div style={{
+        display: "flex", justifyContent: "space-between",
+        fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em",
+        color: "rgba(255,255,255,0.25)",
+      }}>
+        <span>START</span>
+        <span style={{ color: fillColor, fontWeight: 900 }}>{animPct.toFixed(0)}%</span>
+        <span>END</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────── CYCLE ORACLE SECTION ─────────────────────────── */
+function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
+  const c = cycle?.data;
+  const isDeclining  = c?.phase === "declining";
+  const phaseColor   = isDeclining ? "#ef4444" : "#0dd9aa";
+  const phaseLabel   = isDeclining ? "DECLINING" : "ACCUMULATION";
+  const phaseSub     = isDeclining ? "HIGH → LOW" : "LOW → HIGH";
+  const eventColor   = c?.last_event_type === "HIGH" ? "#ef4444" : "#0dd9aa";
+  const nextColor    = c?.next_event_type  === "HIGH" ? "#f97316" : "#06b6d4";
+  const changePct    = c?.change_since_last ?? 0;
+  const isStale      = !cycle?.updatedAt ||
+    (Date.now() - new Date(cycle.updatedAt).getTime()) > 10 * 60 * 1000; // 10 min
+
+  return (
+    <div style={{
+      position: "relative", zIndex: 2,
+      margin: "12px 14px 14px",
+      borderRadius: "18px",
+      border: "1px solid rgba(255,255,255,0.08)",
+      background: "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)",
+      overflow: "hidden",
+    }}>
+      {/* accent line */}
+      <div style={{
+        position: "absolute", top: 0, left: "10%", right: "10%", height: "1px",
+        background: `linear-gradient(90deg, transparent, ${phaseColor}55 40%, ${phaseColor}80 50%, ${phaseColor}55 60%, transparent)`,
+        animation: "_bc_epulse 3s ease-in-out infinite",
+      }} />
+
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 16px 10px",
+        borderBottom: "1px solid rgba(255,255,255,0.055)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+          <span style={{ fontSize: "16px" }}>₿</span>
+          <span style={{
+            fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>
+            Cycle Oracle
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{
+            width: "5px", height: "5px", borderRadius: "50%",
+            background: isStale ? "#f5c542" : phaseColor,
+            display: "inline-block",
+            animation: isStale ? "none" : "_bc_blink 2s ease-in-out infinite",
+          }} />
+          <span style={{
+            fontSize: "8px", fontWeight: 800, letterSpacing: "0.1em",
+            color: isStale ? "#f5c542" : "rgba(255,255,255,0.28)",
+            textTransform: "uppercase",
+          }}>
+            {isStale ? "OFFLINE" : "LIVE"}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+
+        {/* ── Phase + Progress ── */}
+        <div style={{
+          borderRadius: "14px",
+          border: `1px solid ${phaseColor}28`,
+          background: `linear-gradient(135deg, ${phaseColor}0d, rgba(255,255,255,0.02))`,
+          padding: "14px 16px",
+          display: "flex", flexDirection: "column", gap: "10px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{
+                fontSize: "8px", fontWeight: 800, letterSpacing: "0.16em",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.25)",
+                marginBottom: "5px",
+              }}>
+                ◉ Current Phase
+              </div>
+              <div style={{
+                fontSize: "22px", fontWeight: 900, letterSpacing: "-0.03em",
+                color: phaseColor, lineHeight: 1,
+              }}>
+                {c ? phaseLabel : "—"}
+              </div>
+              <div style={{
+                fontSize: "10px", fontWeight: 600, color: `${phaseColor}70`,
+                marginTop: "3px", letterSpacing: "0.06em",
+              }}>
+                {c ? phaseSub : "Awaiting bot data"}
+              </div>
+            </div>
+            <div style={{
+              textAlign: "right", minWidth: "80px",
+            }}>
+              <div style={{
+                fontSize: "8px", fontWeight: 800, letterSpacing: "0.14em",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+                marginBottom: "5px",
+              }}>
+                Progress
+              </div>
+              <div style={{
+                fontSize: "28px", fontWeight: 900, letterSpacing: "-0.04em",
+                color: phaseColor, lineHeight: 1, fontVariantNumeric: "tabular-nums",
+              }}>
+                {c ? `${c.cycle_pct.toFixed(0)}%` : "—"}
+              </div>
+              <div style={{
+                fontSize: "10px", color: "rgba(255,255,255,0.28)",
+                fontVariantNumeric: "tabular-nums", fontWeight: 500,
+              }}>
+                {c ? `${c.cycle_elapsed} / ${c.cycle_total}d` : ""}
+              </div>
+            </div>
+          </div>
+
+          {c && (
+            <CycleProgressBar pct={c.cycle_pct} phase={c.phase} />
+          )}
+          {!c && (
+            <div style={{
+              height: "5px", borderRadius: "99px",
+              background: "rgba(255,255,255,0.06)",
+            }} />
+          )}
+        </div>
+
+        {/* ── Last Event + Next Target ── */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px",
+        }}>
+          {/* Last Event */}
+          <div style={{
+            borderRadius: "14px",
+            border: `1px solid ${eventColor}28`,
+            background: `linear-gradient(135deg, ${eventColor}0d, rgba(255,255,255,0.02))`,
+            padding: "13px 14px",
+            display: "flex", flexDirection: "column", gap: "6px",
+          }}>
+            <div style={{
+              fontSize: "8px", fontWeight: 800, letterSpacing: "0.14em",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+            }}>
+              ⬤ Last Event
+            </div>
+
+            {/* HIGH / LOW badge */}
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "5px",
+              padding: "3px 9px", borderRadius: "7px",
+              background: `${eventColor}18`, border: `1px solid ${eventColor}38`,
+              alignSelf: "flex-start",
+            }}>
+              <span style={{
+                fontSize: "13px", fontWeight: 900, color: eventColor,
+                letterSpacing: "0.08em",
+              }}>
+                {c?.last_event_type ?? "—"}
+              </span>
+            </div>
+
+            <div style={{
+              fontSize: "15px", fontWeight: 900, color: "rgba(255,255,255,0.9)",
+              fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
+            }}>
+              {c ? `$${c.last_event_price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+            </div>
+            <div style={{
+              fontSize: "9px", color: "rgba(255,255,255,0.32)", fontWeight: 600,
+            }}>
+              {c?.last_event_date ?? ""}
+            </div>
+            <div style={{
+              fontSize: "11px", fontWeight: 800,
+              color: changePct >= 0 ? "#0dd9aa" : "#ef4444",
+              fontVariantNumeric: "tabular-nums",
+            }}>
+              {c ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(1)}% since` : ""}
+            </div>
+          </div>
+
+          {/* Next Target */}
+          <div style={{
+            borderRadius: "14px",
+            border: `1px solid ${nextColor}28`,
+            background: `linear-gradient(135deg, ${nextColor}0d, rgba(255,255,255,0.02))`,
+            padding: "13px 14px",
+            display: "flex", flexDirection: "column", gap: "6px",
+            position: "relative", overflow: "hidden",
+          }}>
+            {c && c.next_event_days <= 60 && (
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0, height: "1px",
+                background: `linear-gradient(90deg, transparent, ${nextColor}99, transparent)`,
+                animation: "_bc_epulse 1.8s ease-in-out infinite",
+              }} />
+            )}
+            <div style={{
+              fontSize: "8px", fontWeight: 800, letterSpacing: "0.14em",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+            }}>
+              ◎ Next Target
+            </div>
+
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: "5px",
+              padding: "3px 9px", borderRadius: "7px",
+              background: `${nextColor}18`, border: `1px solid ${nextColor}38`,
+              alignSelf: "flex-start",
+            }}>
+              <span style={{
+                fontSize: "13px", fontWeight: 900, color: nextColor,
+                letterSpacing: "0.08em",
+              }}>
+                {c?.next_event_type ?? "—"}
+              </span>
+            </div>
+
+            <div style={{
+              fontSize: "15px", fontWeight: 900, color: "rgba(255,255,255,0.9)",
+              fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
+            }}>
+              {c ? `${c.next_event_days}d away` : "—"}
+            </div>
+            <div style={{
+              fontSize: "9px", color: "rgba(255,255,255,0.32)", fontWeight: 600,
+            }}>
+              {c?.next_event_date ?? ""}
+            </div>
+            {c && c.next_event_days <= 60 && (
+              <div style={{
+                fontSize: "10px", fontWeight: 900,
+                color: nextColor, letterSpacing: "0.06em",
+                animation: "_bc_epulse 1.8s ease-in-out infinite",
+              }}>
+                ⚠ SOON
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Disclaimer ── */}
+        <div style={{
+          fontSize: "9px", color: "rgba(255,255,255,0.15)", fontWeight: 500,
+          letterSpacing: "0.04em", textAlign: "center",
+          paddingTop: "2px",
+        }}>
+          Pattern-matching only · Not financial advice
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────── MAIN ─────────────────────────── */
 export function BtcCrashCard() {
-  const [snap, setSnap]     = useState<Snapshot | null>(null);
-  const [age, setAge]       = useState("");
-  const [price, setPrice]   = useState<number | null>(null);
-  const [flash, setFlash]   = useState<"up" | "down" | null>(null);
-  const prev                = useRef<number | null>(null);
+  const [snap, setSnap]       = useState<Snapshot | null>(null);
+  const [cycle, setCycle]     = useState<CycleSnapshot | null>(null);
+  const [age, setAge]         = useState("");
+  const [price, setPrice]     = useState<number | null>(null);
+  const [flash, setFlash]     = useState<"up" | "down" | null>(null);
+  const prev                  = useRef<number | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@trade");
@@ -208,6 +537,15 @@ export function BtcCrashCard() {
     };
     go(); const id = setInterval(go, 3000); return () => { alive = false; clearInterval(id); };
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const go = async () => {
+      try { const r = await fetch(`${API_BASE}/api/cycle/data`); if (r.ok && alive) setCycle(await r.json()); } catch {}
+    };
+    go(); const id = setInterval(go, 30_000); return () => { alive = false; clearInterval(id); };
+  }, []);
+
   useEffect(() => {
     if (!snap?.updatedAt) return;
     const id = setInterval(() => setAge(since(snap.updatedAt!)), 1000);
@@ -272,7 +610,6 @@ export function BtcCrashCard() {
         transition: "border-color 0.55s ease, box-shadow 0.65s ease",
         display: "flex", flexDirection: "column",
       }}>
-
 
         {/* top accent line */}
         <div aria-hidden style={{
@@ -516,7 +853,7 @@ export function BtcCrashCard() {
           })}
         </div>
 
-        {/* ═══════════════ SIGNAL CARDS — auto-wrap on mobile ═══════════════ */}
+        {/* ═══════════════ SIGNAL CARDS ═══════════════ */}
         <div style={{
           position: "relative", zIndex: 2,
           display: "grid",
@@ -524,7 +861,6 @@ export function BtcCrashCard() {
           gap: "8px", padding: "14px 14px 0",
           borderTop: "1px solid rgba(255,255,255,0.055)",
         }}>
-          {/* Whale Sells */}
           {(() => {
             const lvl = !d ? "NORMAL" : whaleCount >= 3 ? "DANGER" : whaleCount >= 1 ? "WATCH" : "NORMAL";
             return (
@@ -657,6 +993,9 @@ export function BtcCrashCard() {
             </div>
           </div>
         )}
+
+        {/* ═══════════════ BITCOIN CYCLE ORACLE ═══════════════ */}
+        <CycleSection cycle={cycle} />
 
         {/* bottom shimmer */}
         <div aria-hidden style={{
