@@ -632,7 +632,7 @@ export function BtcCrashCard() {
                 <span style={{
                   fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
                   fontSize: "13.2px", fontWeight: 900,
-                  letterSpacing: "0.3em",
+                  letterSpacing: "0.02em",
                   textTransform: "uppercase",
                   background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
                   WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
