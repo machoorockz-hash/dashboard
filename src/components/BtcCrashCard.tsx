@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
-import { Activity, TrendingUp, Zap, Waves, TrendingDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
+/* ─────────────────────────── TYPES ─────────────────────────── */
 interface BotData {
   price: number;
-  drop_1m: number; drop_5m: number; drop_15m: number; drop_1h: number; drop_4h: number;
-  peak_1m: number; peak_5m: number; peak_15m: number; peak_1h: number; peak_4h: number;
+  drop_1m: number; drop_5m: number; drop_15m: number;
+  drop_1h: number; drop_4h: number;
+  peak_1m: number; peak_5m: number; peak_15m: number;
+  peak_1h: number; peak_4h: number;
   speed: number; volatility: number; status: string;
   trade_mode?: string; pause_reason?: string;
   whale_count?: number; whale_usd_total?: number; whale_buy_total?: number;
@@ -15,524 +18,653 @@ interface BotData {
   funding_rate?: number; funding_level?: string;
   liq_usd_60s?: number; liq_level?: string; liq_largest?: number;
 }
-
 interface Snapshot { key: string; updatedAt: string | null; data: BotData | null; }
 
-const MOCK_DATA: BotData = {
-  price: 67432.18,
-  drop_1m: 0.42, drop_5m: 1.18, drop_15m: 2.34, drop_1h: 3.12, drop_4h: 4.58,
-  peak_1m: 67650.22, peak_5m: 68210.44, peak_15m: 68540.10, peak_1h: 69120.75, peak_4h: 70680.90,
-  speed: -0.34, volatility: 2.87, status: "RISK",
-  trade_mode: "Pause", pause_reason: "BTC 15 min drop: −2.34% · 4 consecutive down-minutes · volume spike on red candle",
-  whale_count: 4, whale_usd_total: 8_420_000, whale_buy_total: 1_250_000,
-  whale_net_flow: -7_170_000, whale_net_flow_level: "DANGER",
-  consec_drops: 4, vol_spike: true,
-  funding_rate: -0.00042, funding_level: "WATCH",
-  liq_usd_60s: 12_400_000, liq_level: "DANGER", liq_largest: 3_200_000,
-};
-const MOCK_SNAPSHOT: Snapshot = { key: "btc", updatedAt: new Date().toISOString(), data: MOCK_DATA };
-const USE_MOCK = true;
-
-const STAGE_CONFIG: Record<string, { accent: string; ring: string; label: string; dot: string; sub: string }> = {
-  SAFE:       { accent: "text-teal-300", ring: "ring-teal-400/30", dot: "bg-teal-400",           sub: "OK TO TRADE ALTS",       label: "SAFE" },
-  WATCH:      { accent: "text-amber-300",   ring: "ring-amber-400/30",   dot: "bg-amber-400",             sub: "BE SELECTIVE",           label: "WATCH" },
-  RISK:       { accent: "text-orange-300",  ring: "ring-orange-400/30",  dot: "bg-orange-400",            sub: "HOLD OFF NEW BUYS",      label: "RISK" },
-  SELL_ALERT: { accent: "text-rose-300",    ring: "ring-rose-400/30",    dot: "bg-rose-400",              sub: "PAUSE BUYING",           label: "SELL ALERT" },
-  DANGER:     { accent: "text-red-300",     ring: "ring-red-500/40",     dot: "bg-red-500 animate-pulse", sub: "CONSIDER SELLING",       label: "DANGER" },
+/* ─────────────────────────── CONFIG ─────────────────────────── */
+const STAGE: Record<string, {
+  color: string; colorMid: string; glow: string; border: string; label: string; sub: string;
+}> = {
+  SAFE:       { color: "#0dd9aa", colorMid: "rgba(13,217,170,0.5)",  glow: "rgba(13,217,170,0.18)",  border: "rgba(13,217,170,0.25)",  label: "SAFE",  sub: "" },
+  WATCH:      { color: "#f5c542", colorMid: "rgba(245,197,66,0.5)",  glow: "rgba(245,197,66,0.18)",  border: "rgba(245,197,66,0.25)",  label: "WATCH", sub: "BE SELECTIVE" },
+  RISK:       { color: "#f97316", colorMid: "rgba(249,115,22,0.5)",  glow: "rgba(249,115,22,0.18)",  border: "rgba(249,115,22,0.25)",  label: "RISK",  sub: "HOLD OFF NEW BUYS" },
+  SELL_ALERT: { color: "#f87171", colorMid: "rgba(248,113,113,0.5)", glow: "rgba(248,113,113,0.18)", border: "rgba(248,113,113,0.25)", label: "ALERT", sub: "PAUSE BUYING" },
+  DANGER:     { color: "#ef4444", colorMid: "rgba(239,68,68,0.55)",  glow: "rgba(239,68,68,0.22)",   border: "rgba(239,68,68,0.32)",   label: "DANGER",sub: "CONSIDER SELLING" },
 };
 
-const TIMEFRAMES: Array<{ label: string; dropKey: keyof BotData; peakKey: keyof BotData }> = [
-  { label: "1m",  dropKey: "drop_1m",  peakKey: "peak_1m"  },
-  { label: "5m",  dropKey: "drop_5m",  peakKey: "peak_5m"  },
-  { label: "15m", dropKey: "drop_15m", peakKey: "peak_15m" },
-  { label: "1h",  dropKey: "drop_1h",  peakKey: "peak_1h"  },
-  { label: "4h",  dropKey: "drop_4h",  peakKey: "peak_4h"  },
+const LVL: Record<string, string> = {
+  NORMAL: "#0dd9aa", WATCH: "#f5c542", RISK: "#f97316", DANGER: "#ef4444",
+};
+
+const TF_ROWS = [
+  { t: "1m",  dk: "drop_1m"  as keyof BotData, pk: "peak_1m"  as keyof BotData },
+  { t: "5m",  dk: "drop_5m"  as keyof BotData, pk: "peak_5m"  as keyof BotData },
+  { t: "15m", dk: "drop_15m" as keyof BotData, pk: "peak_15m" as keyof BotData },
+  { t: "1h",  dk: "drop_1h"  as keyof BotData, pk: "peak_1h"  as keyof BotData },
+  { t: "4h",  dk: "drop_4h"  as keyof BotData, pk: "peak_4h"  as keyof BotData },
 ];
 
-const LEVEL_COLORS: Record<string, string> = {
-  NORMAL: "text-teal-300",
-  WATCH:  "text-amber-300",
-  RISK:   "text-orange-300",
-  DANGER: "text-red-300",
+/* ─────────────────────────── HELPERS ─────────────────────────── */
+const fmt2   = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtK   = (n: number) => n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`;
+const fmtFnd = (r: number) => `${r >= 0 ? "+" : ""}${(r * 100).toFixed(4)}%`;
+const since  = (iso: string) => {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  return s < 5 ? "just now" : s < 60 ? `${s}s ago` : `${Math.floor(s/60)}m ${s%60}s ago`;
 };
-const LEVEL_RING: Record<string, string> = {
-  NORMAL: "ring-teal-400/25 bg-teal-500/5",
-  WATCH:  "ring-amber-400/25 bg-amber-500/5",
-  RISK:   "ring-orange-400/25 bg-orange-500/5",
-  DANGER: "ring-red-400/30 bg-red-500/5",
-};
+const dropCol = (p: number) => p >= 4 ? "#ef4444" : p >= 2 ? "#f97316" : p >= 1 ? "#f5c542" : "#0dd9aa";
 
-function dropColor(pct: number) {
-  if (pct >= 4) return "text-red-300";
-  if (pct >= 2) return "text-orange-300";
-  if (pct >= 1) return "text-amber-300";
-  return "text-teal-300";
-}
+/* ─────────────────────────── PRESSURE BARS ─────────────────────────── */
+// Uniform-height segments like the reference — LED bar meter style
+function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
+  const [animLit, setAnimLit] = useState(0);
+  const color  = inactive ? "transparent" : dropCol(pct);
+  const TOTAL  = 12;
+  const target = inactive ? 0 : Math.round(Math.min(pct / 6, 1) * TOTAL);
 
-function IntensityBar({ pct, inactive = false }: { pct: number; inactive?: boolean }) {
-  const filled = inactive ? 0 : Math.round(Math.min(pct / 6.0, 1.0) * 12);
-  const total = 12;
-  const color =
-    pct >= 4 ? "bg-red-400 shadow-[0_0_6px_theme(colors.red.400)]" :
-    pct >= 2 ? "bg-orange-400 shadow-[0_0_6px_theme(colors.orange.400)]" :
-    pct >= 1 ? "bg-amber-300 shadow-[0_0_6px_theme(colors.amber.300)]" :
-               "bg-teal-400 shadow-[0_0_6px_theme(colors.teal.400)]";
+  useEffect(() => {
+    setAnimLit(0);
+    if (inactive || target === 0) return;
+    let i = 0;
+    const tick = () => {
+      i++;
+      setAnimLit(i);
+      if (i < target) setTimeout(() => requestAnimationFrame(tick), 40);
+    };
+    const delay = setTimeout(() => requestAnimationFrame(tick), 100);
+    return () => clearTimeout(delay);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pct, inactive]);
+
   return (
-    <div className="flex items-center gap-[3px]">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`h-3 w-[3px] rounded-full transition-all ${
-            i < filled ? color : inactive ? "bg-red-400/10" : "bg-white/[0.06]"
-          }`}
-        />
-      ))}
+    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+      {Array.from({ length: TOTAL }).map((_, i) => {
+        const filled = i < animLit;
+        const isTip  = filled && i === animLit - 1;
+
+        // bars get very subtly brighter toward the right when filled
+        const brightness = filled ? (0.70 + (i / (TOTAL - 1)) * 0.30) : 1;
+
+        return (
+          <div key={i} style={{
+            width: "6px",
+            height: "18px",
+            borderRadius: "3px",
+            background: filled
+              ? color
+              : "rgba(255,255,255,0.07)",
+            opacity: brightness,
+            boxShadow: isTip
+              ? `0 0 4px 1px ${color}90, 0 0 8px 2px ${color}28`
+              : filled
+              ? `0 0 3px 1px ${color}28`
+              : "none",
+            transition: `background 0.12s ease ${i * 18}ms, box-shadow 0.15s ease`,
+          }} />
+        );
+      })}
     </div>
   );
 }
 
-function timeSince(iso: string) {
-  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (secs < 5) return "just now";
-  if (secs < 60) return `${secs}s ago`;
-  return `${Math.floor(secs / 60)}m ${secs % 60}s ago`;
-}
-
-function fmtPrice(p: number) {
-  return p.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function fmtLiq(usd: number) {
-  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(1)}M`;
-  if (usd >= 1_000)     return `$${(usd / 1_000).toFixed(0)}K`;
-  return `$${usd.toFixed(0)}`;
-}
-function fmtFunding(rate: number) {
-  return `${rate >= 0 ? "+" : ""}${(rate * 100).toFixed(4)}%`;
-}
-
-function LevelBadge({ level }: { level: string }) {
-  const col = LEVEL_COLORS[level] ?? "text-teal-300";
-  const ring = LEVEL_RING[level] ?? "ring-teal-400/25 bg-teal-500/5";
+/* ─────────────────────────── LEVEL BADGE ─────────────────────────── */
+function LvlBadge({ level }: { level: string }) {
+  const c = LVL[level] ?? "#0dd9aa";
   return (
-    <span className={`px-2 py-[3px] rounded-full ring-1 text-[9px] font-bold uppercase tracking-[0.15em] ${col} ${ring}`}>
+    <span style={{
+      display: "inline-flex", alignItems: "center",
+      padding: "2px 8px", borderRadius: "5px",
+      background: `${c}16`, border: `1px solid ${c}38`,
+      color: c, fontSize: "8px", fontWeight: 900,
+      letterSpacing: "0.12em", textTransform: "uppercase",
+      flexShrink: 0,
+    }}>
       {level}
     </span>
   );
 }
 
-function BtcLogo() {
+/* ─────────────────────────── SIGNAL CARD ─────────────────────────── */
+function SigCard({
+  icon, title, value, sub, lvlColor, level, danger,
+}: {
+  icon: string; title: string; value: string;
+  sub?: string; lvlColor: string; level?: string; danger?: boolean;
+}) {
   return (
-    <div className="relative h-11 w-11 shrink-0">
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-btc-orange)] to-[#b86d12] blur-md opacity-60" />
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-btc-orange)] to-[#b86d12] ring-1 ring-white/20 shadow-lg">
-        <svg viewBox="0 0 32 32" className="h-6 w-6 text-black/85" fill="currentColor" aria-hidden>
-          <path d="M22.4 14.3c.3-2-1.2-3.1-3.3-3.8l.7-2.7-1.7-.4-.7 2.6c-.4-.1-.9-.2-1.4-.3l.7-2.7L15 6.6l-.7 2.7c-.4-.1-.7-.2-1.1-.2l-2.3-.6-.5 1.8s1.2.3 1.2.3c.7.2.8.6.8 1l-.8 3.1c.1 0 .1 0 .2.1h-.2l-1.1 4.3c-.1.2-.3.5-.8.4 0 0-1.2-.3-1.2-.3l-.9 1.9 2.2.6c.4.1.8.2 1.2.3l-.7 2.8 1.7.4.7-2.7c.5.1.9.2 1.4.3l-.7 2.7 1.7.4.7-2.8c2.9.6 5.2.3 6.1-2.3.8-2.1 0-3.3-1.5-4.1 1.1-.3 1.9-1 2.1-2.5zm-3.9 5.5c-.5 2.1-4.1 1-5.2.7l.9-3.6c1.1.3 4.9.9 4.3 2.9zm.5-5.5c-.5 1.9-3.4.9-4.4.7l.8-3.3c1 .2 4.1.7 3.6 2.6z"/>
-        </svg>
+    <div style={{
+      position: "relative", overflow: "hidden",
+      borderRadius: "14px",
+      border: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(255,255,255,0.04)",
+      padding: "14px 12px",
+      display: "flex", flexDirection: "column", gap: "7px",
+      cursor: "default",
+    }}>
+      {danger && (
+        <div style={{
+          position: "absolute", top: 0, left: "20%", right: "20%", height: "1px",
+          background: `linear-gradient(90deg, transparent, ${lvlColor}85, transparent)`,
+          animation: "_bc_epulse 2.2s ease-in-out infinite",
+        }} />
+      )}
+      {/* title row — wraps on narrow cards */}
+      <div style={{
+        display: "flex", alignItems: "flex-start",
+        justifyContent: "space-between", gap: "6px", flexWrap: "wrap",
+      }}>
+        <span style={{
+          fontSize: "9px", fontWeight: 800, letterSpacing: "0.1em",
+          color: "rgba(255,255,255,0.28)", textTransform: "uppercase",
+          lineHeight: 1.3, flexShrink: 1, minWidth: 0,
+        }}>
+          {icon} {title}
+        </span>
+        {level && <LvlBadge level={level} />}
       </div>
+      <div style={{
+        fontSize: "18px", fontWeight: 900, lineHeight: 1,
+        fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
+        color: lvlColor, wordBreak: "break-all",
+        textShadow: "none",
+      }}>
+        {value}
+      </div>
+      {sub && (
+        <div style={{
+          fontSize: "10px", color: "rgba(255,255,255,0.28)",
+          fontVariantNumeric: "tabular-nums", fontWeight: 500,
+        }}>{sub}</div>
+      )}
     </div>
   );
 }
 
+/* ─────────────────────────── MAIN ─────────────────────────── */
 export function BtcCrashCard() {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [age, setAge] = useState<string>("");
-  const [livePrice, setLivePrice] = useState<number | null>(null);
-  const [flash, setFlash] = useState<"up" | "down" | null>(null);
+  const [snap, setSnap]     = useState<Snapshot | null>(null);
+  const [age, setAge]       = useState("");
+  const [price, setPrice]   = useState<number | null>(null);
+  const [flash, setFlash]   = useState<"up" | "down" | null>(null);
+  const prev                = useRef<number | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@trade");
     ws.onmessage = (e) => {
       try {
-        const d = JSON.parse(e.data);
-        const p = parseFloat(d.p);
-        setLivePrice((prev) => {
-          if (prev !== null && p !== prev) setFlash(p > prev ? "up" : "down");
-          return p;
-        });
+        const p = parseFloat(JSON.parse(e.data).p);
+        if (prev.current !== null && p !== prev.current) setFlash(p > prev.current ? "up" : "down");
+        prev.current = p;
+        setPrice(p);
       } catch {}
     };
     return () => ws.close();
   }, []);
-
-  useEffect(() => {
-    if (!flash) return;
-    const t = setTimeout(() => setFlash(null), 500);
-    return () => clearTimeout(t);
-  }, [flash]);
+  useEffect(() => { if (!flash) return; const t = setTimeout(() => setFlash(null), 700); return () => clearTimeout(t); }, [flash]);
 
   useEffect(() => {
     let alive = true;
-    async function poll() {
-      try {
-        const res = await fetch(`${API_BASE}/api/bot/data?key=btc`);
-        if (!res.ok) return;
-        const data = await res.json() as Snapshot;
-        if (alive) setSnapshot(data);
-      } catch {}
-    }
-    if (!API_BASE && USE_MOCK) {
-      setSnapshot({ ...MOCK_SNAPSHOT, updatedAt: new Date().toISOString() });
-      return () => { alive = false; };
-    }
-    poll();
-    const id = setInterval(poll, 3000);
-    return () => { alive = false; clearInterval(id); };
+    const go = async () => {
+      try { const r = await fetch(`${API_BASE}/api/bot/data?key=btc`); if (r.ok && alive) setSnap(await r.json()); } catch {}
+    };
+    go(); const id = setInterval(go, 3000); return () => { alive = false; clearInterval(id); };
   }, []);
-
   useEffect(() => {
-    if (!snapshot?.updatedAt) return;
-    const id = setInterval(() => setAge(timeSince(snapshot.updatedAt!)), 1000);
-    setAge(timeSince(snapshot.updatedAt));
+    if (!snap?.updatedAt) return;
+    const id = setInterval(() => setAge(since(snap.updatedAt!)), 1000);
+    setAge(since(snap.updatedAt));
     return () => clearInterval(id);
-  }, [snapshot?.updatedAt]);
+  }, [snap?.updatedAt]);
 
-  const d = snapshot?.data;
-  const stage = d?.status ?? "SAFE";
-  const cfg = STAGE_CONFIG[stage] ?? STAGE_CONFIG.SAFE!;
-  const isPaused = d?.trade_mode === "Pause";
+  const d          = snap?.data;
+  const stage      = d?.status ?? "SAFE";
+  const cfg        = STAGE[stage] ?? STAGE.SAFE;
+  const isPaused   = d?.trade_mode === "Pause";
 
-  const pauseReason: string = (() => {
+  const pauseReason = (() => {
     if (!d) return "";
-    if (d.pause_reason && d.pause_reason.trim().length > 0) return d.pause_reason.trim();
-    const drops = [
-      { label: "1 min",  pct: d.drop_1m  },
-      { label: "5 min",  pct: d.drop_5m  },
-      { label: "15 min", pct: d.drop_15m },
-      { label: "1 hr",   pct: d.drop_1h  },
-      { label: "4 hr",   pct: d.drop_4h  },
-    ];
-    const worst = drops.reduce((a, b) => (b.pct > a.pct ? b : a));
+    if (d.pause_reason?.trim()) return d.pause_reason.trim();
+    const rows: [string, number][] = [["1m", d.drop_1m], ["5m", d.drop_5m], ["15m", d.drop_15m], ["1h", d.drop_1h], ["4h", d.drop_4h]];
+    const worst = rows.reduce((a, b) => b[1] > a[1] ? b : a);
     const parts: string[] = [];
-    if (worst.pct >= 1) parts.push(`BTC ${worst.label} drop: −${worst.pct.toFixed(2)}%`);
+    if (worst[1] >= 1) parts.push(`BTC ${worst[0]} drop: −${worst[1].toFixed(2)}%`);
     if ((d.consec_drops ?? 0) >= 3) parts.push(`${d.consec_drops} consecutive down-minutes`);
     if (d.vol_spike) parts.push("volume spike on red candle");
     if ((d.whale_count ?? 0) >= 3) parts.push(`${d.whale_count} whale sells in 60s`);
-    if (d.liq_level === "DANGER") parts.push(`liquidations ${fmtLiq(d.liq_usd_60s ?? 0)}`);
-    if (parts.length) return parts.join(" · ");
-    return "BTC conditions are elevated — avoid new alt buys until signals normalize";
+    return parts.length ? parts.join(" · ") : "Conditions elevated — await normalization";
   })();
 
-  const whaleCount = d?.whale_count ?? 0;
-  const whaleUsdTotal = d?.whale_usd_total ?? 0;
-  const whaleBuyTotal = d?.whale_buy_total ?? 0;
-  const whaleNetFlow = d?.whale_net_flow ?? 0;
-  const whaleNetFlowLvl = d?.whale_net_flow_level ?? "NORMAL";
-  const consecDrops = d?.consec_drops ?? 0;
-  const volSpike = d?.vol_spike ?? false;
-  const fundingRate = d?.funding_rate ?? 0;
-  const fundingLvl = d?.funding_level ?? "NORMAL";
-  const liqUsd = d?.liq_usd_60s ?? 0;
-  const liqLvl = d?.liq_level ?? "NORMAL";
-  const liqLargest = d?.liq_largest ?? 0;
+  const whaleCount  = d?.whale_count       ?? 0;
+  const whaleUsd    = d?.whale_usd_total   ?? 0;
+  const whaleBuy    = d?.whale_buy_total   ?? 0;
+  const whaleNet    = d?.whale_net_flow    ?? 0;
+  const whaleNetLvl = d?.whale_net_flow_level ?? "NORMAL";
+  const consec      = d?.consec_drops      ?? 0;
+  const volSpike    = d?.vol_spike         ?? false;
+  const funding     = d?.funding_rate      ?? 0;
+  const fundingLvl  = d?.funding_level     ?? "NORMAL";
+  const liqUsd      = d?.liq_usd_60s       ?? 0;
+  const liqLvl      = d?.liq_level         ?? "NORMAL";
+  const liqLargest  = d?.liq_largest       ?? 0;
 
-  const whaleCritical = whaleCount >= 3;
-  const consecCritical = consecDrops >= 5;
-  const netFlowNeg = whaleNetFlow < 0;
-  const netFlowAbs = Math.abs(whaleNetFlow);
+  const priceColor = flash === "up" ? "#0dd9aa" : flash === "down" ? "#ef4444" : "#0dd9aa";
+  const netColor   = LVL[whaleNetLvl] ?? "#0dd9aa";
 
   return (
-    <section
-      className="glass-surface relative overflow-hidden rounded-[28px] p-6 md:p-7 font-[var(--font-display)] text-white/90"
-      style={{ fontFamily: "var(--font-display)" }}
-    >
-      {/* animated grid + glow overlays */}
-      <div className="pointer-events-none absolute inset-0 grid-bg opacity-40" />
-      <div className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-[var(--color-btc)]/20 blur-3xl" />
-      <div className={`pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full blur-3xl opacity-40 ${
-        stage === "DANGER" || stage === "SELL_ALERT" ? "bg-red-500/40" :
-        stage === "RISK" ? "bg-orange-500/30" :
-        stage === "WATCH" ? "bg-amber-500/25" : "bg-teal-500/25"
-      }`} />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[var(--color-btc-glow)]/60 to-transparent" />
+    <>
+      <style>{`
+        @keyframes _bc_blink   { 0%,100%{opacity:1} 50%{opacity:.08} }
+        @keyframes _bc_breathe { 0%,100%{opacity:.55} 50%{opacity:1} }
+        @keyframes _bc_pricetick { 0%{transform:scale(1.01)} 100%{transform:scale(1)} }
+        @keyframes _bc_flash_up  { 0%{text-shadow:0 0 8px #0dd9aa80} 100%{text-shadow:none} }
+        @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 8px #ef444480} 100%{text-shadow:none} }
+        @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
+      `}</style>
 
-      <div className="relative flex flex-col gap-5">
-        {/* HEADER */}
-        <header className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <BtcLogo />
+      <section style={{
+        position: "relative",
+        fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
+        borderRadius: "22px",
+        overflow: "hidden",
+        background: "transparent",
+        border: `1px solid ${cfg.border}`,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+        transition: "border-color 0.55s ease, box-shadow 0.65s ease",
+        display: "flex", flexDirection: "column",
+      }}>
+
+
+        {/* top accent line */}
+        <div aria-hidden style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: "1px",
+          background: `linear-gradient(90deg, transparent, ${cfg.color}55 30%, ${cfg.color}80 50%, ${cfg.color}55 70%, transparent)`,
+          zIndex: 5, pointerEvents: "none",
+          transition: "background 0.55s ease",
+        }} />
+
+
+        {/* ═══════════════ HEADER ═══════════════ */}
+        <div style={{
+          position: "relative", zIndex: 2,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "18px 20px 14px",
+          flexWrap: "wrap", gap: "12px",
+          borderBottom: "1px solid rgba(255,255,255,0.055)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <CoinIcon symbol="BTC" size={42} />
+            </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-[15px] font-bold tracking-tight">BTC Crash Monitor</h3>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 ring-1 ring-white/10 text-white/50 font-mono uppercase tracking-widest">Live</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "3px" }}>
+                <span style={{
+                  fontSize: "15px", fontWeight: 800,
+                  background: "linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6))",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                  backgroundClip: "text", letterSpacing: "-0.015em",
+                }}>
+                  BTC Monitor
+                </span>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: "5px",
+                  padding: "3px 9px", borderRadius: "999px",
+                  background: "rgba(13,217,170,0.1)", border: "1px solid rgba(13,217,170,0.32)",
+                  boxShadow: "none",
+                  fontSize: "8px", fontWeight: 900, letterSpacing: "0.14em",
+                  color: "#0dd9aa", textTransform: "uppercase",
+                }}>
+                  <span style={{
+                    width: "5px", height: "5px", borderRadius: "50%",
+                    background: "#0dd9aa",
+                    animation: "_bc_blink 1.5s ease-in-out infinite",
+                    display: "inline-block",
+                  }} />
+                  LIVE
+                </span>
               </div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/40">
-                <span className={`h-1.5 w-1.5 rounded-full ${d ? cfg.dot : "bg-white/20"}`} />
-                {d ? `updated ${age}` : "Waiting for bot data…"}
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", fontWeight: 500 }}>
+                {d ? `updated ${age}` : "waiting for bot data…"}
               </div>
             </div>
           </div>
 
-          <div className={`group relative flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-full ring-1 ${d ? cfg.ring : "ring-red-500/30"} bg-black/30 backdrop-blur`}>
-            <span className={`relative flex h-2 w-2`}>
-              <span className={`absolute inset-0 rounded-full ${d ? cfg.dot : "bg-red-500"} opacity-60 animate-ping`} />
-              <span className={`relative inline-flex h-2 w-2 rounded-full ${d ? cfg.dot : "bg-red-500"}`} />
-            </span>
-            <div className="flex flex-col leading-none">
-              <span className={`text-[11px] font-bold tracking-[0.2em] ${d ? cfg.accent : "text-red-300"}`}>
-                {d ? cfg.label : "OFFLINE"}
-              </span>
-              <span className="text-[9px] text-white/40 mt-0.5 tracking-[0.15em]">
-                {d ? cfg.sub : "BOT IS NOT ACTIVE"}
-              </span>
+          {/* status badge */}
+          <div style={{
+            padding: "9px 18px", borderRadius: "12px",
+            background: `linear-gradient(135deg, ${cfg.color}18, ${cfg.color}07)`,
+            border: `1px solid ${cfg.border}`,
+            boxShadow: `inset 0 1px 0 ${cfg.color}15`,
+            display: "flex", flexDirection: "column", alignItems: "center",
+            transition: "all 0.55s ease", minWidth: "88px",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: "7px",
+              fontSize: "12px", fontWeight: 900, letterSpacing: "0.1em",
+              color: cfg.color,
+              textTransform: "uppercase",
+            }}>
+              <span style={{
+                width: "7px", height: "7px", borderRadius: "50%",
+                background: cfg.color,
+                animation: "_bc_blink 1.8s ease-in-out infinite",
+              }} />
+              {d ? cfg.label : "OFFLINE"}
             </div>
-          </div>
-        </header>
-
-        {/* HERO PRICE */}
-        <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] ring-1 ring-white/10 px-5 py-4 overflow-hidden">
-          <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-[var(--color-btc)]/10 to-transparent" />
-          <div className="relative flex items-end justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] font-semibold text-white/50">
-                <Activity className="h-3 w-3" /> BTC / USDT
+            {d && (
+              <div style={{
+                fontSize: "7px", fontWeight: 700, marginTop: "2px",
+                color: `${cfg.color}75`, letterSpacing: "0.1em", textTransform: "uppercase",
+              }}>
+                {cfg.sub}
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span
-                  className={`font-mono text-4xl md:text-5xl font-extrabold tabular-nums tracking-tight transition-colors duration-300 ${
-                    flash === "up" ? "text-[var(--color-btc-orange)]" :
-                    flash === "down" ? "text-[var(--color-bear)]" : "text-[var(--color-btc-orange)]"
-                  }`}
-                  style={{ textShadow: "0 0 24px color-mix(in oklab, currentColor 40%, transparent)" }}
-                >
-                  {livePrice ? `$${fmtPrice(livePrice)}` : "—"}
-                </span>
-                <span className={`text-xs font-mono font-bold ${
-                  flash === "up" ? "text-[var(--color-btc-orange)]" :
-                  flash === "down" ? "text-[var(--color-bear)]" : "text-white/30"
-                }`}>
-                  {flash === "up" ? "▲" : flash === "down" ? "▼" : "●"}
-                </span>
-              </div>
-            </div>
-            <div className="hidden sm:flex flex-col items-end gap-1">
-              <div className="text-[9px] uppercase tracking-[0.25em] text-white/40">Streaming</div>
-              <div className="flex items-end gap-[2px] h-6">
-                {[3,5,4,6,3,5,7,4,6,5].map((h,i) => (
-                  <div key={i} className="w-[3px] rounded-sm bg-[var(--color-btc-glow)]/70 animate-pulse" style={{ height: `${h*3}px`, animationDelay: `${i*80}ms` }} />
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* PAUSED BANNER */}
+        {/* ═══════════════ PRICE HERO ═══════════════ */}
+        <div style={{
+          position: "relative", zIndex: 2,
+          padding: "20px 20px 18px",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.016) 0%, transparent 100%)",
+        }}>
+          <div style={{
+            fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em",
+            textTransform: "uppercase", color: "rgba(255,255,255,0.2)",
+            marginBottom: "8px",
+          }}>
+            Bitcoin · Live Price
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "18px" }}>
+            <span
+              key={String(flash)}
+              style={{
+                fontSize: "40px", fontWeight: 900, lineHeight: 1,
+                fontVariantNumeric: "tabular-nums", letterSpacing: "-0.04em",
+                color: priceColor,
+                transition: "color 0.4s ease",
+                animation: flash === "up"
+                  ? "_bc_flash_up 0.7s ease both, _bc_pricetick 0.25s ease both"
+                  : flash === "down"
+                  ? "_bc_flash_dn 0.7s ease both, _bc_pricetick 0.25s ease both"
+                  : "none",
+                textShadow: "none",
+              }}
+            >
+              {price ? `$${fmt2(price)}` : "—"}
+            </span>
+            {/* arrow */}
+            <div style={{ opacity: flash ? 1 : 0.2, transition: "opacity 0.4s" }}>
+              <svg width="18" height="26" viewBox="0 0 18 26" fill="none">
+                <path
+                  d={flash === "down" ? "M9 22 L2 10 L16 10 Z" : "M9 4 L16 16 L2 16 Z"}
+                  fill={flash === "down" ? "#ef4444" : "#0dd9aa"}
+                  style={{ filter: "none" }}
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Stat strip */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(4,1fr)",
+            borderRadius: "12px", overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(0,0,0,0.22)",
+          }}>
+            {[
+              {
+                label: "SPEED",
+                value: !d ? "—" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%`,
+                unit: "/min",
+                color: !d ? "rgba(255,255,255,0.16)" : d.speed > 0 ? "#0dd9aa" : d.speed < 0 ? "#ef4444" : "rgba(255,255,255,0.4)",
+              },
+              {
+                label: "VOLATILITY",
+                value: !d ? "—" : `${d.volatility.toFixed(2)}%`,
+                color: !d ? "rgba(255,255,255,0.16)" : d.volatility >= 4 ? "#ef4444" : d.volatility >= 2.5 ? "#f97316" : "rgba(255,255,255,0.7)",
+              },
+              {
+                label: "CONSEC DROPS",
+                value: !d ? "—" : String(consec),
+                color: !d ? "rgba(255,255,255,0.16)" : consec >= 5 ? "#ef4444" : consec >= 3 ? "#f97316" : "rgba(255,255,255,0.7)",
+              },
+              {
+                label: "↑ VOL SPIKE",
+                value: !d ? "—" : volSpike ? "YES" : "NO",
+                color: !d ? "rgba(255,255,255,0.16)" : volSpike ? "#ef4444" : "#0dd9aa",
+              },
+            ].map(({ label, value, unit, color }, i) => (
+              <div key={label} style={{
+                padding: "10px 12px",
+                borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.05)" : "none",
+              }}>
+                <div style={{
+                  fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.14em",
+                  textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: "4px",
+                }}>{label}</div>
+                <div style={{
+                  fontSize: "14px", fontWeight: 900,
+                  fontVariantNumeric: "tabular-nums", color,
+                  letterSpacing: "-0.01em",
+                  textShadow: "none",
+                }}>
+                  {value}
+                  {unit && <span style={{ fontSize: "9px", marginLeft: "1px", color: `${color}80` }}>{unit}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ═══════════════ PRESSURE / DROP ═══════════════ */}
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div style={{
+            display: "grid", gridTemplateColumns: "36px 1fr 90px 68px",
+            padding: "10px 20px 6px", gap: "8px",
+          }}>
+            {["", "PRESSURE", "PEAK", "DROP"].map((h, i) => (
+              <span key={i} style={{
+                fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.15em",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.17)",
+                textAlign: i >= 2 ? "right" : "left",
+              }}>{h}</span>
+            ))}
+          </div>
+
+          {TF_ROWS.map(({ t, dk, pk }, idx) => {
+            const pct  = d ? (d[dk] as number) : 0;
+            const peak = d ? (d[pk] as number) : null;
+            const col  = d ? dropCol(pct) : "rgba(255,255,255,0.1)";
+            return (
+              <div
+                key={t}
+                style={{
+                  display: "grid", gridTemplateColumns: "36px 1fr 90px 68px",
+                  gap: "8px", alignItems: "center",
+                  padding: "7px 20px",
+                  borderTop: "1px solid rgba(255,255,255,0.038)",
+                  transition: "background 0.15s", cursor: "default",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.022)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <span style={{
+                  fontSize: "11px", fontWeight: 800,
+                  color: "rgba(255,255,255,0.32)", fontVariantNumeric: "tabular-nums",
+                }}>{t}</span>
+
+                <PressureBars pct={pct} inactive={!d} />
+
+                <span style={{
+                  fontSize: "11px", fontWeight: 500, fontVariantNumeric: "tabular-nums",
+                  color: d ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.09)", textAlign: "right",
+                }}>
+                  {d && peak ? `$${fmt2(peak)}` : "—"}
+                </span>
+
+                <span style={{
+                  fontSize: "14px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
+                  color: col, textAlign: "right", letterSpacing: "-0.01em",
+                  textShadow: "none",
+                }}>
+                  {d ? `-${pct.toFixed(2)}%` : "—"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ═══════════════ SIGNAL CARDS — auto-wrap on mobile ═══════════════ */}
+        <div style={{
+          position: "relative", zIndex: 2,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: "8px", padding: "14px 14px 0",
+          borderTop: "1px solid rgba(255,255,255,0.055)",
+        }}>
+          {/* Whale Sells */}
+          {(() => {
+            const lvl = !d ? "NORMAL" : whaleCount >= 3 ? "DANGER" : whaleCount >= 1 ? "WATCH" : "NORMAL";
+            return (
+              <SigCard icon="≋" title="Whale Sells"
+                value={!d ? "—" : `${whaleCount} txn`}
+                sub={d && whaleUsd > 0 ? `${fmtK(whaleUsd)} total` : d ? "$0 total" : undefined}
+                lvlColor={LVL[lvl]} level={d ? lvl : undefined}
+                danger={lvl === "DANGER" || lvl === "RISK"}
+              />
+            );
+          })()}
+          <SigCard icon="↗" title="Funding"
+            value={!d ? "—" : fmtFnd(funding)}
+            lvlColor={LVL[fundingLvl]} level={d ? fundingLvl : undefined}
+            danger={fundingLvl === "DANGER"}
+          />
+          <SigCard icon="↯" title="Liquidations"
+            value={!d ? "—" : fmtK(liqUsd)}
+            sub={d && liqLargest > 0 ? `largest ${fmtK(liqLargest)}` : undefined}
+            lvlColor={LVL[liqLvl]} level={d ? liqLvl : undefined}
+            danger={liqLvl === "DANGER"}
+          />
+        </div>
+
+        {/* ═══════════════ NET FLOW ROW ═══════════════ */}
+        <div style={{
+          position: "relative", zIndex: 2,
+          margin: "12px 14px",
+          padding: "14px 18px",
+          borderRadius: "14px",
+          background: `linear-gradient(135deg, ${netColor}09, rgba(255,255,255,0.022))`,
+          border: `1px solid ${netColor}28`,
+          boxShadow: "none",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: "10px",
+          transition: "all 0.45s ease",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{
+              fontSize: "9px", fontWeight: 800, letterSpacing: "0.14em",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.27)",
+            }}>
+              $ Whale Net Flow
+            </span>
+            {d && (
+              <div style={{ display: "flex", gap: "6px" }}>
+                <span style={{
+                  fontSize: "9px", fontWeight: 600, fontVariantNumeric: "tabular-nums",
+                  padding: "2px 7px", borderRadius: "5px",
+                  background: "rgba(13,217,170,0.1)", color: "#0dd9aa",
+                }}>B {fmtK(whaleBuy)}</span>
+                <span style={{
+                  fontSize: "9px", fontWeight: 600, fontVariantNumeric: "tabular-nums",
+                  padding: "2px 7px", borderRadius: "5px",
+                  background: "rgba(239,68,68,0.1)", color: "#ef4444",
+                }}>S {fmtK(whaleUsd)}</span>
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{
+              fontSize: "24px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
+              letterSpacing: "-0.02em", color: netColor,
+              textShadow: "none",
+            }}>
+              {!d ? "—" : `${whaleNet >= 0 ? "+" : "−"}${fmtK(Math.abs(whaleNet))}`}
+            </span>
+            {d && whaleNet !== 0 && (
+              <span style={{
+                fontSize: "9px", fontWeight: 600, color: "rgba(255,255,255,0.28)",
+                letterSpacing: "0.04em",
+              }}>
+                {whaleNet < 0 ? "SELL pressure" : "BUY pressure"}
+              </span>
+            )}
+            {d && <LvlBadge level={whaleNetLvl} />}
+          </div>
+        </div>
+
+        {/* ═══════════════ PAUSED BANNER ═══════════════ */}
         {isPaused && (
-          <div className="relative flex items-start gap-3 rounded-2xl ring-1 ring-amber-400/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent px-4 py-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 ring-1 ring-amber-400/30 text-amber-300">⏸</div>
-            <div className="min-w-0">
-              <div className="text-[11px] font-bold text-amber-300 uppercase tracking-[0.2em]">Trading Paused</div>
-              <div className="mt-1 text-[12px] leading-relaxed text-amber-100/70 break-words">{pauseReason}</div>
+          <div style={{
+            position: "relative", zIndex: 2,
+            margin: "0 14px 14px",
+            padding: "14px 18px",
+            borderRadius: "14px",
+            background: "linear-gradient(135deg, rgba(245,197,66,0.11), rgba(245,197,66,0.04))",
+            border: "1px solid rgba(245,197,66,0.30)",
+            boxShadow: "inset 0 1px 0 rgba(245,197,66,0.10)",
+            display: "flex", alignItems: "center", gap: "14px",
+            animation: "_bc_slide_in 0.35s ease both",
+          }}>
+            <div style={{
+              width: "40px", height: "40px", borderRadius: "50%",
+              background: "linear-gradient(135deg, rgba(245,197,66,0.22), rgba(245,197,66,0.08))",
+              border: "1.5px solid rgba(245,197,66,0.42)",
+              boxShadow: "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="#f5c542">
+                <rect x="2" y="2" width="3.5" height="10" rx="1.2" />
+                <rect x="8.5" y="2" width="3.5" height="10" rx="1.2" />
+              </svg>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
+                <span style={{
+                  fontSize: "11px", fontWeight: 900, color: "#f5c542",
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  textShadow: "none",
+                }}>
+                  Trading Paused
+                </span>
+                <span style={{
+                  padding: "2px 7px", borderRadius: "4px",
+                  background: "rgba(245,197,66,0.15)", border: "1px solid rgba(245,197,66,0.35)",
+                  fontSize: "7px", fontWeight: 900, color: "#f5c542",
+                  letterSpacing: "0.12em", textTransform: "uppercase",
+                }}>
+                  BOT HALTED
+                </span>
+              </div>
+              <div style={{
+                fontSize: "11px", lineHeight: 1.65,
+                color: "rgba(245,197,66,0.58)", wordBreak: "break-word",
+              }}>
+                {pauseReason}
+              </div>
             </div>
           </div>
         )}
 
-        {/* PEAK & DROPS */}
-        <div className="rounded-2xl ring-1 ring-white/10 bg-black/20 overflow-hidden">
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/5">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-lg bg-[var(--color-btc)]/15 ring-1 ring-[var(--color-btc)]/30 flex items-center justify-center">
-                <TrendingUp className="h-3.5 w-3.5 text-[var(--color-btc-glow)]" />
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/60">Peak & Drawdown</span>
-            </div>
-            <span className="text-[9px] font-mono uppercase tracking-widest text-white/30">5 windows</span>
-          </div>
-          <div className="grid grid-cols-[44px_1fr_84px_88px] gap-x-3 px-4 py-2 text-[9px] uppercase tracking-[0.2em] font-semibold text-white/35">
-            <span className="text-right">TF</span>
-            <span>Peak</span>
-            <span className="text-right">Drop</span>
-            <span className="pl-1">Intensity</span>
-          </div>
-          <div className="divide-y divide-white/[0.04]">
-            {TIMEFRAMES.map(({ label, dropKey, peakKey }) => {
-              const pct = d ? (d[dropKey] as number) : 0;
-              const peak = d ? (d[peakKey] as number) : null;
-              const inactive = !d;
-              return (
-                <div key={label} className="grid grid-cols-[44px_1fr_84px_88px] gap-x-3 items-center px-4 py-2.5 hover:bg-white/[0.02] transition-colors">
-                  <span className="text-[10px] font-mono font-bold text-white/40 text-right">{label}</span>
-                  <span className={`text-[12px] font-mono font-semibold tabular-nums ${inactive ? "text-white/20" : "text-white/70"}`}>
-                    {inactive ? "—" : `$${fmtPrice(peak ?? 0)}`}
-                  </span>
-                  <div className={`text-right text-[13px] font-mono font-bold tabular-nums ${inactive ? "text-white/20" : dropColor(pct)}`}>
-                    {inactive ? "-.--%" : `−${pct.toFixed(2)}%`}
-                  </div>
-                  <div className="pl-1">
-                    <IntensityBar pct={pct} inactive={inactive} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SPEED / VOL */}
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { icon: "⚡", label: "Speed · 10s", value: !d ? "—" : `${d.speed > 0 ? "+" : ""}${d.speed.toFixed(2)}%`,
-              cls: !d ? "text-white/30" : d.speed > 0 ? "text-[var(--color-bull)]" : d.speed < 0 ? "text-[var(--color-bear)]" : "text-white/60" },
-            { icon: "🌪", label: "Volatility · 10s", value: !d ? "0.00%" : `${d.volatility.toFixed(2)}%`,
-              cls: !d ? "text-white/30" : d.volatility >= 4 ? "text-red-300" : d.volatility >= 2.5 ? "text-orange-300" : "text-teal-300" },
-          ].map((m) => (
-            <div key={m.label} className="relative rounded-2xl ring-1 ring-white/10 bg-gradient-to-br from-white/[0.04] to-transparent px-4 py-3 overflow-hidden">
-              <div className="absolute -top-6 -right-6 h-16 w-16 rounded-full bg-white/[0.03] blur-xl" />
-              <div className="text-[9px] uppercase tracking-[0.25em] font-semibold text-white/50">{m.icon} {m.label}</div>
-              <div className={`mt-1.5 font-mono text-lg font-extrabold tabular-nums ${m.cls}`}>{m.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* MARKET SIGNALS */}
-        <div className="rounded-2xl ring-1 ring-white/10 bg-black/20 overflow-hidden">
-          <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/5">
-            <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-lg bg-[var(--color-btc)]/15 ring-1 ring-[var(--color-btc)]/30 flex items-center justify-center">
-                <Zap className="h-3.5 w-3.5 text-[var(--color-btc-glow)]" />
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-white/60">Market Signals</span>
-            </div>
-            <span className="text-[9px] font-mono uppercase tracking-widest text-white/30">60s window</span>
-          </div>
-
-          <div className="divide-y divide-white/[0.04]">
-            {/* Liquidations */}
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="text-base">💥</span>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] font-semibold text-white/45">Liquidations</div>
-                  <div className={`mt-0.5 font-mono text-sm font-bold tabular-nums ${
-                    !d ? "text-white/25" :
-                    liqLvl === "DANGER" ? "text-red-300" :
-                    liqLvl === "RISK" ? "text-orange-300" :
-                    liqLvl === "WATCH" ? "text-amber-300" : "text-teal-300"
-                  }`}>
-                    {!d ? "—" : fmtLiq(liqUsd)}
-                    {d && liqLargest > 0 && (
-                      <span className="ml-2 text-[10px] font-semibold text-white/40">Lrg {fmtLiq(liqLargest)}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {d ? <LevelBadge level={liqLvl} /> : <span className="text-white/25 text-xs">—</span>}
-            </div>
-
-            {/* Funding */}
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="text-base">💸</span>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] font-semibold text-white/45">Funding Rate</div>
-                  <div className={`mt-0.5 font-mono text-sm font-bold tabular-nums ${
-                    !d ? "text-white/25" :
-                    fundingLvl === "DANGER" ? "text-red-300" :
-                    fundingLvl === "RISK" ? "text-orange-300" :
-                    fundingLvl === "WATCH" ? "text-amber-300" : "text-teal-300"
-                  }`}>
-                    {!d ? "—" : fmtFunding(fundingRate)}
-                  </div>
-                </div>
-              </div>
-              {d ? <LevelBadge level={fundingLvl} /> : <span className="text-white/25 text-xs">—</span>}
-            </div>
-
-            {/* Whales + bleed */}
-            <div className="grid grid-cols-2 divide-x divide-white/[0.05]">
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.2em] font-semibold text-white/45">
-                  🐋 <span>Whale Sells</span>
-                </div>
-                <div className={`mt-1 font-mono text-2xl font-extrabold tabular-nums ${
-                  !d ? "text-white/25" :
-                  whaleCritical ? "text-red-300" :
-                  whaleCount >= 1 ? "text-orange-300" : "text-teal-300"
-                }`}>{!d ? "—" : whaleCount}</div>
-                {d && (
-                  <div className={`text-[10px] font-mono font-semibold mt-0.5 tabular-nums ${
-                    whaleCritical ? "text-red-300/70" :
-                    whaleCount >= 1 ? "text-orange-300/70" : "text-teal-300/60"
-                  }`}>{whaleUsdTotal > 0 ? fmtLiq(whaleUsdTotal) : "$0"}</div>
-                )}
-                {d && whaleCritical && <div className="mt-1 text-[9px] uppercase tracking-widest font-bold text-red-300/80">cluster alert</div>}
-              </div>
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.2em] font-semibold text-white/45">
-                  <TrendingDown className="h-3 w-3" /> Bleed Mins
-                </div>
-                <div className={`mt-1 font-mono text-2xl font-extrabold tabular-nums ${
-                  !d ? "text-white/25" :
-                  consecCritical ? "text-red-300" :
-                  consecDrops >= 3 ? "text-orange-300" :
-                  consecDrops >= 1 ? "text-amber-300" : "text-teal-300"
-                }`}>{!d ? "—" : consecDrops}</div>
-                {d && consecCritical && <div className="mt-1 text-[9px] uppercase tracking-widest font-bold text-red-300/80">slow bleed</div>}
-              </div>
-            </div>
-
-            {/* Net whale flow */}
-            <div className="px-4 py-3">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.2em] font-semibold text-white/45">
-                  🌊 <span>Net Whale Flow</span>
-                </div>
-                {d ? <LevelBadge level={whaleNetFlowLvl} /> : <span className="text-white/25 text-xs">—</span>}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl ring-1 ring-teal-400/20 bg-teal-500/[0.06] px-2.5 py-2 text-center">
-                  <div className="text-[8px] uppercase tracking-[0.2em] font-bold text-teal-300/70">Buys</div>
-                  <div className={`mt-1 font-mono text-[13px] font-bold tabular-nums ${!d ? "text-white/25" : "text-teal-300"}`}>
-                    {!d ? "—" : fmtLiq(whaleBuyTotal)}
-                  </div>
-                </div>
-                <div className="rounded-xl ring-1 ring-red-400/20 bg-red-500/[0.06] px-2.5 py-2 text-center">
-                  <div className="text-[8px] uppercase tracking-[0.2em] font-bold text-red-300/70">Sells</div>
-                  <div className={`mt-1 font-mono text-[13px] font-bold tabular-nums ${!d ? "text-white/25" : "text-red-300"}`}>
-                    {!d ? "—" : fmtLiq(whaleUsdTotal)}
-                  </div>
-                </div>
-                <div className={`rounded-xl ring-1 px-2.5 py-2 text-center ${
-                  !d ? "ring-white/10 bg-white/[0.03]" :
-                  whaleNetFlowLvl === "DANGER" ? "ring-red-400/30 bg-red-500/[0.08]" :
-                  whaleNetFlowLvl === "WATCH" ? "ring-orange-400/30 bg-orange-500/[0.08]" :
-                  netFlowNeg ? "ring-amber-400/30 bg-amber-500/[0.08]" :
-                               "ring-teal-400/30 bg-teal-500/[0.08]"
-                }`}>
-                  <div className="text-[8px] uppercase tracking-[0.2em] font-bold text-white/50">Net</div>
-                  <div className={`mt-1 font-mono text-[13px] font-bold tabular-nums flex items-center justify-center gap-1 ${
-                    !d ? "text-white/25" :
-                    whaleNetFlowLvl === "DANGER" ? "text-red-300" :
-                    whaleNetFlowLvl === "WATCH" ? "text-orange-300" :
-                    netFlowNeg ? "text-amber-300" : "text-teal-300"
-                  }`}>
-                    {!d ? "—" : (<><span>{netFlowNeg ? "▼" : "▲"}</span><span>{fmtLiq(netFlowAbs)}</span></>)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Vol spike */}
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-2.5">
-                <Waves className="h-4 w-4 text-white/50" />
-                <div className="text-[10px] uppercase tracking-[0.2em] font-semibold text-white/45">Vol Spike · Red Candle</div>
-              </div>
-              {!d ? (
-                <span className="text-white/25 text-xs font-bold">—</span>
-              ) : volSpike ? (
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full ring-1 ring-red-400/40 bg-red-500/10 text-red-300 text-[10px] font-bold uppercase tracking-[0.2em]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" /> Spike 🔥
-                </span>
-              ) : (
-                <span className="px-2.5 py-1 rounded-full ring-1 ring-teal-400/25 bg-teal-500/[0.06] text-teal-300 text-[10px] font-bold uppercase tracking-[0.2em]">
-                  Normal
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+        {/* bottom shimmer */}
+        <div aria-hidden style={{
+          height: "1px",
+          background: `linear-gradient(90deg, transparent, ${cfg.color}28, transparent)`,
+          transition: "background 0.55s",
+        }} />
+      </section>
+    </>
   );
 }
-
-export default BtcCrashCard;
