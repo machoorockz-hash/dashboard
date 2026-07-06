@@ -249,7 +249,16 @@ export default function PumpScannerCard() {
             <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
             <TrendingUp className="relative h-4 w-4 text-primary drop-shadow-[0_0_4px_color-mix(in_oklab,var(--primary)_80%,transparent)]" strokeWidth={2.5} />
           </div>
-          <span className="font-black text-sm tracking-wide uppercase">Pump Scanner</span>
+          <span style={{
+            fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+            fontSize: "11px",
+            fontWeight: 900,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}>Pump Scanner</span>
         </div>
         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
           active
