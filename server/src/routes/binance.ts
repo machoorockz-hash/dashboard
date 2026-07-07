@@ -231,7 +231,9 @@ router.get("/binance/allTrades", async (_req, res) => {
       .flatMap((r) => r.value)
       .sort((a, b) => b.time - a.time);
 
-    setCache("allTrades", allTrades, 3 * 60 * 1000);
+    // FIX: reduced from 3 * 60 * 1000 (3 min) to 60 * 1000 (60 s)
+    // so the last closed trade appears within ~60 s instead of up to 3 min.
+    setCache("allTrades", allTrades, 60 * 1000);
     res.json(allTrades);
   } catch (err) {
     res.status(502).json({ error: String(err) });
