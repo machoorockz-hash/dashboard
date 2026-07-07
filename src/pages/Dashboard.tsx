@@ -43,416 +43,272 @@ function fmtUAE(ts: number): { date: string; time: string } {
     hour12: true,
   });
   const d = new Date(ts);
+  // en-GB gives DD/MM/YYYY
   const date = dtf_date.format(d);
+  // en-US h12 gives e.g. "08:04 AM" — lowercase it
   const time = dtf_time.format(d).toLowerCase();
   return { date, time };
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   CYBER CYLINDER STEP VISUALISER
-   Replaces the old flat StepSegments component.
-───────────────────────────────────────────────────────────────────────────── */
+function StepSegments({
+  step,
+  total,
+  stepAmounts,
+  stepTimestamps,
+}: {
+  step: number;
+  total: number;
+  stepAmounts?: number[];
+  stepTimestamps?: number[];
+}) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-const CYL_MAGENTA = "#e040fb";
-const CYL_CYAN    = "#00e5ff";
-const CYL_TEAL    = "var(--primary)";
-const cylTealMix  = (pct: number) => `color-mix(in oklab, var(--primary) ${pct}%, transparent)`;
-const cylMgMix    = (pct: number) => `color-mix(in oklab, ${CYL_MAGENTA} ${pct}%, transparent)`;
-const cylCyMix    = (pct: number) => `color-mix(in oklab, ${CYL_CYAN} ${pct}%, transparent)`;
-
-type CylState = "completed" | "active" | "pending";
-
-function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState }) {
-  const isCompleted = state === "completed";
-  const isActive    = state === "active";
-
-  // Sizes reduced by 40% from original (×0.6)
-  const W      = isActive ? 22 : 16;
-  const BODY_H = isActive ? 32 : isCompleted ? 22 : 24;
-  const EH     = Math.round(W * 0.24);
-  const totalH = BODY_H + EH * 2;
-
-  const capTopBg = isCompleted
-    ? `radial-gradient(ellipse at 38% 32%, ${cylTealMix(75)}, ${cylTealMix(35)})`
-    : isActive
-    ? `radial-gradient(ellipse at 38% 32%, ${cylCyMix(75)}, ${cylMgMix(50)})`
-    : `color-mix(in oklab, var(--muted-foreground) 6%, transparent)`;
-
-  const capTopBorder = isCompleted
-    ? `1.5px solid ${cylTealMix(55)}`
-    : isActive
-    ? `1.5px solid ${cylCyMix(70)}`
-    : `1px solid color-mix(in oklab, var(--muted-foreground) 16%, transparent)`;
-
-  const capTopShadow = isCompleted
-    ? `0 0 14px ${cylTealMix(55)}, inset 0 2px 5px ${cylTealMix(30)}`
-    : isActive
-    ? `0 0 20px ${cylCyMix(75)}, 0 0 36px ${cylMgMix(40)}`
-    : "none";
-
-  const capBotBg = isCompleted
-    ? `radial-gradient(ellipse at 38% 68%, ${cylTealMix(55)}, ${cylTealMix(22)})`
-    : isActive
-    ? `radial-gradient(ellipse at 38% 68%, ${cylMgMix(65)}, ${cylCyMix(30)})`
-    : `color-mix(in oklab, var(--muted-foreground) 4%, transparent)`;
-
-  const capBotBorder = isCompleted
-    ? `1px solid ${cylTealMix(40)}`
-    : isActive
-    ? `1.5px solid ${cylMgMix(55)}`
-    : `1px solid color-mix(in oklab, var(--muted-foreground) 10%, transparent)`;
-
-  const capBotShadow = isCompleted
-    ? `0 0 22px ${cylTealMix(65)}, 0 6px 18px ${cylTealMix(45)}`
-    : isActive
-    ? `0 0 28px ${cylMgMix(80)}, 0 6px 22px ${cylCyMix(55)}`
-    : "none";
-
-  const badgeBorder = isCompleted
-    ? `1px solid ${cylTealMix(50)}`
-    : isActive
-    ? `2px solid ${cylCyMix(70)}`
-    : `1px solid color-mix(in oklab, var(--muted-foreground) 18%, transparent)`;
-
-  const badgeBg = isCompleted
-    ? cylTealMix(18)
-    : isActive
-    ? cylMgMix(14)
-    : "transparent";
-
-  const badgeColor = isCompleted
-    ? CYL_TEAL
-    : isActive
-    ? CYL_CYAN
-    : "color-mix(in oklab, var(--muted-foreground) 38%, transparent)";
-
-  const badgeShadow = isActive
-    ? `0 0 9px ${cylCyMix(65)}`
-    : isCompleted
-    ? `0 0 5px ${cylTealMix(30)}`
-    : "none";
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-      {/* "NOW" floating label — only on active */}
-      <div style={{ height: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {isActive && (
-          <span style={{
-            fontSize: 5,
-            fontWeight: 900,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: CYL_CYAN,
-            animation: "cyl-now-pulse 1.2s ease-in-out infinite",
-            willChange: "opacity",
-          }}>
-            NOW
-          </span>
-        )}
-      </div>
-
-      {/* ── Main cylinder wrapper ── */}
-      <div style={{
-        position: "relative",
-        width: W,
-        height: totalH,
-        flexShrink: 0,
-        transform: "translateZ(0)",
-        contain: "layout style",
-      }}>
-
-        {/* Outer orbit rings — active only */}
-        {isActive && (
-          <>
-            <div style={{
-              position: "absolute", inset: -4, borderRadius: "50%",
-              border: `1.5px dashed ${cylMgMix(42)}`,
-              animation: "cyl-ring-cw 3.8s linear infinite",
-              pointerEvents: "none",
-              willChange: "transform",
-            }} />
-            <div style={{
-              position: "absolute", inset: -7, borderRadius: "50%",
-              border: `1px dashed ${cylCyMix(28)}`,
-              animation: "cyl-ring-ccw 6.5s linear infinite",
-              pointerEvents: "none",
-              willChange: "transform",
-            }} />
-            <div style={{
-              position: "absolute", inset: -10, borderRadius: "50%",
-              border: `1px solid ${cylMgMix(10)}`,
-              animation: "cyl-ring-cw 11s linear infinite",
-              pointerEvents: "none",
-              willChange: "transform",
-            }} />
-          </>
-        )}
-
-        {/* ── TOP CAP ── */}
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0,
-          height: EH * 2, borderRadius: "50%", zIndex: 3,
-          background: capTopBg, border: capTopBorder, boxShadow: capTopShadow,
-        }} />
-
-        {/* ── CYLINDER BODY ── */}
-        <div style={{
-          position: "absolute", top: EH, left: 0, right: 0,
-          height: BODY_H, overflow: "hidden", zIndex: 2,
-        }}>
-          {/* Glass wall base — backdropFilter removed for mobile scroll performance */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: isCompleted
-              ? `linear-gradient(90deg, ${cylTealMix(14)} 0%, ${cylTealMix(6)} 50%, ${cylTealMix(18)} 100%)`
-              : isActive
-              ? `linear-gradient(90deg, ${cylMgMix(11)} 0%, ${cylCyMix(5)} 50%, ${cylMgMix(14)} 100%)`
-              : "color-mix(in oklab, var(--muted-foreground) 3%, transparent)",
-          }} />
-
-          {/* Left highlight strip */}
-          <div style={{
-            position: "absolute", left: 0, top: 0, bottom: 0,
-            width: Math.max(2, W * 0.055),
-            background: isCompleted
-              ? `linear-gradient(180deg, ${cylTealMix(45)} 0%, ${cylTealMix(18)} 100%)`
-              : isActive
-              ? `linear-gradient(180deg, ${cylCyMix(55)} 0%, ${cylMgMix(28)} 100%)`
-              : "color-mix(in oklab, var(--muted-foreground) 10%, transparent)",
-          }} />
-
-          {/* Right shadow strip */}
-          <div style={{
-            position: "absolute", right: 0, top: 0, bottom: 0,
-            width: Math.max(2, W * 0.055),
-            background: isCompleted
-              ? `linear-gradient(180deg, ${cylTealMix(22)} 0%, ${cylTealMix(9)} 100%)`
-              : isActive
-              ? `linear-gradient(180deg, ${cylMgMix(28)} 0%, ${cylCyMix(14)} 100%)`
-              : "color-mix(in oklab, var(--muted-foreground) 5%, transparent)",
-          }} />
-
-          {/* Wall borders */}
-          <div style={{
-            position: "absolute", inset: 0,
-            borderLeft: isCompleted
-              ? `1.5px solid ${cylTealMix(50)}`
-              : isActive
-              ? `1.5px solid ${cylMgMix(60)}`
-              : `1px solid color-mix(in oklab, var(--muted-foreground) 14%, transparent)`,
-            borderRight: isCompleted
-              ? `1.5px solid ${cylTealMix(28)}`
-              : isActive
-              ? `1.5px solid ${cylCyMix(38)}`
-              : `1px solid color-mix(in oklab, var(--muted-foreground) 9%, transparent)`,
-          }} />
-
-          {/* ── ACTIVE: plasma core ── */}
-          {isActive && (
-            <>
-              <div style={{
-                position: "absolute", inset: "8% 14%", borderRadius: "35%",
-                background: `linear-gradient(0deg, ${CYL_MAGENTA} 0%, ${CYL_CYAN} 45%, ${CYL_MAGENTA} 100%)`,
-                backgroundSize: "100% 250%",
-                animation: "cyl-plasma-flow 1.35s ease-in-out infinite",
-                filter: "blur(4px)", opacity: 0.62,
-                willChange: "background-position",
-              }} />
-              <div style={{
-                position: "absolute", inset: "22% 28%", borderRadius: "30%",
-                background: `radial-gradient(ellipse, rgba(255,255,255,0.9) 0%, ${CYL_CYAN} 40%, transparent 70%)`,
-                animation: "cyl-plasma-spark 0.85s ease-in-out infinite alternate",
-                filter: "blur(2px)", opacity: 0.55,
-                willChange: "opacity, transform",
-              }} />
-              <div style={{
-                position: "absolute", inset: 0,
-                backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 7px, ${cylCyMix(7)} 7px, ${cylCyMix(7)} 8px)`,
-                opacity: 0.55,
-                animation: "cyl-plasma-scan 2s linear infinite",
-                backgroundSize: "100% 16px",
-                willChange: "background-position",
-              }} />
-              <div style={{
-                position: "absolute", inset: "0%",
-                background: `radial-gradient(ellipse at 50% 50%, ${cylCyMix(16)}, transparent 70%)`,
-                animation: "cyl-plasma-bloom 1.6s ease-in-out infinite alternate",
-                willChange: "opacity",
-              }} />
-            </>
-          )}
-
-          {/* ── COMPLETED: inner teal glow bloom ── */}
-          {isCompleted && (
-            <div style={{
-              position: "absolute", inset: "12% 18%", borderRadius: "30%",
-              background: `radial-gradient(ellipse, ${cylTealMix(65)}, ${cylTealMix(22)}, transparent)`,
-              animation: "cyl-glow-breathe 2.6s ease-in-out infinite",
-              filter: "blur(3px)",
-              willChange: "opacity",
-            }} />
-          )}
-
-          {/* Centre icon / number */}
-          <div style={{
-            position: "absolute", inset: 0,
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4,
-          }}>
-            {isCompleted ? (
-              <svg viewBox="0 0 14 14" width={8} height={8} fill="none"
-                stroke={CYL_TEAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{ filter: `drop-shadow(0 0 3px ${CYL_TEAL}) drop-shadow(0 0 6px ${cylTealMix(60)})` }}>
-                <polyline points="2.5,7 5.5,10.5 11.5,3.5" />
-              </svg>
-            ) : isActive ? (
-              <span style={{
-                fontSize: 11, fontWeight: 900, color: "white", lineHeight: 1,
-                animation: "cyl-plasma-num 1.4s ease-in-out infinite alternate",
-                letterSpacing: "-0.02em",
-                willChange: "opacity",
-              }}>
-                {stepNum}
-              </span>
-            ) : (
-              <span style={{
-                fontSize: 7, fontWeight: 700, lineHeight: 1,
-                color: "color-mix(in oklab, var(--muted-foreground) 32%, transparent)",
-              }}>
-                {stepNum}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* ── BOTTOM CAP ── */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          height: EH * 2, borderRadius: "50%", zIndex: 1,
-          background: capBotBg, border: capBotBorder, boxShadow: capBotShadow,
-        }} />
-
-        {/* Base floor glow */}
-        {(isCompleted || isActive) && (
-          <div style={{
-            position: "absolute", bottom: -6, left: "5%", right: "5%",
-            height: 6, borderRadius: "50%",
-            background: isCompleted
-              ? `radial-gradient(ellipse, ${cylTealMix(55)}, transparent)`
-              : `radial-gradient(ellipse, ${cylMgMix(65)}, transparent)`,
-            filter: "blur(3px)",
-            animation: isActive ? "cyl-base-pulse 1.2s ease-in-out infinite" : "cyl-glow-breathe 2.6s ease-in-out infinite",
-            zIndex: 0,
-            willChange: "opacity, transform",
-          }} />
-        )}
-      </div>
-
-      {/* Bottom badge */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          width: 8, height: 8, borderRadius: "50%",
-          border: badgeBorder, background: badgeBg, boxShadow: badgeShadow,
-          fontSize: 5, fontWeight: 800, color: badgeColor,
-        }}>
-          {isCompleted ? (
-            <svg viewBox="0 0 10 10" width={4} height={4} fill="none"
-              stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="1.5,5 4,8 8.5,2" />
-            </svg>
-          ) : stepNum}
-        </div>
-        <span style={{
-          fontSize: 6, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
-          color: isCompleted ? cylTealMix(58) : isActive ? cylCyMix(82) : "color-mix(in oklab, var(--muted-foreground) 28%, transparent)",
-          textShadow: isActive ? `0 0 7px ${cylCyMix(70)}` : "none",
-        }}>
-          {isCompleted ? "done" : isActive ? "active" : `step ${stepNum}`}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function CylinderRow({ step, total }: { step: number; total: number }) {
   return (
     <>
       <style>{`
-        @keyframes cyl-plasma-flow {
-          0%   { background-position: 50% 110%; }
-          50%  { background-position: 50% -10%; }
-          100% { background-position: 50% 110%; }
+        @keyframes dca-node-breathe {
+          0%, 100% {
+            box-shadow:
+              0 0 0 3px color-mix(in oklab, var(--primary) 15%, transparent),
+              0 0 10px 2px color-mix(in oklab, var(--primary) 20%, transparent),
+              0 0 22px 4px color-mix(in oklab, var(--primary) 10%, transparent);
+          }
+          50% {
+            box-shadow:
+              0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent),
+              0 0 16px 4px color-mix(in oklab, var(--primary) 28%, transparent),
+              0 0 32px 8px color-mix(in oklab, var(--primary) 12%, transparent);
+          }
         }
-        @keyframes cyl-plasma-spark {
-          from { opacity: 0.28; transform: scale(0.78); }
-          to   { opacity: 0.60; transform: scale(1.12); }
+        @keyframes dca-ring-spin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
-        @keyframes cyl-plasma-scan {
-          from { background-position: 0 0; }
-          to   { background-position: 0 16px; }
+        @keyframes dca-check-pop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          60%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
         }
-        @keyframes cyl-plasma-bloom {
-          from { opacity: 0.4; }
-          to   { opacity: 0.9; }
+        @keyframes dca-tooltip-in {
+          0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
         }
-        @keyframes cyl-plasma-num {
-          from { text-shadow: 0 0 8px #00e5ff, 0 0 20px #e040fb; opacity: 0.88; }
-          to   { text-shadow: 0 0 18px #00e5ff, 0 0 38px #e040fb, 0 0 55px #00e5ff; opacity: 1; }
-        }
-        @keyframes cyl-now-pulse {
-          0%, 100% { opacity: 0.68; letter-spacing: 0.22em; }
-          50%       { opacity: 1;   letter-spacing: 0.28em;
-                      text-shadow: 0 0 10px #00e5ff, 0 0 22px #e040fb; }
-        }
-        @keyframes cyl-ring-cw  { to { transform: rotate(360deg);  } }
-        @keyframes cyl-ring-ccw { to { transform: rotate(-360deg); } }
-        @keyframes cyl-glow-breathe {
-          0%, 100% { opacity: 0.45; }
-          50%       { opacity: 0.88; }
-        }
-        @keyframes cyl-base-pulse {
-          0%, 100% { opacity: 0.38; transform: scaleX(0.88); }
-          50%       { opacity: 0.88; transform: scaleX(1.14); }
-        }
+        .dca-node-breathe { animation: dca-node-breathe 2.4s ease-in-out infinite; }
+        .dca-check-pop    { animation: dca-check-pop    0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+        .dca-tooltip-in   { animation: dca-tooltip-in   0.22s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
-      {/* contain: layout style prevents this section from causing full-page reflows on scroll */}
-      <div style={{
-        position: "relative",
-        padding: "12px 4px 6px",
-        width: "100%",
-        contain: "layout style",
-      }}>
-        {/* Recessed platform base */}
-        <div style={{
-          position: "absolute", bottom: 28, left: "4%", right: "4%",
-          height: 3, borderRadius: 2,
-          background: "color-mix(in oklab, var(--muted-foreground) 7%, transparent)",
-        }} />
-        <div style={{
-          display: "flex", alignItems: "flex-end", justifyContent: "space-evenly",
-          flexWrap: "wrap",
-        }}>
-          {Array.from({ length: total }).map((_, i) => {
-            const state: CylState =
-              i < step - 1 ? "completed" : i === step - 1 ? "active" : "pending";
-            return <CyberCylinder key={i} stepNum={i + 1} state={state} />;
-          })}
-        </div>
+
+      {/* Outer row — nodes + connectors; labels sit below each node */}
+      <div style={{ display: "flex", alignItems: "flex-start", width: "100%" }}>
+        {Array.from({ length: total }).map((_, i) => {
+          const filled    = i < step;
+          const isActive  = i === step - 1;
+          const isPast    = filled && !isActive;
+          const isLast    = i === total - 1;
+          const isHovered = hoveredIdx === i;
+
+          const nodeSize      = isActive ? 30 : isPast ? 22 : 20;
+          const borderW       = isActive ? 2 : isPast ? 0 : 1.5;
+          const NODE_CONTAINER = 32; // fixed height so connector always centres correctly
+
+          const statusLabel  = isPast ? "Completed" : isActive ? "Active" : "Pending";
+          const statusColor  = isPast || isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
+          const statusBg     = isPast ? "color-mix(in oklab,var(--primary) 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
+          const statusBorder = isPast || isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
+
+          const amount    = stepAmounts?.[i];
+          const timestamp = stepTimestamps?.[i];
+          const timeStr   = timestamp ? fmtUAE(timestamp) : null;
+
+          return (
+            <div
+              key={i}
+              style={{ display: "flex", alignItems: "flex-start", flex: isLast ? "0 0 auto" : 1 }}
+            >
+              {/* ── Node column: circle + USDT label stacked ── */}
+              <div
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px", flexShrink: 0, position: "relative" }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              >
+                {/* ── Tooltip ── */}
+                {isHovered && (
+                  <div
+                    className="dca-tooltip-in"
+                    style={{
+                      position: "absolute",
+                      bottom: `calc(100% + 10px)`,
+                      left: "50%",
+                      zIndex: 50,
+                      pointerEvents: "none",
+                      minWidth: "110px",
+                      maxWidth: "160px",
+                    }}
+                  >
+                    <div style={{
+                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      backdropFilter: "blur(14px)",
+                      WebkitBackdropFilter: "blur(14px)",
+                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      borderRadius: "10px",
+                      padding: "8px 10px",
+                      boxShadow: "0 8px 24px -4px rgba(0,0,0,0.45), 0 2px 8px -2px rgba(0,0,0,0.3)",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--muted-foreground)" }}>
+                          Step {i + 1}
+                        </span>
+                        <span style={{
+                          fontSize: "8px", fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase",
+                          padding: "2px 6px", borderRadius: "999px", lineHeight: 1.4,
+                          color: statusColor, background: statusBg, border: `1px solid ${statusBorder}`,
+                          ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 60%,transparent))" } : {}),
+                        }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div style={{ margin: "6px 0", height: "1px", background: `linear-gradient(90deg,transparent,color-mix(in oklab,var(--primary) ${isPast || isActive ? "25%" : "10%"},transparent),transparent)` }} />
+                      {amount != null ? (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                          <span style={{ fontSize: "9px", color: "color-mix(in oklab,var(--muted-foreground) 70%,transparent)", fontWeight: 600 }}>Buy</span>
+                          <span style={{ fontSize: "11px", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em", color: isActive ? "var(--primary)" : isPast ? "var(--foreground)" : "color-mix(in oklab,var(--muted-foreground) 60%,transparent)" }}>
+                            ${fmt(amount, 2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "5px" }}>
+                          <span style={{ display: "inline-block", width: "32px", height: "5px", borderRadius: "999px", background: "color-mix(in oklab,var(--muted-foreground) 12%,transparent)" }} />
+                          <span style={{ display: "inline-block", width: "20px", height: "5px", borderRadius: "999px", background: "color-mix(in oklab,var(--muted-foreground) 7%,transparent)" }} />
+                        </div>
+                      )}
+                      {timeStr && (
+                        <div style={{ marginTop: "4px", fontSize: "9px", fontVariantNumeric: "tabular-nums", color: "color-mix(in oklab,var(--muted-foreground) 55%,transparent)", fontWeight: 500 }}>
+                          {timeStr.date} · {timeStr.time}
+                        </div>
+                      )}
+                    </div>
+                    {/* Arrow */}
+                    <div style={{
+                      position: "absolute", bottom: "-5px", left: "50%",
+                      transform: "translateX(-50%) rotate(45deg)",
+                      width: "9px", height: "9px",
+                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      backdropFilter: "blur(14px)",
+                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      borderTop: "none", borderLeft: "none",
+                    }} />
+                  </div>
+                )}
+
+                {/* ── Fixed-height node container so connector always aligns ── */}
+                <div style={{ width: `${NODE_CONTAINER}px`, height: `${NODE_CONTAINER}px`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                  <div
+                    className={isActive ? "dca-node-breathe" : ""}
+                    style={{
+                      width: `${nodeSize}px`,
+                      height: `${nodeSize}px`,
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.35s ease",
+                      cursor: "default",
+                      position: "relative",
+                      background: isActive
+                        ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
+                        : isPast ? "var(--primary)"
+                        : "color-mix(in oklab,var(--primary) 7%,var(--card))",
+                      border: isActive
+                        ? `${borderW}px solid var(--primary)`
+                        : isPast ? "none"
+                        : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
+                      ...(isHovered && !isActive ? {
+                        transform: "scale(1.12)",
+                        boxShadow: `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
+                      } : {}),
+                    }}
+                  >
+                    {isActive && (
+                      <div style={{
+                        position: "absolute", inset: "-5px", borderRadius: "50%",
+                        border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
+                        animation: "dca-ring-spin 8s linear infinite",
+                      }} />
+                    )}
+                    {isPast ? (
+                      <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="var(--card)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="2,6 5,9.5 10,3" />
+                      </svg>
+                    ) : (
+                      <span style={{
+                        fontSize: isActive ? "12px" : "9px", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", transition: "all 0.4s ease",
+                        color: isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 40%,transparent)",
+                        ...(isActive ? { filter: "drop-shadow(0 0 5px color-mix(in oklab,var(--primary) 80%,transparent))", textShadow: "0 0 8px color-mix(in oklab,var(--primary) 60%,transparent)" } : {}),
+                      }}>
+                        {i + 1}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── USDT amount label below the node ── */}
+                <div style={{ height: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {amount != null ? (
+                    <span style={{
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      fontVariantNumeric: "tabular-nums",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      color: isActive
+                        ? "var(--primary)"
+                        : isPast
+                        ? "color-mix(in oklab,var(--primary) 65%,var(--muted-foreground))"
+                        : "color-mix(in oklab,var(--muted-foreground) 30%,transparent)",
+                      ...(isActive ? { filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 55%,transparent))" } : {}),
+                    }}>
+                      ${fmt(amount, 0)}
+                    </span>
+                  ) : (isPast || isActive) ? (
+                    <span style={{
+                      display: "inline-block", width: "18px", height: "3px", borderRadius: "999px",
+                      background: isPast
+                        ? "color-mix(in oklab,var(--primary) 22%,transparent)"
+                        : "color-mix(in oklab,var(--primary) 14%,transparent)",
+                    }} />
+                  ) : null}
+                </div>
+              </div>
+
+              {/* ── Connector line — marginTop centres it with the node circles ── */}
+              {!isLast && (
+                <div style={{ flex: 1, height: "1.5px", marginTop: `${NODE_CONTAINER / 2 - 0.75}px`, position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", inset: 0, background: "color-mix(in oklab,var(--primary) 8%,var(--card))" }} />
+                  <div style={{
+                    position: "absolute", inset: 0, transition: "background 0.5s ease",
+                    background: isPast
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 70%,transparent), color-mix(in oklab,var(--primary) 50%,transparent))"
+                      : isActive
+                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)"
+                      : "transparent",
+                  }} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   END CYBER CYLINDER — everything below is unchanged from original
-───────────────────────────────────────────────────────────────────────────── */
-
 interface DcaData {
   dca_step?: number;
   dca_total_steps?: number;
   status?: string;
-  dca_step_amounts?: number[];
-  dca_step_timestamps?: number[];
+  dca_step_amounts?: number[];      // USDT spent per step, e.g. [50, 100, 150]
+  dca_step_timestamps?: number[];   // unix-ms per step
 }
 
 function useDcaData() {
@@ -922,11 +778,24 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* ── DCA STEP — now uses CylinderRow ── */}
+              {/* ── DCA STEP ── */}
               {showDca && (
                 <div
-                  className="relative mt-4 px-4 py-4"
+                  className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
+                  style={{
+                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 8%,var(--card)) 0%, color-mix(in oklab,var(--primary) 4%,var(--card)) 100%)",
+                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
+                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
+                  }}
                 >
+                  <div
+                    className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
+                  />
+                  <div
+                    className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
+                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
+                  />
 
                   <div className="relative flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
@@ -955,7 +824,12 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <CylinderRow step={dcaStep} total={dcaTotal} />
+                  <StepSegments
+                    step={dcaStep}
+                    total={dcaTotal}
+                    stepAmounts={dcaAmounts}
+                    stepTimestamps={dcaTimestamps}
+                  />
                 </div>
               )}
 
