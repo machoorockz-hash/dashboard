@@ -66,8 +66,9 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
   const isCompleted = state === "completed";
   const isActive    = state === "active";
 
-  const W      = isActive ? 36 : 27;
-  const BODY_H = isActive ? 54 : isCompleted ? 36 : 40;
+  // Sizes reduced by 40% from original (×0.6)
+  const W      = isActive ? 22 : 16;
+  const BODY_H = isActive ? 32 : isCompleted ? 22 : 24;
   const EH     = Math.round(W * 0.24);
   const totalH = BODY_H + EH * 2;
 
@@ -132,17 +133,18 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
     : "none";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
       {/* "NOW" floating label — only on active */}
-      <div style={{ height: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isActive && (
           <span style={{
-            fontSize: 8,
+            fontSize: 5,
             fontWeight: 900,
             letterSpacing: "0.22em",
             textTransform: "uppercase",
             color: CYL_CYAN,
             animation: "cyl-now-pulse 1.2s ease-in-out infinite",
+            willChange: "opacity",
           }}>
             NOW
           </span>
@@ -150,28 +152,38 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
       </div>
 
       {/* ── Main cylinder wrapper ── */}
-      <div style={{ position: "relative", width: W, height: totalH, flexShrink: 0 }}>
+      <div style={{
+        position: "relative",
+        width: W,
+        height: totalH,
+        flexShrink: 0,
+        transform: "translateZ(0)",
+        contain: "layout style",
+      }}>
 
         {/* Outer orbit rings — active only */}
         {isActive && (
           <>
             <div style={{
-              position: "absolute", inset: -6, borderRadius: "50%",
+              position: "absolute", inset: -4, borderRadius: "50%",
               border: `1.5px dashed ${cylMgMix(42)}`,
               animation: "cyl-ring-cw 3.8s linear infinite",
               pointerEvents: "none",
+              willChange: "transform",
             }} />
             <div style={{
-              position: "absolute", inset: -11, borderRadius: "50%",
+              position: "absolute", inset: -7, borderRadius: "50%",
               border: `1px dashed ${cylCyMix(28)}`,
               animation: "cyl-ring-ccw 6.5s linear infinite",
               pointerEvents: "none",
+              willChange: "transform",
             }} />
             <div style={{
-              position: "absolute", inset: -16, borderRadius: "50%",
+              position: "absolute", inset: -10, borderRadius: "50%",
               border: `1px solid ${cylMgMix(10)}`,
               animation: "cyl-ring-cw 11s linear infinite",
               pointerEvents: "none",
+              willChange: "transform",
             }} />
           </>
         )}
@@ -188,7 +200,7 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
           position: "absolute", top: EH, left: 0, right: 0,
           height: BODY_H, overflow: "hidden", zIndex: 2,
         }}>
-          {/* Glass wall base */}
+          {/* Glass wall base — backdropFilter removed for mobile scroll performance */}
           <div style={{
             position: "absolute", inset: 0,
             background: isCompleted
@@ -196,13 +208,12 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
               : isActive
               ? `linear-gradient(90deg, ${cylMgMix(11)} 0%, ${cylCyMix(5)} 50%, ${cylMgMix(14)} 100%)`
               : "color-mix(in oklab, var(--muted-foreground) 3%, transparent)",
-            backdropFilter: "blur(6px)",
           }} />
 
           {/* Left highlight strip */}
           <div style={{
             position: "absolute", left: 0, top: 0, bottom: 0,
-            width: Math.max(3, W * 0.055),
+            width: Math.max(2, W * 0.055),
             background: isCompleted
               ? `linear-gradient(180deg, ${cylTealMix(45)} 0%, ${cylTealMix(18)} 100%)`
               : isActive
@@ -213,7 +224,7 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
           {/* Right shadow strip */}
           <div style={{
             position: "absolute", right: 0, top: 0, bottom: 0,
-            width: Math.max(3, W * 0.055),
+            width: Math.max(2, W * 0.055),
             background: isCompleted
               ? `linear-gradient(180deg, ${cylTealMix(22)} 0%, ${cylTealMix(9)} 100%)`
               : isActive
@@ -244,13 +255,15 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
                 background: `linear-gradient(0deg, ${CYL_MAGENTA} 0%, ${CYL_CYAN} 45%, ${CYL_MAGENTA} 100%)`,
                 backgroundSize: "100% 250%",
                 animation: "cyl-plasma-flow 1.35s ease-in-out infinite",
-                filter: "blur(7px)", opacity: 0.62,
+                filter: "blur(4px)", opacity: 0.62,
+                willChange: "background-position",
               }} />
               <div style={{
                 position: "absolute", inset: "22% 28%", borderRadius: "30%",
                 background: `radial-gradient(ellipse, rgba(255,255,255,0.9) 0%, ${CYL_CYAN} 40%, transparent 70%)`,
                 animation: "cyl-plasma-spark 0.85s ease-in-out infinite alternate",
-                filter: "blur(3px)", opacity: 0.55,
+                filter: "blur(2px)", opacity: 0.55,
+                willChange: "opacity, transform",
               }} />
               <div style={{
                 position: "absolute", inset: 0,
@@ -258,11 +271,13 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
                 opacity: 0.55,
                 animation: "cyl-plasma-scan 2s linear infinite",
                 backgroundSize: "100% 16px",
+                willChange: "background-position",
               }} />
               <div style={{
                 position: "absolute", inset: "0%",
                 background: `radial-gradient(ellipse at 50% 50%, ${cylCyMix(16)}, transparent 70%)`,
                 animation: "cyl-plasma-bloom 1.6s ease-in-out infinite alternate",
+                willChange: "opacity",
               }} />
             </>
           )}
@@ -273,7 +288,8 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
               position: "absolute", inset: "12% 18%", borderRadius: "30%",
               background: `radial-gradient(ellipse, ${cylTealMix(65)}, ${cylTealMix(22)}, transparent)`,
               animation: "cyl-glow-breathe 2.6s ease-in-out infinite",
-              filter: "blur(5px)",
+              filter: "blur(3px)",
+              willChange: "opacity",
             }} />
           )}
 
@@ -283,22 +299,23 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
             display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4,
           }}>
             {isCompleted ? (
-              <svg viewBox="0 0 14 14" width={14} height={14} fill="none"
+              <svg viewBox="0 0 14 14" width={8} height={8} fill="none"
                 stroke={CYL_TEAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{ filter: `drop-shadow(0 0 5px ${CYL_TEAL}) drop-shadow(0 0 10px ${cylTealMix(60)})` }}>
+                style={{ filter: `drop-shadow(0 0 3px ${CYL_TEAL}) drop-shadow(0 0 6px ${cylTealMix(60)})` }}>
                 <polyline points="2.5,7 5.5,10.5 11.5,3.5" />
               </svg>
             ) : isActive ? (
               <span style={{
-                fontSize: 18, fontWeight: 900, color: "white", lineHeight: 1,
+                fontSize: 11, fontWeight: 900, color: "white", lineHeight: 1,
                 animation: "cyl-plasma-num 1.4s ease-in-out infinite alternate",
                 letterSpacing: "-0.02em",
+                willChange: "opacity",
               }}>
                 {stepNum}
               </span>
             ) : (
               <span style={{
-                fontSize: 11, fontWeight: 700, lineHeight: 1,
+                fontSize: 7, fontWeight: 700, lineHeight: 1,
                 color: "color-mix(in oklab, var(--muted-foreground) 32%, transparent)",
               }}>
                 {stepNum}
@@ -317,35 +334,36 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
         {/* Base floor glow */}
         {(isCompleted || isActive) && (
           <div style={{
-            position: "absolute", bottom: -10, left: "5%", right: "5%",
-            height: 10, borderRadius: "50%",
+            position: "absolute", bottom: -6, left: "5%", right: "5%",
+            height: 6, borderRadius: "50%",
             background: isCompleted
               ? `radial-gradient(ellipse, ${cylTealMix(55)}, transparent)`
               : `radial-gradient(ellipse, ${cylMgMix(65)}, transparent)`,
-            filter: "blur(5px)",
+            filter: "blur(3px)",
             animation: isActive ? "cyl-base-pulse 1.2s ease-in-out infinite" : "cyl-glow-breathe 2.6s ease-in-out infinite",
             zIndex: 0,
+            willChange: "opacity, transform",
           }} />
         )}
       </div>
 
       {/* Bottom badge */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          width: 14, height: 14, borderRadius: "50%",
+          width: 8, height: 8, borderRadius: "50%",
           border: badgeBorder, background: badgeBg, boxShadow: badgeShadow,
-          fontSize: 7, fontWeight: 800, color: badgeColor,
+          fontSize: 5, fontWeight: 800, color: badgeColor,
         }}>
           {isCompleted ? (
-            <svg viewBox="0 0 10 10" width={6} height={6} fill="none"
+            <svg viewBox="0 0 10 10" width={4} height={4} fill="none"
               stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="1.5,5 4,8 8.5,2" />
             </svg>
           ) : stepNum}
         </div>
         <span style={{
-          fontSize: 7, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
+          fontSize: 6, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
           color: isCompleted ? cylTealMix(58) : isActive ? cylCyMix(82) : "color-mix(in oklab, var(--muted-foreground) 28%, transparent)",
           textShadow: isActive ? `0 0 7px ${cylCyMix(70)}` : "none",
         }}>
@@ -397,13 +415,18 @@ function CylinderRow({ step, total }: { step: number; total: number }) {
           50%       { opacity: 0.88; transform: scaleX(1.14); }
         }
       `}</style>
-      <div style={{ position: "relative", padding: "12px 4px 6px", width: "100%" }}>
+      {/* contain: layout style prevents this section from causing full-page reflows on scroll */}
+      <div style={{
+        position: "relative",
+        padding: "12px 4px 6px",
+        width: "100%",
+        contain: "layout style",
+      }}>
         {/* Recessed platform base */}
         <div style={{
           position: "absolute", bottom: 28, left: "4%", right: "4%",
           height: 3, borderRadius: 2,
           background: "color-mix(in oklab, var(--muted-foreground) 7%, transparent)",
-          backdropFilter: "blur(4px)",
         }} />
         <div style={{
           display: "flex", alignItems: "flex-end", justifyContent: "space-evenly",
