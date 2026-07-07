@@ -902,21 +902,8 @@ export default function Dashboard() {
               {/* ── DCA STEP — now uses CylinderRow ── */}
               {showDca && (
                 <div
-                  className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
-                  style={{
-                    background: "linear-gradient(135deg, color-mix(in oklab,var(--primary) 8%,var(--card)) 0%, color-mix(in oklab,var(--primary) 4%,var(--card)) 100%)",
-                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
-                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
-                  }}
+                  className="relative mt-4 px-4 py-4"
                 >
-                  <div
-                    className="absolute inset-x-0 top-0 h-px pointer-events-none"
-                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
-                  />
-                  <div
-                    className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
-                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
-                  />
 
                   <div className="relative flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
