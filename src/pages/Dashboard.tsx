@@ -332,7 +332,10 @@ function useDcaData() {
   return data;
 }
 
-// ── FIX: fetch all trades directly and find the real most-recent sell ────────
+/** Remembers the last active symbol in localStorage so we can fetch its
+ *  trade history even after the order is no longer open. */
+const LAST_SYMBOL_KEY = "dashboard_last_order_symbol";
+
 interface LastTrade {
   symbol: string;
   base: string;
@@ -343,45 +346,47 @@ interface LastTrade {
 }
 
 function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
+  // Keep storedSymbol in state so React re-renders when it changes
+  const [storedSymbol, setStoredSymbol] = useState<string | undefined>(
+    () => localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined,
+  );
+
+  // Persist the last seen active symbol — update both localStorage AND state
+  useEffect(() => {
+    if (activeSymbol) {
+      localStorage.setItem(LAST_SYMBOL_KEY, activeSymbol);
+      setStoredSymbol(activeSymbol);
+    }
+  }, [activeSymbol]);
+
+  // Only query when there is NO active trade
+  const querySymbol = activeSymbol ? undefined : storedSymbol;
+
   const tradesQuery = useQuery({
-    queryKey: ["allTradesLastClosed"],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE}/api/binance/allTrades`);
-      if (!res.ok) throw new Error(`allTrades ${res.status}`);
-      return res.json() as Promise<
-        Array<{
-          symbol: string;
-          price: string;
-          qty: string;
-          quoteQty: string;
-          time: number;
-          isBuyer: boolean;
-        }>
-      >;
-    },
-    enabled: !activeSymbol,      // only fetch when no active trade
+    queryKey: ["lastTrades", querySymbol],
+    queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
+    enabled: !!querySymbol,
     staleTime: 0,
-    refetchInterval: 60_000,     // re-check every 60 s (server cache is also 60 s)
     refetchOnWindowFocus: true,
   });
 
   return useMemo(() => {
-    if (activeSymbol || !tradesQuery.data?.length) return null;
+    if (!tradesQuery.data || tradesQuery.data.length === 0 || !querySymbol) return null;
+    // Find the most recent SELL trade (trade where isBuyer === false means we sold)
     const sells = tradesQuery.data.filter((t) => !t.isBuyer);
     if (sells.length === 0) return null;
     const latest = sells.reduce((a, b) => (b.time > a.time ? b : a));
-    const base = latest.symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
+    const base = querySymbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
     return {
-      symbol: latest.symbol,
+      symbol: querySymbol,
       base,
       price: parseFloat(latest.price),
       qty: parseFloat(latest.qty),
       quoteQty: parseFloat(latest.quoteQty ?? "0"),
       time: latest.time,
     };
-  }, [tradesQuery.data, activeSymbol]);
+  }, [tradesQuery.data, querySymbol]);
 }
-// ── END FIX ──────────────────────────────────────────────────────────────────
 
 function useAnimatedBalance(target: number) {
   const [display, setDisplay] = useState(target);
