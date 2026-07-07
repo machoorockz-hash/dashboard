@@ -42,70 +42,60 @@ function formatPrice(p: number) {
   return p.toFixed(8);
 }
 
+const CB_COLS = 4;
+const CB_ROWS = 3;
+const CB_SIZE = 15; // px per block
+const CB_GAP  = 4;  // px gap
+
 function FlareBeamAnimation() {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div style={{ position: "relative", width: 88, height: 88 }}>
-        {/* outer rings */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
-          <circle
-            className="fb-ring"
-            cx="44" cy="44" r="40"
-            fill="none"
-            stroke="color-mix(in oklab, var(--primary) 30%, transparent)"
-            strokeWidth="1"
-            strokeDasharray="3 9"
-          />
-          <circle
-            className="fb-ring"
-            cx="44" cy="44" r="32"
-            fill="none"
-            stroke="color-mix(in oklab, var(--primary) 15%, transparent)"
-            strokeWidth="0.8"
-          />
-        </svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: CB_GAP }}>
 
-        {/* rotating beam */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
-          <defs>
-            <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.7" />
-              <stop offset="40%" stopColor="color-mix(in oklab, var(--primary) 80%, transparent)" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 60%, transparent)" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="fb-beam2-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 70%, white)" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 50%, transparent)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <g className="fb-spin">
-            {/* wide soft sector */}
-            <path d="M44,44 L84,36 L84,52 Z" fill="url(#fb-beam2-cg)" />
-            {/* sharp ray */}
-            <line
-              x1="44" y1="44" x2="84" y2="44"
-              stroke="url(#fb-beam-cg)"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </g>
-        </svg>
+        {/* ── main grid (4 × 3) ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${CB_COLS}, ${CB_SIZE}px)`,
+          gap: CB_GAP,
+        }}>
+          {Array.from({ length: CB_ROWS * CB_COLS }, (_, i) => {
+            const row = Math.floor(i / CB_COLS);
+            const col = i % CB_COLS;
+            // diagonal wave: top-left starts first
+            const delay = `${((row + col) * 0.13).toFixed(2)}s`;
+            return (
+              <div
+                key={i}
+                className="cb-block"
+                style={{ animationDelay: delay }}
+              />
+            );
+          })}
+        </div>
 
-        {/* centre orb */}
-        <div className="fb-orb" style={{
-          position: "absolute", top: "50%", left: "50%",
-          transform: "translate(-50%,-50%)",
-          width: 12, height: 12, borderRadius: "50%",
-          background: "radial-gradient(circle, white 0%, color-mix(in oklab, var(--primary) 90%, white) 40%, color-mix(in oklab, var(--primary) 80%, transparent) 100%)",
-        }} />
+        {/* ── reflection (4 × 2, flipped, fading out) ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${CB_COLS}, ${CB_SIZE}px)`,
+          gap: CB_GAP,
+          transform: "scaleY(-1)",
+          WebkitMaskImage: "linear-gradient(to top, transparent 10%, rgba(0,0,0,0.22) 100%)",
+          maskImage:        "linear-gradient(to top, transparent 10%, rgba(0,0,0,0.22) 100%)",
+        }}>
+          {Array.from({ length: 2 * CB_COLS }, (_, i) => {
+            const row = Math.floor(i / CB_COLS);
+            const col = i % CB_COLS;
+            const delay = `${((row + col) * 0.13).toFixed(2)}s`;
+            return (
+              <div
+                key={i}
+                className="cb-block"
+                style={{ animationDelay: delay, opacity: 0.38 }}
+              />
+            );
+          })}
+        </div>
 
-        {/* crosshairs */}
-        <svg width="88" height="88" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
-          <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="68" y1="44" x2="86" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-        </svg>
       </div>
 
       <div className="text-center">
@@ -229,16 +219,26 @@ export default function PumpScannerCard() {
         .pump-scroll::-webkit-scrollbar-thumb:hover {
           background: color-mix(in oklab, var(--primary) 65%, transparent);
         }
-        @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes fb-orb {
-          0%,100% { box-shadow: 0 0 4px 2px color-mix(in oklab,var(--primary) 25%,transparent), 0 0 8px 3px color-mix(in oklab,var(--primary) 10%,transparent); }
-          50%     { box-shadow: 0 0 6px 3px color-mix(in oklab,var(--primary) 35%,transparent), 0 0 14px 5px color-mix(in oklab,var(--primary) 15%,transparent); }
+
+        /* ── crypto-blocks animation ── */
+        @keyframes cb-wave {
+          0%, 100% {
+            background: color-mix(in oklab, var(--primary) 40%, black);
+            box-shadow: none;
+          }
+          50% {
+            background: color-mix(in oklab, var(--primary) 82%, white);
+            box-shadow: 0 0 7px 1px color-mix(in oklab, var(--primary) 35%, transparent);
+          }
         }
-        @keyframes fb-ring  { 0%,100%{opacity:.2} 50%{opacity:.5} }
+        .cb-block {
+          width: 15px;
+          height: 15px;
+          border-radius: 3px;
+          animation: cb-wave 2.4s ease-in-out infinite;
+        }
+
         @keyframes fb-blink { 0%,100%{opacity:1}  50%{opacity:.3} }
-        .fb-spin  { animation: fb-rotate 4s linear infinite; transform-origin: 44px 44px; }
-        .fb-orb   { animation: fb-orb   2s ease-in-out infinite; }
-        .fb-ring  { animation: fb-ring  2s ease-in-out infinite; }
         .fb-blink { animation: fb-blink 2s ease-in-out infinite; }
       `}</style>
 
@@ -339,7 +339,7 @@ export default function PumpScannerCard() {
           })}
         </div>
       ) : active ? (
-        /* ── EMPTY STATE: Flare Beam animation when active but no signals yet ── */
+        /* ── EMPTY STATE: crypto-blocks animation when active but no signals yet ── */
         <div className="flex items-center justify-center py-4">
           <FlareBeamAnimation />
         </div>
@@ -352,7 +352,7 @@ export default function PumpScannerCard() {
         </div>
       )}
 
-      {/* ── FLARE BEAM: always shows at bottom when bot is active ── */}
+      {/* ── CRYPTO-BLOCKS: always shows at bottom when bot is active ── */}
       {active && data && data.signals.length > 0 && (
         <div className="flex items-center justify-center pt-1 pb-1">
           <FlareBeamAnimation />
