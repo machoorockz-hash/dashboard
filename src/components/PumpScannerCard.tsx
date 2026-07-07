@@ -44,8 +44,8 @@ function formatPrice(p: number) {
 
 const CB_COLS = 4;
 const CB_ROWS = 3;
-const CB_SIZE = 11; // px per block (15 × 0.7)
-const CB_GAP  = 3;  // px gap (4 × 0.7)
+const CB_SIZE = 5; // px per block (11 × 0.4)
+const CB_GAP  = 1; // px gap (3 × 0.4)
 
 function FlareBeamAnimation() {
   return (
@@ -232,9 +232,9 @@ export default function PumpScannerCard() {
           }
         }
         .cb-block {
-          width: 11px;
-          height: 11px;
-          border-radius: 2px;
+          width: 5px;
+          height: 5px;
+          border-radius: 1px;
           animation: cb-wave 2.4s ease-in-out infinite;
         }
 
