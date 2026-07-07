@@ -106,7 +106,14 @@ export default function DcaStepCard() {
   if (!snapshot?.updatedAt || isCompleted || step === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-primary/30 bg-card relative overflow-hidden flex flex-col gap-0 shadow-[0_0_40px_-15px_color-mix(in_oklab,var(--primary)_35%,transparent)]">
+    <section
+      className="rounded-2xl border border-primary/30 relative overflow-hidden flex flex-col gap-0 shadow-[0_0_40px_-15px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+      style={{
+        background: "transparent",
+        backdropFilter: "blur(32px) saturate(180%)",
+        WebkitBackdropFilter: "blur(32px) saturate(180%)",
+      }}
+    >
       <style>{`
         @keyframes dca-shimmer {
           0%   { transform: translateX(-100%) skewX(-15deg); }
@@ -120,14 +127,12 @@ export default function DcaStepCard() {
       `}</style>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] dca-top-bar bg-gradient-to-r from-transparent via-primary to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_60%)]" />
 
       {/* ── HEADER ── */}
       <div className="relative px-5 pt-5 pb-4 border-b border-border/50">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center h-9 w-9 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent shrink-0">
-              <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
+            <div className="relative flex items-center justify-center h-9 w-9 rounded-xl border border-primary/30 shrink-0" style={{ background: "transparent" }}>
               <Layers className="relative h-[18px] w-[18px] text-primary" strokeWidth={2.5} />
             </div>
             <div>
@@ -227,7 +232,7 @@ export default function DcaStepCard() {
 
         {/* USDT spent */}
         {d?.dca_usdt_spent ? (
-          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-2.5">
+          <div className="flex items-center justify-between rounded-xl border border-border/50 bg-transparent px-4 py-2.5">
             <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">USDT Invested</span>
             <span className="font-black text-sm tabular-nums">${d.dca_usdt_spent.toFixed(2)}</span>
           </div>
@@ -248,15 +253,15 @@ function MetricCell({
   bear?: boolean;
 }) {
   const colorCls = bull
-    ? "text-bull border-bull/20 bg-bull/5"
+    ? "text-bull border-bull/20"
     : bear
-    ? "text-bear border-bear/20 bg-bear/5"
+    ? "text-bear border-bear/20"
     : accent
-    ? "text-primary border-primary/20 bg-primary/5"
-    : "text-foreground border-border bg-muted/20";
+    ? "text-primary border-primary/20"
+    : "text-foreground border-border";
   const labelCls = bull ? "text-bull/60" : bear ? "text-bear/60" : accent ? "text-primary/60" : "text-muted-foreground";
   return (
-    <div className={`rounded-xl border px-3 py-2.5 ${colorCls}`}>
+    <div className={`rounded-xl border px-3 py-2.5 bg-transparent ${colorCls}`}>
       <div className={`flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold mb-1 ${labelCls}`}>
         {icon}{label}
       </div>
