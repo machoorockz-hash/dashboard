@@ -44,8 +44,8 @@ function formatPrice(p: number) {
 
 const CB_COLS = 4;
 const CB_ROWS = 3;
-const CB_SIZE = 15; // px per block
-const CB_GAP  = 4;  // px gap
+const CB_SIZE = 11; // px per block (15 × 0.7)
+const CB_GAP  = 3;  // px gap (4 × 0.7)
 
 function FlareBeamAnimation() {
   return (
@@ -99,10 +99,10 @@ function FlareBeamAnimation() {
       </div>
 
       <div className="text-center">
-        <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase text-primary">
+        <div className="fb-blink text-[7px] font-black tracking-[0.22em] uppercase text-primary">
           Scanning Markets
         </div>
-        <div className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground/45 mt-1">
+        <div className="text-[6px] tracking-[0.15em] uppercase text-muted-foreground/45 mt-1">
           monitoring all USDT pairs
         </div>
       </div>
@@ -232,9 +232,9 @@ export default function PumpScannerCard() {
           }
         }
         .cb-block {
-          width: 15px;
-          height: 15px;
-          border-radius: 3px;
+          width: 11px;
+          height: 11px;
+          border-radius: 2px;
           animation: cb-wave 2.4s ease-in-out infinite;
         }
 
