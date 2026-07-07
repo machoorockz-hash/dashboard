@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CoinIcon } from "./CoinIcon";
-import { TrendingUp, TrendingDown, Target, Shield, DollarSign, Layers } from "lucide-react";
+import { Layers, TrendingUp, TrendingDown, Target, Shield, DollarSign } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 const POLL_MS = 3_000;
@@ -39,536 +39,33 @@ function fmtPrice(p: number) {
   return p.toFixed(6);
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   CYBER CYLINDER COMPONENT
-───────────────────────────────────────────────────────────────────────────── */
-
-const MAGENTA = "#e040fb";
-const CYAN    = "#00e5ff";
-const TEAL    = "var(--primary)";
-const tealMix = (pct: number) =>
-  `color-mix(in oklab, var(--primary) ${pct}%, transparent)`;
-const mgMix = (pct: number) =>
-  `color-mix(in oklab, ${MAGENTA} ${pct}%, transparent)`;
-const cyMix = (pct: number) =>
-  `color-mix(in oklab, ${CYAN} ${pct}%, transparent)`;
-
-type CylState = "completed" | "active" | "pending";
-
-function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState }) {
-  const isCompleted = state === "completed";
-  const isActive    = state === "active";
-
-  /* sizing */
-  const W      = isActive ? 36 : 27;
-  const BODY_H = isActive ? 54 : isCompleted ? 36 : 40;
-  const EH     = Math.round(W * 0.24);   /* cap ellipse half-height */
-  const totalH = BODY_H + EH * 2;
-
-  /* cap colours */
-  const capTopBg = isCompleted
-    ? `radial-gradient(ellipse at 38% 32%, ${tealMix(75)}, ${tealMix(35)})`
-    : isActive
-    ? `radial-gradient(ellipse at 38% 32%, ${cyMix(75)}, ${mgMix(50)})`
-    : `color-mix(in oklab, var(--muted-foreground) 6%, transparent)`;
-
-  const capTopBorder = isCompleted
-    ? `1.5px solid ${tealMix(55)}`
-    : isActive
-    ? `1.5px solid ${cyMix(70)}`
-    : `1px solid color-mix(in oklab, var(--muted-foreground) 16%, transparent)`;
-
-  const capTopShadow = isCompleted
-    ? `0 0 14px ${tealMix(55)}, inset 0 2px 5px ${tealMix(30)}`
-    : isActive
-    ? `0 0 20px ${cyMix(75)}, 0 0 36px ${mgMix(40)}`
-    : "none";
-
-  const capBotBg = isCompleted
-    ? `radial-gradient(ellipse at 38% 68%, ${tealMix(55)}, ${tealMix(22)})`
-    : isActive
-    ? `radial-gradient(ellipse at 38% 68%, ${mgMix(65)}, ${cyMix(30)})`
-    : `color-mix(in oklab, var(--muted-foreground) 4%, transparent)`;
-
-  const capBotBorder = isCompleted
-    ? `1px solid ${tealMix(40)}`
-    : isActive
-    ? `1.5px solid ${mgMix(55)}`
-    : `1px solid color-mix(in oklab, var(--muted-foreground) 10%, transparent)`;
-
-  const capBotShadow = isCompleted
-    ? `0 0 22px ${tealMix(65)}, 0 6px 18px ${tealMix(45)}`
-    : isActive
-    ? `0 0 28px ${mgMix(80)}, 0 6px 22px ${cyMix(55)}`
-    : "none";
-
-  /* bottom badge ring colours */
-  const badgeBorder = isCompleted
-    ? `1px solid ${tealMix(50)}`
-    : isActive
-    ? `2px solid ${cyMix(70)}`
-    : `1px solid color-mix(in oklab, var(--muted-foreground) 18%, transparent)`;
-
-  const badgeBg = isCompleted
-    ? tealMix(18)
-    : isActive
-    ? mgMix(14)
-    : "transparent";
-
-  const badgeColor = isCompleted
-    ? TEAL
-    : isActive
-    ? CYAN
-    : "color-mix(in oklab, var(--muted-foreground) 38%, transparent)";
-
-  const badgeShadow = isActive
-    ? `0 0 9px ${cyMix(65)}`
-    : isCompleted
-    ? `0 0 5px ${tealMix(30)}`
-    : "none";
-
+function StepSegments({ step, total }: { step: number; total: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-      {/* "NOW" floating label — only on active */}
-      <div style={{ height: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {isActive && (
-          <span style={{
-            fontSize: 7,
-            fontWeight: 900,
-            letterSpacing: "0.22em",
-            textTransform: "uppercase",
-            color: CYAN,
-            animation: "cyl-now-pulse 1.2s ease-in-out infinite",
-          }}>
-            NOW
-          </span>
-        )}
-      </div>
-
-      {/* ── Main cylinder wrapper ── */}
-      <div style={{ position: "relative", width: W, height: totalH, flexShrink: 0 }}>
-
-        {/* Outer orbit rings — active only */}
-        {isActive && (
-          <>
-            {/* Ring 1: tight dashed, clockwise */}
-            <div style={{
-              position: "absolute",
-              inset: -6,
-              borderRadius: "50%",
-              border: `1.5px dashed ${mgMix(42)}`,
-              animation: "cyl-ring-cw 3.8s linear infinite",
-              pointerEvents: "none",
-            }} />
-            {/* Ring 2: wider, counter-clockwise */}
-            <div style={{
-              position: "absolute",
-              inset: -11,
-              borderRadius: "50%",
-              border: `1px dashed ${cyMix(28)}`,
-              animation: "cyl-ring-ccw 6.5s linear infinite",
-              pointerEvents: "none",
-            }} />
-            {/* Ring 3: very faint widest */}
-            <div style={{
-              position: "absolute",
-              inset: -16,
-              borderRadius: "50%",
-              border: `1px solid ${mgMix(10)}`,
-              animation: "cyl-ring-cw 11s linear infinite",
-              pointerEvents: "none",
-            }} />
-          </>
-        )}
-
-        {/* ── TOP CAP (ellipse) — z-index 3 so it sits on top of body ── */}
-        <div style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: EH * 2,
-          borderRadius: "50%",
-          zIndex: 3,
-          background: capTopBg,
-          border: capTopBorder,
-          boxShadow: capTopShadow,
-        }} />
-
-        {/* ── CYLINDER BODY ── */}
-        <div style={{
-          position: "absolute",
-          top: EH,
-          left: 0,
-          right: 0,
-          height: BODY_H,
-          overflow: "hidden",
-          zIndex: 2,
-        }}>
-
-          {/* Glass wall base */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            background: isCompleted
-              ? `linear-gradient(90deg, ${tealMix(14)} 0%, ${tealMix(6)} 50%, ${tealMix(18)} 100%)`
-              : isActive
-              ? `linear-gradient(90deg, ${mgMix(11)} 0%, ${cyMix(5)} 50%, ${mgMix(14)} 100%)`
-              : "color-mix(in oklab, var(--muted-foreground) 3%, transparent)",
-            backdropFilter: "blur(6px)",
-          }} />
-
-          {/* Left highlight strip */}
-          <div style={{
-            position: "absolute",
-            left: 0, top: 0, bottom: 0,
-            width: Math.max(3, W * 0.055),
-            background: isCompleted
-              ? `linear-gradient(180deg, ${tealMix(45)} 0%, ${tealMix(18)} 100%)`
-              : isActive
-              ? `linear-gradient(180deg, ${cyMix(55)} 0%, ${mgMix(28)} 100%)`
-              : "color-mix(in oklab, var(--muted-foreground) 10%, transparent)",
-          }} />
-
-          {/* Right shadow strip */}
-          <div style={{
-            position: "absolute",
-            right: 0, top: 0, bottom: 0,
-            width: Math.max(3, W * 0.055),
-            background: isCompleted
-              ? `linear-gradient(180deg, ${tealMix(22)} 0%, ${tealMix(9)} 100%)`
-              : isActive
-              ? `linear-gradient(180deg, ${mgMix(28)} 0%, ${cyMix(14)} 100%)`
-              : "color-mix(in oklab, var(--muted-foreground) 5%, transparent)",
-          }} />
-
-          {/* Left / right wall borders */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            borderLeft: isCompleted
-              ? `1.5px solid ${tealMix(50)}`
-              : isActive
-              ? `1.5px solid ${mgMix(60)}`
-              : `1px solid color-mix(in oklab, var(--muted-foreground) 14%, transparent)`,
-            borderRight: isCompleted
-              ? `1.5px solid ${tealMix(28)}`
-              : isActive
-              ? `1.5px solid ${cyMix(38)}`
-              : `1px solid color-mix(in oklab, var(--muted-foreground) 9%, transparent)`,
-          }} />
-
-          {/* ── ACTIVE: plasma core ── */}
-          {isActive && (
-            <>
-              {/* Main plasma column */}
-              <div style={{
-                position: "absolute",
-                inset: "8% 14%",
-                borderRadius: "35%",
-                background: `linear-gradient(0deg, ${MAGENTA} 0%, ${CYAN} 45%, ${MAGENTA} 100%)`,
-                backgroundSize: "100% 250%",
-                animation: "plasma-flow 1.35s ease-in-out infinite",
-                filter: "blur(7px)",
-                opacity: 0.62,
-              }} />
-              {/* Bright inner core spark */}
-              <div style={{
-                position: "absolute",
-                inset: "22% 28%",
-                borderRadius: "30%",
-                background: `radial-gradient(ellipse, rgba(255,255,255,0.9) 0%, ${CYAN} 40%, transparent 70%)`,
-                animation: "plasma-spark 0.85s ease-in-out infinite alternate",
-                filter: "blur(3px)",
-                opacity: 0.55,
-              }} />
-              {/* Horizontal circuit scan lines */}
-              <div style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: `
-                  repeating-linear-gradient(
-                    0deg,
-                    transparent,
-                    transparent 7px,
-                    ${cyMix(7)} 7px,
-                    ${cyMix(7)} 8px
-                  )
-                `,
-                opacity: 0.55,
-                animation: "plasma-scan 2s linear infinite",
-                backgroundSize: "100% 16px",
-              }} />
-              {/* Ambient radial bloom */}
-              <div style={{
-                position: "absolute",
-                inset: "0%",
-                background: `radial-gradient(ellipse at 50% 50%, ${cyMix(16)}, transparent 70%)`,
-                animation: "plasma-bloom 1.6s ease-in-out infinite alternate",
-              }} />
-            </>
-          )}
-
-          {/* ── COMPLETED: inner teal glow bloom ── */}
-          {isCompleted && (
-            <div style={{
-              position: "absolute",
-              inset: "12% 18%",
-              borderRadius: "30%",
-              background: `radial-gradient(ellipse, ${tealMix(65)}, ${tealMix(22)}, transparent)`,
-              animation: "cyl-glow-breathe 2.6s ease-in-out infinite",
-              filter: "blur(5px)",
-            }} />
-          )}
-
-          {/* ── Centre icon / number ── */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 4,
-          }}>
-            {isCompleted ? (
-              <svg
-                viewBox="0 0 14 14"
-                width={15}
-                height={15}
-                fill="none"
-                stroke={TEAL}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ filter: `drop-shadow(0 0 5px ${TEAL}) drop-shadow(0 0 10px ${tealMix(60)})` }}
-              >
-                <polyline points="2.5,7 5.5,10.5 11.5,3.5" />
-              </svg>
-            ) : isActive ? (
-              <span style={{
-                fontSize: 20,
-                fontWeight: 900,
-                color: "white",
-                lineHeight: 1,
-                animation: "plasma-num 1.4s ease-in-out infinite alternate",
-                letterSpacing: "-0.02em",
-              }}>
-                {stepNum}
-              </span>
-            ) : (
-              <span style={{
-                fontSize: 12,
-                fontWeight: 700,
-                lineHeight: 1,
-                color: "color-mix(in oklab, var(--muted-foreground) 32%, transparent)",
-              }}>
-                {stepNum}
-              </span>
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: total }).map((_, i) => {
+        const filled = i < step;
+        const isLast = i === step - 1;
+        return (
+          <div
+            key={i}
+            className={`relative h-2 rounded-full transition-all duration-700 flex-1 ${
+              filled
+                ? isLast
+                  ? "bg-primary shadow-[0_0_8px_2px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
+                  : "bg-primary/70"
+                : "bg-muted/50"
+            }`}
+          >
+            {isLast && (
+              <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-75" />
             )}
           </div>
-        </div>
-
-        {/* ── BOTTOM CAP (ellipse) — z-index 1, behind body walls but visible ── */}
-        <div style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: EH * 2,
-          borderRadius: "50%",
-          zIndex: 1,
-          background: capBotBg,
-          border: capBotBorder,
-          boxShadow: capBotShadow,
-        }} />
-
-        {/* ── Base floor glow ── */}
-        {(isCompleted || isActive) && (
-          <div style={{
-            position: "absolute",
-            bottom: -10,
-            left: "5%",
-            right: "5%",
-            height: 10,
-            borderRadius: "50%",
-            background: isCompleted
-              ? `radial-gradient(ellipse, ${tealMix(55)}, transparent)`
-              : `radial-gradient(ellipse, ${mgMix(65)}, transparent)`,
-            filter: "blur(5px)",
-            animation: isActive
-              ? "cyl-base-pulse 1.2s ease-in-out infinite"
-              : "cyl-glow-breathe 2.6s ease-in-out infinite",
-            zIndex: 0,
-          }} />
-        )}
-      </div>
-
-      {/* ── Bottom badge (step number ring + label) ── */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 14,
-          height: 14,
-          borderRadius: "50%",
-          border: badgeBorder,
-          background: badgeBg,
-          boxShadow: badgeShadow,
-          fontSize: 7,
-          fontWeight: 800,
-          color: badgeColor,
-        }}>
-          {isCompleted ? (
-            <svg viewBox="0 0 10 10" width={6} height={6} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="1.5,5 4,8 8.5,2" />
-            </svg>
-          ) : stepNum}
-        </div>
-        <span style={{
-          fontSize: 8,
-          fontWeight: 700,
-          letterSpacing: "0.07em",
-          textTransform: "uppercase",
-          color: isCompleted
-            ? tealMix(58)
-            : isActive
-            ? cyMix(82)
-            : "color-mix(in oklab, var(--muted-foreground) 28%, transparent)",
-          textShadow: isActive ? `0 0 7px ${cyMix(70)}` : "none",
-        }}>
-          {isCompleted ? "done" : isActive ? "active" : `step ${stepNum}`}
-        </span>
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   CYLINDER ROW — replaces old StepSegments
-───────────────────────────────────────────────────────────────────────────── */
-function CylinderRow({ step, total }: { step: number; total: number }) {
-  return (
-    <>
-      <style>{`
-        /* ── Plasma active animations ── */
-        @keyframes plasma-flow {
-          0%   { background-position: 50% 110%; }
-          50%  { background-position: 50% -10%; }
-          100% { background-position: 50% 110%; }
-        }
-        @keyframes plasma-spark {
-          from { opacity: 0.28; transform: scale(0.78); }
-          to   { opacity: 0.60; transform: scale(1.12); }
-        }
-        @keyframes plasma-scan {
-          from { background-position: 0 0; }
-          to   { background-position: 0 16px; }
-        }
-        @keyframes plasma-bloom {
-          from { opacity: 0.4; }
-          to   { opacity: 0.9; }
-        }
-        @keyframes plasma-num {
-          from { text-shadow: 0 0 8px #00e5ff, 0 0 20px #e040fb; opacity: 0.88; }
-          to   { text-shadow: 0 0 18px #00e5ff, 0 0 38px #e040fb, 0 0 55px #00e5ff; opacity: 1; }
-        }
-
-        /* ── "NOW" label ── */
-        @keyframes cyl-now-pulse {
-          0%, 100% { opacity: 0.68; letter-spacing: 0.22em; }
-          50%       { opacity: 1;   letter-spacing: 0.28em;
-                      text-shadow: 0 0 10px #00e5ff, 0 0 22px #e040fb; }
-        }
-
-        /* ── Orbit rings ── */
-        @keyframes cyl-ring-cw  { to { transform: rotate(360deg);  } }
-        @keyframes cyl-ring-ccw { to { transform: rotate(-360deg); } }
-
-        /* ── Completed glow breathe ── */
-        @keyframes cyl-glow-breathe {
-          0%, 100% { opacity: 0.45; }
-          50%       { opacity: 0.88; }
-        }
-
-        /* ── Active base floor pulse ── */
-        @keyframes cyl-base-pulse {
-          0%, 100% { opacity: 0.38; transform: scaleX(0.88); }
-          50%       { opacity: 0.88; transform: scaleX(1.14); }
-        }
-      `}</style>
-
-      {/* Platform base line */}
-      <div style={{ position: "relative", padding: "12px 4px 6px", width: "100%" }}>
-        {/* Recessed platform */}
-        <div style={{
-          position: "absolute",
-          bottom: 30,
-          left: "6%",
-          right: "6%",
-          height: 4,
-          borderRadius: 2,
-          background: "color-mix(in oklab, var(--muted-foreground) 7%, transparent)",
-          backdropFilter: "blur(4px)",
-        }} />
-
-        <div style={{
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "space-evenly",
-          flexWrap: "wrap",
-        }}>
-          {Array.from({ length: total }).map((_, i) => {
-            const state: CylState =
-              i < step - 1 ? "completed" : i === step - 1 ? "active" : "pending";
-            return <CyberCylinder key={i} stepNum={i + 1} state={state} />;
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   METRIC CELL — unchanged from original
-───────────────────────────────────────────────────────────────────────────── */
-function MetricCell({
-  icon, label, value, accent, bull, bear,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  accent?: boolean;
-  bull?: boolean;
-  bear?: boolean;
-}) {
-  const colorCls = bull
-    ? "text-bull border-bull/20 bg-bull/5"
-    : bear
-    ? "text-bear border-bear/20 bg-bear/5"
-    : accent
-    ? "text-primary border-primary/20 bg-primary/5"
-    : "text-foreground border-border bg-muted/20";
-  const labelCls = bull
-    ? "text-bull/60"
-    : bear
-    ? "text-bear/60"
-    : accent
-    ? "text-primary/60"
-    : "text-muted-foreground";
-  return (
-    <div className={`rounded-xl border px-3 py-2.5 ${colorCls}`}>
-      <div className={`flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold mb-1 ${labelCls}`}>
-        {icon}{label}
-      </div>
-      <div className="font-black text-xs tabular-nums truncate">{value}</div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   MAIN CARD — data-fetching logic unchanged; only step visualisation swapped
-───────────────────────────────────────────────────────────────────────────── */
 export default function DcaStepCard() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [age, setAge] = useState<string>("");
@@ -599,11 +96,11 @@ export default function DcaStepCard() {
   }, [snapshot?.updatedAt]);
 
   const d = snapshot?.data;
-  const step        = d?.dca_step ?? 0;
-  const total       = d?.dca_total_steps ?? 6;
-  const symbol      = d?.dca_symbol ?? "";
-  const base        = symbol.replace(/USDT$|BUSD$|FDUSD$/, "");
-  const pnl         = d?.dca_pnl_pct ?? 0;
+  const step = d?.dca_step ?? 0;
+  const total = d?.dca_total_steps ?? 6;
+  const symbol = d?.dca_symbol ?? "";
+  const base = symbol.replace(/USDT$|BUSD$|FDUSD$/, "");
+  const pnl = d?.dca_pnl_pct ?? 0;
   const isCompleted = d?.status === "COMPLETED";
 
   if (!snapshot?.updatedAt || isCompleted || step === 0) return null;
@@ -611,20 +108,18 @@ export default function DcaStepCard() {
   return (
     <section className="rounded-2xl border border-primary/30 bg-card relative overflow-hidden flex flex-col gap-0 shadow-[0_0_40px_-15px_color-mix(in_oklab,var(--primary)_35%,transparent)]">
       <style>{`
-        @keyframes dca-top-bar-pulse {
+        @keyframes dca-shimmer {
+          0%   { transform: translateX(-100%) skewX(-15deg); }
+          100% { transform: translateX(400%) skewX(-15deg); }
+        }
+        @keyframes dca-glow-pulse {
           0%, 100% { opacity: 0.4; }
           50%       { opacity: 0.9; }
         }
-        @keyframes dca-shimmer {
-          0%   { transform: translateX(-100%) skewX(-15deg); }
-          100% { transform: translateX(400%)  skewX(-15deg); }
-        }
-        .dca-top-bar { animation: dca-top-bar-pulse 2s ease-in-out infinite; }
+        .dca-top-bar { animation: dca-glow-pulse 2s ease-in-out infinite; }
       `}</style>
 
-      {/* Top glow bar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] dca-top-bar bg-gradient-to-r from-transparent via-primary to-transparent" />
-      {/* Ambient corner radial */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_60%)]" />
 
       {/* ── HEADER ── */}
@@ -664,7 +159,7 @@ export default function DcaStepCard() {
       {/* ── BODY ── */}
       <div className="relative px-5 py-5 flex flex-col gap-4">
 
-        {/* PnL row */}
+        {/* Step number + PnL row */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground mb-1.5">DCA Step</div>
@@ -691,8 +186,17 @@ export default function DcaStepCard() {
           </div>
         </div>
 
-        {/* ── CYBER CYLINDER STEP VISUALISER ── */}
-        <CylinderRow step={step} total={total} />
+        {/* Step bar */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-[9px] uppercase tracking-widest font-bold text-muted-foreground/60">
+            <span>Step 1</span>
+            <span>Step {total}</span>
+          </div>
+          <StepSegments step={step} total={total} />
+          <div className="text-[9px] text-muted-foreground/60 tabular-nums">
+            {step} of {total} DCA steps executed
+          </div>
+        </div>
 
         {/* Metrics grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -730,5 +234,33 @@ export default function DcaStepCard() {
         ) : null}
       </div>
     </section>
+  );
+}
+
+function MetricCell({
+  icon, label, value, accent, bull, bear,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent?: boolean;
+  bull?: boolean;
+  bear?: boolean;
+}) {
+  const colorCls = bull
+    ? "text-bull border-bull/20 bg-bull/5"
+    : bear
+    ? "text-bear border-bear/20 bg-bear/5"
+    : accent
+    ? "text-primary border-primary/20 bg-primary/5"
+    : "text-foreground border-border bg-muted/20";
+  const labelCls = bull ? "text-bull/60" : bear ? "text-bear/60" : accent ? "text-primary/60" : "text-muted-foreground";
+  return (
+    <div className={`rounded-xl border px-3 py-2.5 ${colorCls}`}>
+      <div className={`flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold mb-1 ${labelCls}`}>
+        {icon}{label}
+      </div>
+      <div className="font-black text-xs tabular-nums truncate">{value}</div>
+    </div>
   );
 }
