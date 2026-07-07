@@ -66,8 +66,8 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
   const isCompleted = state === "completed";
   const isActive    = state === "active";
 
-  const W      = isActive ? 58 : 44;
-  const BODY_H = isActive ? 90 : isCompleted ? 60 : 66;
+  const W      = isActive ? 36 : 27;
+  const BODY_H = isActive ? 54 : isCompleted ? 36 : 40;
   const EH     = Math.round(W * 0.24);
   const totalH = BODY_H + EH * 2;
 
@@ -132,9 +132,9 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
     : "none";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
       {/* "NOW" floating label — only on active */}
-      <div style={{ height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isActive && (
           <span style={{
             fontSize: 8,
@@ -156,19 +156,19 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
         {isActive && (
           <>
             <div style={{
-              position: "absolute", inset: -9, borderRadius: "50%",
+              position: "absolute", inset: -6, borderRadius: "50%",
               border: `1.5px dashed ${cylMgMix(42)}`,
               animation: "cyl-ring-cw 3.8s linear infinite",
               pointerEvents: "none",
             }} />
             <div style={{
-              position: "absolute", inset: -17, borderRadius: "50%",
+              position: "absolute", inset: -11, borderRadius: "50%",
               border: `1px dashed ${cylCyMix(28)}`,
               animation: "cyl-ring-ccw 6.5s linear infinite",
               pointerEvents: "none",
             }} />
             <div style={{
-              position: "absolute", inset: -24, borderRadius: "50%",
+              position: "absolute", inset: -16, borderRadius: "50%",
               border: `1px solid ${cylMgMix(10)}`,
               animation: "cyl-ring-cw 11s linear infinite",
               pointerEvents: "none",
@@ -333,12 +333,12 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          width: 18, height: 18, borderRadius: "50%",
+          width: 14, height: 14, borderRadius: "50%",
           border: badgeBorder, background: badgeBg, boxShadow: badgeShadow,
-          fontSize: 8, fontWeight: 800, color: badgeColor,
+          fontSize: 7, fontWeight: 800, color: badgeColor,
         }}>
           {isCompleted ? (
-            <svg viewBox="0 0 10 10" width={8} height={8} fill="none"
+            <svg viewBox="0 0 10 10" width={6} height={6} fill="none"
               stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="1.5,5 4,8 8.5,2" />
             </svg>
@@ -397,7 +397,7 @@ function CylinderRow({ step, total }: { step: number; total: number }) {
           50%       { opacity: 0.88; transform: scaleX(1.14); }
         }
       `}</style>
-      <div style={{ position: "relative", padding: "20px 4px 8px" }}>
+      <div style={{ position: "relative", padding: "12px 4px 6px", width: "100%" }}>
         {/* Recessed platform base */}
         <div style={{
           position: "absolute", bottom: 28, left: "4%", right: "4%",
@@ -406,8 +406,8 @@ function CylinderRow({ step, total }: { step: number; total: number }) {
           backdropFilter: "blur(4px)",
         }} />
         <div style={{
-          display: "flex", alignItems: "flex-end", justifyContent: "center",
-          gap: 12, flexWrap: "wrap",
+          display: "flex", alignItems: "flex-end", justifyContent: "space-evenly",
+          flexWrap: "wrap",
         }}>
           {Array.from({ length: total }).map((_, i) => {
             const state: CylState =
