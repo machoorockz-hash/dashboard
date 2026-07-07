@@ -60,8 +60,8 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
   const isActive    = state === "active";
 
   /* sizing */
-  const W      = isActive ? 64 : 48;
-  const BODY_H = isActive ? 100 : isCompleted ? 66 : 72;
+  const W      = isActive ? 36 : 27;
+  const BODY_H = isActive ? 54 : isCompleted ? 36 : 40;
   const EH     = Math.round(W * 0.24);   /* cap ellipse half-height */
   const totalH = BODY_H + EH * 2;
 
@@ -128,12 +128,12 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
     : "none";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
       {/* "NOW" floating label — only on active */}
-      <div style={{ height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ height: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
         {isActive && (
           <span style={{
-            fontSize: 9,
+            fontSize: 7,
             fontWeight: 900,
             letterSpacing: "0.22em",
             textTransform: "uppercase",
@@ -154,7 +154,7 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
             {/* Ring 1: tight dashed, clockwise */}
             <div style={{
               position: "absolute",
-              inset: -10,
+              inset: -6,
               borderRadius: "50%",
               border: `1.5px dashed ${mgMix(42)}`,
               animation: "cyl-ring-cw 3.8s linear infinite",
@@ -163,7 +163,7 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
             {/* Ring 2: wider, counter-clockwise */}
             <div style={{
               position: "absolute",
-              inset: -18,
+              inset: -11,
               borderRadius: "50%",
               border: `1px dashed ${cyMix(28)}`,
               animation: "cyl-ring-ccw 6.5s linear infinite",
@@ -172,7 +172,7 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
             {/* Ring 3: very faint widest */}
             <div style={{
               position: "absolute",
-              inset: -26,
+              inset: -16,
               borderRadius: "50%",
               border: `1px solid ${mgMix(10)}`,
               animation: "cyl-ring-cw 11s linear infinite",
@@ -409,18 +409,18 @@ function CyberCylinder({ stepNum, state }: { stepNum: number; state: CylState })
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 20,
-          height: 20,
+          width: 14,
+          height: 14,
           borderRadius: "50%",
           border: badgeBorder,
           background: badgeBg,
           boxShadow: badgeShadow,
-          fontSize: 9,
+          fontSize: 7,
           fontWeight: 800,
           color: badgeColor,
         }}>
           {isCompleted ? (
-            <svg viewBox="0 0 10 10" width={9} height={9} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 10 10" width={6} height={6} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="1.5,5 4,8 8.5,2" />
             </svg>
           ) : stepNum}
@@ -499,7 +499,7 @@ function CylinderRow({ step, total }: { step: number; total: number }) {
       `}</style>
 
       {/* Platform base line */}
-      <div style={{ position: "relative", padding: "22px 4px 10px" }}>
+      <div style={{ position: "relative", padding: "12px 4px 6px", width: "100%" }}>
         {/* Recessed platform */}
         <div style={{
           position: "absolute",
@@ -515,8 +515,7 @@ function CylinderRow({ step, total }: { step: number; total: number }) {
         <div style={{
           display: "flex",
           alignItems: "flex-end",
-          justifyContent: "center",
-          gap: 14,
+          justifyContent: "space-evenly",
           flexWrap: "wrap",
         }}>
           {Array.from({ length: total }).map((_, i) => {
