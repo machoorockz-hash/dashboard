@@ -21,7 +21,7 @@ function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
 }
 // UAE Dirham is pegged to the US Dollar at a fixed rate
-const AED_RATE = 3.6725;
+const AED_RATE = 3.669989119;
 
 function fmtPrice(p: number) {
   if (!isFinite(p)) return "…";
