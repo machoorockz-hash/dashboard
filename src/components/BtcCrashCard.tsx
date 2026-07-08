@@ -15,8 +15,13 @@ interface BotData {
   whale_count?: number; whale_usd_total?: number; whale_buy_total?: number;
   whale_net_flow?: number; whale_net_flow_level?: string;
   consec_drops?: number; vol_spike?: boolean;
-  funding_rate?: number; funding_level?: string;
+  funding_rate?: number; funding_level?: string; funding_bias?: string;
   liq_usd_60s?: number; liq_level?: string; liq_largest?: number;
+  lower_highs?: number; lower_highs_alert?: boolean;
+  whale_net_flow_5m?: number;
+  whale_net_flow_15m?: number; whale_net_flow_15m_level?: string;
+  red_candle_count?: number; red_candle_total?: number; red_candle_ratio_alert?: boolean;
+  vol_imbalance_ratio?: number | null; vol_imbalance_level?: string;
 }
 interface Snapshot { key: string; updatedAt: string | null; data: BotData | null; }
 
@@ -579,8 +584,22 @@ export function BtcCrashCard() {
   const liqLvl      = d?.liq_level         ?? "NORMAL";
   const liqLargest  = d?.liq_largest       ?? 0;
 
+  const fundingBias   = d?.funding_bias    ?? "FLAT";
+  const lowerHighs    = d?.lower_highs        ?? 0;
+  const lowerHighsAlrt= d?.lower_highs_alert  ?? false;
+  const netFlow5m     = d?.whale_net_flow_5m  ?? 0;
+  const netFlow15m    = d?.whale_net_flow_15m ?? 0;
+  const netFlow15mLvl = d?.whale_net_flow_15m_level ?? "NORMAL";
+  const redCount      = d?.red_candle_count   ?? 0;
+  const redTotal      = d?.red_candle_total   ?? 0;
+  const redRatioAlrt  = d?.red_candle_ratio_alert ?? false;
+  const volImbRatio   = d?.vol_imbalance_ratio ?? null;
+  const volImbLvl     = d?.vol_imbalance_level ?? "NORMAL";
+
   const priceColor = flash === "up" ? "#0dd9aa" : flash === "down" ? "#ef4444" : "#0dd9aa";
   const netColor   = LVL[whaleNetLvl] ?? "#0dd9aa";
+  const net15mColor = LVL[netFlow15mLvl] ?? "#0dd9aa";
+  const fmtSignedK = (n: number) => `${n >= 0 ? "+" : "−"}${fmtK(Math.abs(n))}`;
 
   return (
     <>
@@ -856,6 +875,7 @@ export function BtcCrashCard() {
           })()}
           <SigCard icon="↗" title="Funding"
             value={!d ? "—" : fmtFnd(funding)}
+            sub={d && fundingBias !== "FLAT" ? `${fundingBias} crowd` : undefined}
             lvlColor={LVL[fundingLvl]} level={d ? fundingLvl : undefined}
             danger={fundingLvl === "DANGER"}
           />
@@ -864,6 +884,26 @@ export function BtcCrashCard() {
             sub={d && liqLargest > 0 ? `largest ${fmtK(liqLargest)}` : undefined}
             lvlColor={LVL[liqLvl]} level={d ? liqLvl : undefined}
             danger={liqLvl === "DANGER"}
+          />
+          <SigCard icon="⌄" title="Lower Highs"
+            value={!d ? "—" : String(lowerHighs)}
+            sub={d ? (lowerHighsAlrt ? "bearish structure" : "consecutive") : undefined}
+            lvlColor={lowerHighsAlrt ? "#ef4444" : "#0dd9aa"}
+            level={d ? (lowerHighsAlrt ? "DANGER" : "NORMAL") : undefined}
+            danger={lowerHighsAlrt}
+          />
+          <SigCard icon="▽" title="Red Candles"
+            value={!d ? "—" : `${redCount}/${redTotal || 20}`}
+            sub={d ? (redRatioAlrt ? "ratio alert" : "last 20 candles") : undefined}
+            lvlColor={redRatioAlrt ? "#ef4444" : "#0dd9aa"}
+            level={d ? (redRatioAlrt ? "DANGER" : "NORMAL") : undefined}
+            danger={redRatioAlrt}
+          />
+          <SigCard icon="⇄" title="Vol Imbalance"
+            value={!d ? "—" : volImbRatio == null ? "—" : `${volImbRatio.toFixed(2)}x`}
+            sub={d ? "sell/buy · 15m" : undefined}
+            lvlColor={LVL[volImbLvl]} level={d ? volImbLvl : undefined}
+            danger={volImbLvl === "DANGER"}
           />
         </div>
 
@@ -919,6 +959,40 @@ export function BtcCrashCard() {
               </span>
             )}
             {d && <LvlBadge level={whaleNetLvl} />}
+          </div>
+        </div>
+
+        {/* ═══════════════ NET FLOW WINDOWS (5m / 15m) ═══════════════ */}
+        <div style={{
+          position: "relative", zIndex: 2,
+          margin: "-4px 14px 12px",
+          padding: "10px 18px",
+          borderRadius: "14px",
+          background: "rgba(255,255,255,0.022)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: "10px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{
+              fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+            }}>5M</span>
+            <span style={{
+              fontSize: "12px", fontWeight: 800, fontVariantNumeric: "tabular-nums",
+              color: !d ? "rgba(255,255,255,0.16)" : netFlow5m < 0 ? "#ef4444" : "#0dd9aa",
+            }}>{!d ? "—" : fmtSignedK(netFlow5m)}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{
+              fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+            }}>15M</span>
+            <span style={{
+              fontSize: "12px", fontWeight: 800, fontVariantNumeric: "tabular-nums",
+              color: !d ? "rgba(255,255,255,0.16)" : net15mColor,
+            }}>{!d ? "—" : fmtSignedK(netFlow15m)}</span>
+            {d && <LvlBadge level={netFlow15mLvl} />}
           </div>
         </div>
 
