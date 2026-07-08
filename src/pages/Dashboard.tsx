@@ -371,7 +371,30 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     enabled: !!querySymbol,
     staleTime: 0,
     refetchOnWindowFocus: true,
+    // Always refetch fresh data on mount/symbol-change instead of trusting a
+    // cached result — otherwise a coin that was traded before can keep
+    // showing its previous closed-trade details.
+    refetchOnMount: "always",
+    // Safety-net polling so the card eventually corrects itself even if a
+    // refetch trigger is missed (e.g. tab stays focused the whole time).
+    refetchInterval: querySymbol ? 10_000 : false,
   });
+
+  // Track transitions from "has an active order" -> "no active order". That
+  // transition means a trade just closed. If the newly-closed trade is on
+  // the SAME symbol as a previous closed trade, react-query would otherwise
+  // keep serving the old cached result for that query key (queryKey doesn't
+  // change), so the card can silently show stale coin details. Force a
+  // fresh fetch whenever this happens.
+  const prevActiveSymbolRef = useRef<string | undefined>(activeSymbol);
+  useEffect(() => {
+    const wasActive = !!prevActiveSymbolRef.current;
+    prevActiveSymbolRef.current = activeSymbol;
+    if (wasActive && !activeSymbol && querySymbol) {
+      tradesQuery.refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSymbol, querySymbol]);
 
   return useMemo(() => {
     if (!tradesQuery.data || tradesQuery.data.length === 0 || !querySymbol) return null;
