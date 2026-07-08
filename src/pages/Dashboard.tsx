@@ -773,7 +773,15 @@ export default function Dashboard() {
         </section>
 
         {/* ── ACTIVE TRADE ── */}
-        <section className={`rounded-2xl border bg-transparent p-5 md:p-6 relative overflow-hidden transition-shadow ${primary ? "border-primary/30 shadow-[0_0_60px_-20px_rgba(94,234,212,0.55)]" : "border-border"}`}>
+        <section
+          className={`rounded-2xl border p-5 md:p-6 relative overflow-hidden transition-all duration-500 ${
+            primary
+              ? pnlUsd < 0
+                ? "border-bear/40 bg-bear/5 shadow-[0_0_60px_-20px_rgba(239,68,68,0.45)]"
+                : "border-bull/40 bg-bull/5 shadow-[0_0_60px_-20px_rgba(16,185,129,0.45)]"
+              : "border-border bg-transparent"
+          }`}
+        >
           {primary ? (
             <>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
