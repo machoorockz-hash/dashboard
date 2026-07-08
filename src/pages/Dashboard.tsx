@@ -20,6 +20,9 @@ const SPECTRUM_COLORS = [
 function fmt(n: number, max = 2, min = max) {
   return n.toLocaleString(undefined, { maximumFractionDigits: max, minimumFractionDigits: min });
 }
+// UAE Dirham is pegged to the US Dollar at a fixed rate
+const AED_RATE = 3.6725;
+
 function fmtPrice(p: number) {
   if (!isFinite(p)) return "…";
   if (p >= 1000) return fmt(p, 2);
@@ -676,6 +679,14 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* ── AED equivalent value ── */}
+              <div
+                className="mt-1.5 text-base md:text-lg font-bold tabular-nums"
+                style={{ color: "color-mix(in oklab, var(--muted-foreground) 75%, transparent)" }}
+              >
+                {account.isLoading ? "…" : `≈ AED ${fmt(animatedTotal * AED_RATE)}`}
               </div>
             </div>
 
