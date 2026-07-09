@@ -18,8 +18,12 @@ interface DelistData {
   lastHeartbeat: string | null;
 }
 
-interface BotData {
-  trade_mode?: string;
+// The /api/bot/data endpoint wraps bot fields inside a "data" key:
+// { key, updatedAt, data: { trade_mode, ... } }
+interface BotSnapshot {
+  key: string;
+  updatedAt: string | null;
+  data: { trade_mode?: string } | null;
 }
 
 /**
@@ -126,9 +130,11 @@ export function TickerTape() {
     async function fetchTradeMode() {
       try {
         const r = await fetch(`${API_BASE}/api/bot/data?key=btc`);
-        const json: BotData = await r.json();
-        if (mounted && typeof json?.trade_mode === "string") {
-          setTradeMode(json.trade_mode);
+        // ✅ FIX: API returns { key, updatedAt, data: { trade_mode, ... } }
+        //         trade_mode lives inside .data, not at the root level.
+        const json: BotSnapshot = await r.json();
+        if (mounted && typeof json?.data?.trade_mode === "string") {
+          setTradeMode(json.data.trade_mode);
         }
       } catch {
         // keep last known value on error
