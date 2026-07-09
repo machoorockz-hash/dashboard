@@ -96,7 +96,7 @@ function StepSegments({
           0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.94); }
           100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
         }
-        .dca-node-breathe { animation: dca-node-breathe 2.4s ease-in-out infinite; }
+        .dca-node-breathe { animation: dca-node-breathe 2.4s ease-in-out infinite; will-change: box-shadow; }
         .dca-check-pop    { animation: dca-check-pop    0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
         .dca-tooltip-in   { animation: dca-tooltip-in   0.22s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
@@ -236,6 +236,7 @@ function StepSegments({
                         position: "absolute", inset: "-5px", borderRadius: "50%",
                         border: "1.5px dashed color-mix(in oklab,var(--primary) 35%,transparent)",
                         animation: "dca-ring-spin 8s linear infinite",
+                        willChange: "transform",
                       }} />
                     )}
                     {isPast ? (
@@ -592,7 +593,12 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="space-y-5">
+      {/*
+        FIX: willChange: "transform" promotes this layer to its own GPU
+        compositor layer, so the browser can scroll it without re-painting
+        the backdrop-filter blurs on every frame.
+      */}
+      <div className="space-y-5" style={{ willChange: "transform" }}>
 
         {/* ── WALLET CARD — premium futuristic redesign ── */}
         <section
@@ -600,8 +606,14 @@ export default function Dashboard() {
           style={{
             background: "transparent",
             border: "1px solid oklch(0.78 0.07 200 / 22%)",
-            backdropFilter: "blur(32px) saturate(180%)",
-            WebkitBackdropFilter: "blur(32px) saturate(180%)",
+            /*
+              FIX: Reduced blur from 32px → 8px.
+              32px blur forces the GPU to sample a huge radius on every scroll
+              frame, which is the primary cause of mobile scroll jank.
+              8px is visually indistinguishable at card size but ~16× cheaper.
+            */
+            backdropFilter: "blur(8px) saturate(150%)",
+            WebkitBackdropFilter: "blur(8px) saturate(150%)",
           }}
         >
 
@@ -660,11 +672,11 @@ export default function Dashboard() {
                   14%  { transform: scale(1.022); }
                   100% { transform: scale(1); }
                 }
-                .bal-glow-up   { animation: bal-glow-up   2s ease-out forwards; }
-                .bal-glow-down { animation: bal-glow-down 2s ease-out forwards; }
-                .bal-shimmer   { animation: bal-shimmer   0.9s ease-in-out forwards; }
-                .bal-scale-pop { animation: bal-scale-pop 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
-                .delta-rise    { animation: delta-rise    2s ease-out forwards; }
+                .bal-glow-up   { animation: bal-glow-up   2s ease-out forwards; will-change: box-shadow; }
+                .bal-glow-down { animation: bal-glow-down 2s ease-out forwards; will-change: box-shadow; }
+                .bal-shimmer   { animation: bal-shimmer   0.9s ease-in-out forwards; will-change: transform; }
+                .bal-scale-pop { animation: bal-scale-pop 0.6s cubic-bezier(0.22,1,0.36,1) forwards; will-change: transform; }
+                .delta-rise    { animation: delta-rise    2s ease-out forwards; will-change: transform, opacity; }
               `}</style>
               <div className="flex items-start gap-2 relative">
                 <div style={{ position: "relative", display: "inline-block" }}>
@@ -733,8 +745,14 @@ export default function Dashboard() {
                         padding: "5px 8px",
                         background: "oklch(0.55 0.06 210 / 10%)",
                         border: `1px solid ${accentColor}28`,
-                        backdropFilter: "blur(10px)",
-                        WebkitBackdropFilter: "blur(10px)",
+                        /*
+                          FIX: Reduced blur from 10px → 4px on each chip card.
+                          With up to 10 chips rendered, each with a 10px blur,
+                          the composite cost multiplies significantly on mobile.
+                          4px retains the frosted look with a fraction of the GPU cost.
+                        */
+                        backdropFilter: "blur(4px)",
+                        WebkitBackdropFilter: "blur(4px)",
                         transition: "border-color 0.2s, box-shadow 0.2s",
                       }}
                       onMouseEnter={(e) => {
@@ -990,10 +1008,11 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   const w = Math.max(2, Math.min(100, pct * 100));
   const isBull = color === "bull";
 
-  // Animated counter — smoothly counts from old value to new value
+  // Animated counter — uses requestAnimationFrame instead of setInterval
+  // for smooth, jank-free updates that are tied to the display refresh rate.
   const [displayPct, setDisplayPct] = useState(w);
   const prevWRef = useRef(w);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const start = prevWRef.current;
@@ -1002,26 +1021,27 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
 
     if (Math.abs(end - start) < 0.05) return;
 
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
-    const STEPS = 28;
     const DURATION_MS = 700;
-    let step = 0;
+    const startTime = performance.now();
 
-    timerRef.current = setInterval(() => {
-      step++;
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / DURATION_MS, 1);
       // ease-out cubic
-      const t = step / STEPS;
       const eased = 1 - Math.pow(1 - t, 3);
       const next = start + (end - start) * eased;
       setDisplayPct(next);
-      if (step >= STEPS) {
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
         setDisplayPct(end);
-        if (timerRef.current) clearInterval(timerRef.current);
       }
-    }, DURATION_MS / STEPS);
+    };
 
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [w]);
 
   // badge pops in when value changes
@@ -1105,13 +1125,13 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
           0%   { transform: translateY(60%); opacity: 0; }
           100% { transform: translateY(0);   opacity: 1; }
         }
-        .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; }
-        .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; }
-        .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; }
-        .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; }
-        .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; }
-        .pct-badge-pop           { animation: pct-badge-pop 0.35s cubic-bezier(0.22,1,0.36,1) both; }
-        .pct-digit-up            { animation: pct-digit-up 0.22s ease-out both; }
+        .progress-bar-glow-bull { animation: progress-glow-bull 2s ease-in-out infinite; will-change: box-shadow; }
+        .progress-bar-glow-bear { animation: progress-glow-bear 2s ease-in-out 0.4s infinite; will-change: box-shadow; }
+        .progress-shimmer        { animation: progress-shimmer  2.4s ease-in-out infinite; will-change: transform; }
+        .progress-tip-bull       { animation: progress-tip-beat-bull 1.8s ease-in-out infinite; will-change: transform, box-shadow; }
+        .progress-tip-bear       { animation: progress-tip-beat-bear 1.8s ease-in-out 0.4s infinite; will-change: transform, box-shadow; }
+        .pct-badge-pop           { animation: pct-badge-pop 0.35s cubic-bezier(0.22,1,0.36,1) both; will-change: transform, opacity; }
+        .pct-digit-up            { animation: pct-digit-up 0.22s ease-out both; will-change: transform, opacity; }
       `}</style>
 
       <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
