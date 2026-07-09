@@ -18,6 +18,10 @@ interface DelistData {
   lastHeartbeat: string | null;
 }
 
+interface BotData {
+  trade_mode?: string;
+}
+
 /**
  * Returns true if the delist date is today or in the future.
  * Accepts DD/MM/YYYY format. If the date is missing or unparseable,
@@ -51,31 +55,99 @@ function isUpcoming(item: DelistSymbol): boolean {
   return true; // unparseable → show it
 }
 
+// Pause banner — scrolling ticker with a repeated "TRADE IS PAUSED" message
+function PauseBanner() {
+  const label = (
+    <div className="flex items-center gap-6 px-8 py-1.5 shrink-0">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-2.5 whitespace-nowrap">
+          <span className="text-sm">⏸</span>
+          <span className="font-black text-xs tracking-widest text-yellow-400 uppercase">
+            TRADE IS PAUSED
+          </span>
+          <span className="text-muted-foreground/30 text-xs">·</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="border-b border-yellow-500/40 bg-yellow-500/10 overflow-hidden">
+      <div className="flex ticker-scroll w-max">
+        {label}{label}
+      </div>
+    </div>
+  );
+}
+
 export function TickerTape() {
   const [data, setData] = useState<DelistData | null>(null);
   const [stale, setStale] = useState(false);
   const lastFetchRef = useRef<number>(0);
 
+  // Trade-mode state from /api/bot/data?key=btc
+  const [tradeMode, setTradeMode] = useState<string | null>(null);
+
+  // Poll delist data
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    let mounted = true;
 
     async function fetchData() {
       try {
         const r = await fetch(`${API_BASE}/api/delist/data`);
         const json: DelistData = await r.json();
-        lastFetchRef.current = Date.now();
-        setStale(false);
-        setData(json);
+        if (mounted) {
+          lastFetchRef.current = Date.now();
+          setStale(false);
+          setData(json);
+        }
       } catch {
-        if (Date.now() - lastFetchRef.current > STALE_MS) setStale(true);
+        if (mounted && Date.now() - lastFetchRef.current > STALE_MS) {
+          setStale(true);
+        }
       } finally {
-        timer = setTimeout(fetchData, POLL_MS);
+        if (mounted) timer = setTimeout(fetchData, POLL_MS);
       }
     }
 
     void fetchData();
-    return () => clearTimeout(timer);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, []);
+
+  // Poll trade_mode from the bot endpoint (same cadence as delist poll)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    let mounted = true;
+
+    async function fetchTradeMode() {
+      try {
+        const r = await fetch(`${API_BASE}/api/bot/data?key=btc`);
+        const json: BotData = await r.json();
+        if (mounted && typeof json?.trade_mode === "string") {
+          setTradeMode(json.trade_mode);
+        }
+      } catch {
+        // keep last known value on error
+      } finally {
+        if (mounted) timer = setTimeout(fetchTradeMode, POLL_MS);
+      }
+    }
+
+    void fetchTradeMode();
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  // Show pause banner when the bot reports trade_mode === "Pause"
+  if (tradeMode === "Pause") {
+    return <PauseBanner />;
+  }
 
   const isActive = !stale && data?.active === true;
 
