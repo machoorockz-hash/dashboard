@@ -675,7 +675,6 @@ export default function Dashboard() {
                     display: "flex",
                     alignItems: "baseline",
                     gap: "2px",
-                    fontFamily: "'Courier New', Courier, monospace",
                     fontWeight: 900,
                     letterSpacing: "0.04em",
                     color: "var(--primary)",
