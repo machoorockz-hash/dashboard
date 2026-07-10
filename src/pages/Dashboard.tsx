@@ -668,49 +668,16 @@ export default function Dashboard() {
                 Wallet
               </div>
 
-              {/* ── Live clock (UAE timezone) ── */}
-              <div style={{ textAlign: "right", lineHeight: 1 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: "2px",
-                    fontWeight: 900,
-                    letterSpacing: "0.04em",
-                    color: "var(--primary)",
-                    filter: "drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 20%, transparent))",
-                  }}
-                >
-                  <span style={{ fontSize: "0.8rem" }}>{clockTime.hours}</span>
-                  <span style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
-                  <span style={{ fontSize: "0.8rem" }}>{clockTime.minutes}</span>
-                  <span style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
-                  <span style={{ fontSize: "0.8rem" }}>{clockTime.seconds}</span>
-                  <span
-                    style={{
-                      fontSize: "0.6rem",
-                      fontWeight: 800,
-                      letterSpacing: "0.1em",
-                      marginLeft: "4px",
-                      opacity: 0.85,
-                      alignSelf: "center",
-                      marginBottom: "1px",
-                    }}
-                  >
-                    {clockTime.ampm}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    marginTop: "3px",
-                    fontSize: "0.6rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.12em",
-                    color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
-                  }}
-                >
-                  {clockTime.dayStr}, {clockTime.monthStr} {clockTime.dayNum}
-                </div>
+              {/* ── Live date (UAE timezone) ── */}
+              <div
+                style={{
+                  fontSize: "0.6rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                }}
+              >
+                {clockTime.dayStr}, {clockTime.monthStr} {clockTime.dayNum}
               </div>
 
             </div>
