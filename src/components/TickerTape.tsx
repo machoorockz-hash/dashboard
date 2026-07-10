@@ -27,12 +27,25 @@ interface BotSnapshot {
 }
 
 /**
- * Returns true if the delist date is today or in the future.
- * Accepts DD/MM/YYYY format. If the date is missing or unparseable,
- * the coin is shown (safe default).
+ * Returns true if the delist datetime (date + time) is now or in the future.
+ * Accepts DD/MM/YYYY date and "h:mm am/pm" time. If the date is missing or
+ * unparseable the coin is shown (safe default). If time is missing the coin
+ * is shown until the end of that day.
  */
 function isUpcoming(item: DelistSymbol): boolean {
   if (!item.date) return true;
+
+  // Helper: parse "1:00 pm" / "12:30 AM" → [hours24, minutes] or null
+  function parseTime(t: string): [number, number] | null {
+    const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+    if (!m) return null;
+    let h = Number(m[1]);
+    const min = Number(m[2]);
+    const mer = m[3].toLowerCase();
+    if (mer === "pm" && h !== 12) h += 12;
+    if (mer === "am" && h === 12) h = 0;
+    return [h, min];
+  }
 
   // Try DD/MM/YYYY (the format used throughout this project)
   const parts = item.date.split("/");
@@ -40,20 +53,36 @@ function isUpcoming(item: DelistSymbol): boolean {
     const [dd, mm, yyyy] = parts;
     const delistDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
     if (!isNaN(delistDate.getTime())) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      delistDate.setHours(0, 0, 0, 0);
-      return delistDate >= today;
+      if (item.time) {
+        const parsed = parseTime(item.time);
+        if (parsed) {
+          delistDate.setHours(parsed[0], parsed[1], 0, 0);
+        } else {
+          // Unrecognised time format → keep until end of day
+          delistDate.setHours(23, 59, 59, 999);
+        }
+      } else {
+        // No time provided → keep until end of day
+        delistDate.setHours(23, 59, 59, 999);
+      }
+      return delistDate >= new Date();
     }
   }
 
   // Fallback: try native Date parsing (YYYY-MM-DD, ISO, etc.)
   const d = new Date(item.date);
   if (!isNaN(d.getTime())) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    d.setHours(0, 0, 0, 0);
-    return d >= today;
+    if (item.time) {
+      const parsed = parseTime(item.time);
+      if (parsed) {
+        d.setHours(parsed[0], parsed[1], 0, 0);
+      } else {
+        d.setHours(23, 59, 59, 999);
+      }
+    } else {
+      d.setHours(23, 59, 59, 999);
+    }
+    return d >= new Date();
   }
 
   return true; // unparseable → show it
