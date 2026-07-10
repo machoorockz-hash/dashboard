@@ -681,11 +681,11 @@ export default function Dashboard() {
                     filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 55%, transparent))",
                   }}
                 >
-                  <span style={{ fontSize: "1.15rem" }}>{clockTime.hours}</span>
-                  <span style={{ fontSize: "1.15rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
-                  <span style={{ fontSize: "1.15rem" }}>{clockTime.minutes}</span>
-                  <span style={{ fontSize: "1.15rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
-                  <span style={{ fontSize: "1.15rem" }}>{clockTime.seconds}</span>
+                  <span style={{ fontSize: "0.8rem" }}>{clockTime.hours}</span>
+                  <span style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
+                  <span style={{ fontSize: "0.8rem" }}>{clockTime.minutes}</span>
+                  <span style={{ fontSize: "0.8rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
+                  <span style={{ fontSize: "0.8rem" }}>{clockTime.seconds}</span>
                   <span
                     style={{
                       fontSize: "0.6rem",
