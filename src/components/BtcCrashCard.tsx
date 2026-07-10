@@ -150,7 +150,7 @@ function SigCard({
       position: "relative", overflow: "hidden",
       borderRadius: "14px",
       border: "1px solid rgba(255,255,255,0.07)",
-      background: "rgba(255,255,255,0.04)",
+      background: "transparent",
       padding: "14px 12px",
       display: "flex", flexDirection: "column", gap: "7px",
       cursor: "default",
@@ -262,7 +262,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
       margin: "12px 14px 14px",
       borderRadius: "18px",
       border: "1px solid rgba(255,255,255,0.08)",
-      background: "linear-gradient(160deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.01) 100%)",
+      background: "transparent",
       overflow: "hidden",
     }}>
       {/* accent line */}
@@ -313,7 +313,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
         <div style={{
           borderRadius: "14px",
           border: `1px solid ${phaseColor}28`,
-          background: `linear-gradient(135deg, ${phaseColor}0d, rgba(255,255,255,0.02))`,
+          background: "transparent",
           padding: "14px 16px",
           display: "flex", flexDirection: "column", gap: "10px",
         }}>
@@ -383,7 +383,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
           <div style={{
             borderRadius: "14px",
             border: `1px solid ${eventColor}28`,
-            background: `linear-gradient(135deg, ${eventColor}0d, rgba(255,255,255,0.02))`,
+            background: "transparent",
             padding: "13px 14px",
             display: "flex", flexDirection: "column", gap: "6px",
           }}>
@@ -433,7 +433,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
           <div style={{
             borderRadius: "14px",
             border: `1px solid ${nextColor}28`,
-            background: `linear-gradient(135deg, ${nextColor}0d, rgba(255,255,255,0.02))`,
+            background: "transparent",
             padding: "13px 14px",
             display: "flex", flexDirection: "column", gap: "6px",
             position: "relative", overflow: "hidden",
@@ -704,7 +704,7 @@ export function BtcCrashCard() {
           position: "relative", zIndex: 2,
           padding: "20px 20px 18px",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.016) 0%, transparent 100%)",
+          background: "transparent",
         }}>
           <div style={{
             fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em",
@@ -749,7 +749,7 @@ export function BtcCrashCard() {
             display: "grid", gridTemplateColumns: "repeat(4,1fr)",
             borderRadius: "12px", overflow: "hidden",
             border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(0,0,0,0.22)",
+            background: "transparent",
           }}>
             {[
               {
@@ -913,7 +913,7 @@ export function BtcCrashCard() {
           margin: "12px 14px",
           padding: "14px 18px",
           borderRadius: "14px",
-          background: `linear-gradient(135deg, ${netColor}09, rgba(255,255,255,0.022))`,
+          background: "transparent",
           border: `1px solid ${netColor}28`,
           boxShadow: "none",
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -968,7 +968,7 @@ export function BtcCrashCard() {
           margin: "-4px 14px 12px",
           padding: "10px 18px",
           borderRadius: "14px",
-          background: "rgba(255,255,255,0.022)",
+          background: "transparent",
           border: "1px solid rgba(255,255,255,0.06)",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexWrap: "wrap", gap: "10px",
