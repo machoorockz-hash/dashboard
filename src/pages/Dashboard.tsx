@@ -465,11 +465,46 @@ function useAnimatedBalance(target: number) {
   return { display, direction, delta, changeKey };
 }
 
+/** Live clock — ticks every second in UAE (Asia/Dubai, UTC+4) timezone */
+function useClock() {
+  function snapshot() {
+    const now = Date.now();
+    const dtf = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Dubai",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    const parts = dtf.formatToParts(new Date(now));
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    return {
+      hours: get("hour"),
+      minutes: get("minute"),
+      seconds: get("second"),
+      ampm: get("dayPeriod").toUpperCase(),
+      dayStr: get("weekday").toUpperCase(),
+      monthStr: get("month").toUpperCase(),
+      dayNum: get("day"),
+    };
+  }
+  const [tick, setTick] = useState(snapshot);
+  useEffect(() => {
+    const id = setInterval(() => setTick(snapshot()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return tick;
+}
+
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
   const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
   const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
   const dcaData = useDcaData();
+  const clockTime = useClock();
 
   const allOrders = orders.data ?? [];
   const primary = allOrders[0];
@@ -631,6 +666,52 @@ export default function Dashboard() {
                 />
                 <WalletIcon className="h-3.5 w-3.5 shrink-0" />
                 Wallet
+              </div>
+
+              {/* ── Live clock (UAE timezone) ── */}
+              <div style={{ textAlign: "right", lineHeight: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "2px",
+                    fontFamily: "'Courier New', Courier, monospace",
+                    fontWeight: 900,
+                    letterSpacing: "0.04em",
+                    color: "var(--primary)",
+                    filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 55%, transparent))",
+                  }}
+                >
+                  <span style={{ fontSize: "1.15rem" }}>{clockTime.hours}</span>
+                  <span style={{ fontSize: "1.15rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
+                  <span style={{ fontSize: "1.15rem" }}>{clockTime.minutes}</span>
+                  <span style={{ fontSize: "1.15rem", opacity: 0.7, marginBottom: "1px" }}>:</span>
+                  <span style={{ fontSize: "1.15rem" }}>{clockTime.seconds}</span>
+                  <span
+                    style={{
+                      fontSize: "0.6rem",
+                      fontWeight: 800,
+                      letterSpacing: "0.1em",
+                      marginLeft: "4px",
+                      opacity: 0.85,
+                      alignSelf: "center",
+                      marginBottom: "1px",
+                    }}
+                  >
+                    {clockTime.ampm}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    marginTop: "3px",
+                    fontSize: "0.6rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                  }}
+                >
+                  {clockTime.dayStr}, {clockTime.monthStr} {clockTime.dayNum}
+                </div>
               </div>
 
             </div>
