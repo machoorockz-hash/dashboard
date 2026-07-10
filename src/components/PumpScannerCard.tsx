@@ -173,7 +173,7 @@ export default function PumpScannerCard() {
   const active = !stale && data?.active;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm flex flex-col gap-3">
+    <section className="rounded-2xl border border-border bg-transparent p-4 shadow-sm flex flex-col gap-3">
       <style>{`
         @keyframes pump-slide-in {
           from { opacity: 0; transform: translateX(22px) scale(0.97); }
