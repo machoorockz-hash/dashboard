@@ -678,7 +678,7 @@ export default function Dashboard() {
                     fontWeight: 900,
                     letterSpacing: "0.04em",
                     color: "var(--primary)",
-                    filter: "drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 55%, transparent))",
+                    filter: "drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 20%, transparent))",
                   }}
                 >
                   <span style={{ fontSize: "0.8rem" }}>{clockTime.hours}</span>
