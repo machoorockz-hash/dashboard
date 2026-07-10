@@ -659,11 +659,6 @@ export default function Dashboard() {
                 className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold"
                 style={{ color: "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))" }}
               >
-                {/* Pulsing status dot */}
-                <span
-                  className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0"
-                  style={{ boxShadow: "0 0 6px 2px color-mix(in oklab, var(--primary) 55%, transparent)" }}
-                />
                 <WalletIcon className="h-3.5 w-3.5 shrink-0" />
                 Wallet
               </div>
