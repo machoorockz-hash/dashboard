@@ -266,7 +266,7 @@ export function PriceChart({
   const hasLines = priceLines?.some((l) => l.price > 0 && isFinite(l.price));
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-card overflow-hidden">
+    <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
       <style>{`
         /* ── Header price flash ── */
         @keyframes hdr-up   { 0% { color:#00d4a0; text-shadow:0 0 14px rgba(0,212,160,.8); } 100% { color:inherit; text-shadow:none; } }
