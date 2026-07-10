@@ -149,7 +149,7 @@ function StepSegments({
                     }}
                   >
                     <div style={{
-                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      background: "transparent",
                       backdropFilter: "blur(14px)",
                       WebkitBackdropFilter: "blur(14px)",
                       border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
@@ -195,7 +195,7 @@ function StepSegments({
                       position: "absolute", bottom: "-5px", left: "50%",
                       transform: "translateX(-50%) rotate(45deg)",
                       width: "9px", height: "9px",
-                      background: "color-mix(in oklab,var(--card) 92%,transparent)",
+                      background: "transparent",
                       backdropFilter: "blur(14px)",
                       border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
                       borderTop: "none", borderLeft: "none",
