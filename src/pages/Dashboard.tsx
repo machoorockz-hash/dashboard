@@ -834,12 +834,12 @@ export default function Dashboard() {
 
         {/* ── ACTIVE TRADE ── */}
         <section
-          className={`rounded-2xl border p-5 md:p-6 relative overflow-hidden transition-all duration-500 ${
+          className={`rounded-2xl border p-5 md:p-6 relative overflow-hidden transition-all duration-500 bg-transparent ${
             primary
               ? pnlUsd < 0
-                ? "border-bear/40 bg-bear/5 shadow-[0_0_60px_-20px_rgba(239,68,68,0.45)]"
-                : "border-bull/40 bg-bull/5 shadow-[0_0_60px_-20px_rgba(16,185,129,0.45)]"
-              : "border-border bg-transparent"
+                ? "border-bear/40 shadow-[0_0_60px_-20px_rgba(239,68,68,0.45)]"
+                : "border-bull/40 shadow-[0_0_60px_-20px_rgba(16,185,129,0.45)]"
+              : "border-border"
           }`}
         >
           {primary ? (
@@ -871,7 +871,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className={`relative mt-5 rounded-xl border bg-gradient-to-r from-primary/5 to-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60 bg-bull/10" : flash === "down" ? "border-bear/60 bg-bear/10" : "border-border"}`}>
+              <div className={`relative mt-5 rounded-xl border bg-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60" : flash === "down" ? "border-bear/60" : "border-border"}`}>
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
@@ -1023,7 +1023,7 @@ function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
       </div>
 
       {/* Date & time row */}
-      <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-muted/20 px-4 py-3">
+      <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-transparent px-4 py-3">
         <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold tabular-nums">
           <span>{date}</span>
@@ -1036,7 +1036,7 @@ function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
 
 function Cell({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className={`rounded-lg border px-3 py-2 ${danger ? "border-bear/30 bg-bear/10" : accent ? "border-bull/30 bg-bull/10" : "border-border bg-muted/30"}`}>
+    <div className={`rounded-lg border bg-transparent px-3 py-2 ${danger ? "border-bear/30" : accent ? "border-bull/30" : "border-border"}`}>
       <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
       <div className={`text-sm font-black mt-0.5 truncate tabular-nums ${danger ? "text-bear" : accent ? "text-bull" : ""}`}>{value}</div>
     </div>
@@ -1098,7 +1098,7 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   }, [w]);
 
   return (
-    <div className="rounded-xl border border-border bg-muted/20 p-3 relative overflow-hidden">
+    <div className="rounded-xl border border-border bg-transparent p-3 relative overflow-hidden">
       <style>{`
         @keyframes progress-glow-bull {
           0%, 100% {
