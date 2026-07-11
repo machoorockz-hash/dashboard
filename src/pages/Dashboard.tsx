@@ -889,15 +889,6 @@ export default function Dashboard() {
                     border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
                   }}
                 >
-                  <div
-                    className="absolute inset-x-0 top-0 h-px pointer-events-none"
-                    style={{ background: "linear-gradient(90deg, transparent, color-mix(in oklab,var(--primary) 60%,transparent), transparent)" }}
-                  />
-                  <div
-                    className="absolute -top-4 -left-4 w-24 h-24 rounded-full pointer-events-none"
-                    style={{ background: "radial-gradient(circle, color-mix(in oklab,var(--primary) 12%,transparent), transparent 70%)" }}
-                  />
-
                   <div className="relative flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
                       <Layers className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
