@@ -887,7 +887,6 @@ export default function Dashboard() {
                   style={{
                     background: "transparent",
                     border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
-                    boxShadow: "inset 0 1px 0 color-mix(in oklab,var(--primary) 20%,transparent), 0 0 20px -8px color-mix(in oklab,var(--primary) 30%,transparent)",
                   }}
                 >
                   <div
