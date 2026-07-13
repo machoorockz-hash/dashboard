@@ -18,10 +18,12 @@ interface BotData {
   funding_rate?: number; funding_level?: string; funding_bias?: string;
   liq_usd_60s?: number; liq_level?: string; liq_largest?: number;
   lower_highs?: number; lower_highs_alert?: boolean;
-  whale_net_flow_5m?: number;
+  whale_net_flow_5m?: number; whale_net_flow_5m_level?: string;
   whale_net_flow_15m?: number; whale_net_flow_15m_level?: string;
-  red_candle_count?: number; red_candle_total?: number; red_candle_ratio_alert?: boolean;
-  vol_imbalance_ratio?: number | null; vol_imbalance_level?: string;
+  red_candle_count?: number; red_candle_total?: number; red_candle_full?: boolean; red_candle_ratio_alert?: boolean;
+  vol_imbalance_ratio?: number | null; vol_imbalance_full?: boolean; vol_imbalance_level?: string;
+  trend?: string; trend_bars_since_flip?: number | null;
+  trend_last_swing_high?: number | null; trend_last_swing_low?: number | null;
 }
 interface Snapshot { key: string; updatedAt: string | null; data: BotData | null; }
 
@@ -595,6 +597,17 @@ export function BtcCrashCard() {
   const redRatioAlrt  = d?.red_candle_ratio_alert ?? false;
   const volImbRatio   = d?.vol_imbalance_ratio ?? null;
   const volImbLvl     = d?.vol_imbalance_level ?? "NORMAL";
+  const volImbFull    = d?.vol_imbalance_full   ?? false;
+
+  const netFlow5mLvl  = d?.whale_net_flow_5m_level  ?? "NORMAL";
+  const net5mColor    = LVL[netFlow5mLvl] ?? "#0dd9aa";
+  const redFull       = d?.red_candle_full ?? false;
+
+  const trendDir      = d?.trend ?? "---";
+  const trendBars     = d?.trend_bars_since_flip ?? null;
+  const trendSwingH   = d?.trend_last_swing_high ?? null;
+  const trendSwingL   = d?.trend_last_swing_low  ?? null;
+  const trendColor    = trendDir === "UPTREND" ? "#0dd9aa" : trendDir === "DOWNTREND" ? "#ef4444" : "rgba(255,255,255,0.35)";
 
   const priceColor = flash === "up" ? "#0dd9aa" : flash === "down" ? "#ef4444" : "#0dd9aa";
   const netColor   = LVL[whaleNetLvl] ?? "#0dd9aa";
@@ -894,14 +907,14 @@ export function BtcCrashCard() {
           />
           <SigCard icon="▽" title="Red Candles"
             value={!d ? "—" : `${redCount}/${redTotal || 20}`}
-            sub={d ? (redRatioAlrt ? "ratio alert" : "last 20 candles") : undefined}
+            sub={d ? (redRatioAlrt ? "ratio alert" : redFull ? "last 20 candles · full" : "filling…") : undefined}
             lvlColor={redRatioAlrt ? "#ef4444" : "#0dd9aa"}
             level={d ? (redRatioAlrt ? "DANGER" : "NORMAL") : undefined}
             danger={redRatioAlrt}
           />
           <SigCard icon="⇄" title="Vol Imbalance"
             value={!d ? "—" : volImbRatio == null ? "—" : `${volImbRatio.toFixed(2)}x`}
-            sub={d ? "sell/buy · 15m" : undefined}
+            sub={d ? (volImbFull ? "sell/buy · 15m · full" : "sell/buy · 15m · filling…") : undefined}
             lvlColor={LVL[volImbLvl]} level={d ? volImbLvl : undefined}
             danger={volImbLvl === "DANGER"}
           />
@@ -980,8 +993,9 @@ export function BtcCrashCard() {
             }}>5M</span>
             <span style={{
               fontSize: "12px", fontWeight: 800, fontVariantNumeric: "tabular-nums",
-              color: !d ? "rgba(255,255,255,0.16)" : netFlow5m < 0 ? "#ef4444" : "#0dd9aa",
+              color: !d ? "rgba(255,255,255,0.16)" : net5mColor,
             }}>{!d ? "—" : fmtSignedK(netFlow5m)}</span>
+            {d && <LvlBadge level={netFlow5mLvl} />}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{
@@ -995,6 +1009,76 @@ export function BtcCrashCard() {
             {d && <LvlBadge level={netFlow15mLvl} />}
           </div>
         </div>
+
+
+        {/* ═══════════════ ZZ TREND ═══════════════ */}
+        {d && (
+          <div style={{
+            position: "relative", zIndex: 2,
+            margin: "0 14px 12px",
+            padding: "14px 18px",
+            borderRadius: "14px",
+            background: "transparent",
+            border: `1px solid ${trendColor}28`,
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexWrap: "wrap", gap: "10px",
+            transition: "all 0.45s ease",
+          }}>
+            {/* left: trend label */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{
+                fontSize: "9px", fontWeight: 800, letterSpacing: "0.14em",
+                textTransform: "uppercase", color: "rgba(255,255,255,0.27)",
+              }}>
+                ₿ ZZ Trend
+              </span>
+              <span style={{
+                fontSize: "18px", fontWeight: 900, letterSpacing: "-0.02em",
+                color: trendColor, fontVariantNumeric: "tabular-nums",
+                textShadow: "none",
+              }}>
+                {trendDir === "---" ? "—" : trendDir}
+              </span>
+              {trendDir !== "---" && (
+                <span style={{
+                  fontSize: "10px", fontWeight: 600,
+                  color: "rgba(255,255,255,0.28)", letterSpacing: "0.04em",
+                }}>
+                  {trendBars != null ? `${trendBars}m ago` : ""}
+                </span>
+              )}
+            </div>
+            {/* right: swing high / low */}
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              {trendSwingH != null && (
+                <div style={{ textAlign: "right" }}>
+                  <div style={{
+                    fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.12em",
+                    textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+                    marginBottom: "2px",
+                  }}>Swing H</div>
+                  <div style={{
+                    fontSize: "12px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
+                    color: "#ef4444", letterSpacing: "-0.01em",
+                  }}>${trendSwingH.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                </div>
+              )}
+              {trendSwingL != null && (
+                <div style={{ textAlign: "right" }}>
+                  <div style={{
+                    fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.12em",
+                    textTransform: "uppercase", color: "rgba(255,255,255,0.22)",
+                    marginBottom: "2px",
+                  }}>Swing L</div>
+                  <div style={{
+                    fontSize: "12px", fontWeight: 900, fontVariantNumeric: "tabular-nums",
+                    color: "#0dd9aa", letterSpacing: "-0.01em",
+                  }}>${trendSwingL.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ═══════════════ PAUSED BANNER ═══════════════ */}
         {isPaused && (
