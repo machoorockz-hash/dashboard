@@ -260,10 +260,10 @@ export default function PumpScannerCard() {
             WebkitTextFillColor: "transparent",
           }}>Pump Scanner</span>
         </div>
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
           active
-            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-            : "bg-red-500/10 text-red-400 border-red-500/30"
+            ? "bg-emerald-500/10 text-emerald-400"
+            : "bg-red-500/10 text-red-400"
         }`}>
           <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
           {active ? "Live" : "Offline"}
