@@ -683,7 +683,6 @@ export function BtcCrashCard() {
           <div style={{
             padding: "9px 18px", borderRadius: "12px",
             background: `linear-gradient(135deg, ${displayCfg.color}18, ${displayCfg.color}07)`,
-            border: `1px solid ${displayCfg.border}`,
             boxShadow: `inset 0 1px 0 ${displayCfg.color}15`,
             display: "flex", flexDirection: "column", alignItems: "center",
             transition: "all 0.55s ease", minWidth: "88px",
