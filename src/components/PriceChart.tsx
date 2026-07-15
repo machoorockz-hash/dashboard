@@ -416,7 +416,14 @@ export function PriceChart({
         candleRef.current?.setData(candles);
         recomputeEMAs();
         recomputeZigZag();
+        // Fit all loaded candles into view (zoomed out) by default. On first
+        // mount the wrapper's layout/width can still be settling when this
+        // runs, which makes fitContent() compute against a stale (smaller)
+        // width and land zoomed in — so re-fit a couple more times after the
+        // browser has had a chance to finish layout.
         chartRef.current?.timeScale().fitContent();
+        requestAnimationFrame(() => chartRef.current?.timeScale().fitContent());
+        setTimeout(() => chartRef.current?.timeScale().fitContent(), 150);
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
 
