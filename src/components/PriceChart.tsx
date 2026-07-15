@@ -53,7 +53,7 @@ interface ZZPivot { time: UTCTimestamp; price: number; type: "top" | "btm"; }
 interface ZZChannels {
   center: LineData[]; upper: LineData[]; lower: LineData[];
   // Upper/lower slice covering ONLY the most recent (still-forming) trend
-  // segment — used to render the glow halo on the current channel only.
+  // segment — used to render the current channel brighter than history.
   currentUpper: LineData[]; currentLower: LineData[];
   // Confirmed swing pivots, for swing-high/low price labels.
   pivots: ZZPivot[];
@@ -168,7 +168,7 @@ function computeZigZagChannels(
   }
 
   // Only the segment from the last confirmed pivot onward is still "forming"
-  // (the current trend channel) — glow should only ever touch this slice.
+  // (the current trend channel) — kept brighter than the faded history.
   const currentStart = times[last.bar];
   const currentUpper = upper.filter((p) => (p.time as number) >= (currentStart as number));
   const currentLower = lower.filter((p) => (p.time as number) >= (currentStart as number));
@@ -211,10 +211,7 @@ export function PriceChart({
   // Faded full-history upper/lower lines (every past + current channel, dim)
   const zzUpperRef        = useRef<ISeriesApi<"Line"> | null>(null);
   const zzLowerRef        = useRef<ISeriesApi<"Line"> | null>(null);
-  // Glow halos — only ever fed the current (still-forming) segment's data.
-  const zzUpperGlowRef    = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzLowerGlowRef    = useRef<ISeriesApi<"Line"> | null>(null);
-  // Bright current-segment lines drawn on top of the faded history + glow.
+  // Bright current-segment lines drawn on top of the faded history.
   const zzUpperCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
   const zzLowerCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
 
@@ -291,58 +288,40 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ upper glow halo: soft, wide amber line — only ever carries the
-    // current segment's data; its opacity is pulsed in the RAF loop.
-    zzUpperGlowRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(217,214,194,0.22)",
-      lineWidth: 6,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    // ── ZZ upper (faded): every past + current amber channel, dim so older
+    // ── ZZ upper (faded): every past + current channel, dim so older
     // trend channels read as history rather than the live resistance line.
     zzUpperRef.current = chart.addSeries(LineSeries, {
       color: "rgba(217,214,194,0.4)",
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ upper (current): bright amber dashed line, current segment only —
-    // drawn on top of the faded history + glow halo.
+    // ── ZZ upper (current): bright dashed line, current segment only —
+    // drawn on top of the faded history.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
       color: "#D9D6C2",
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ lower glow halo: soft, wide dark-blue line — only ever carries
-    // the current segment's data; opacity pulsed in the RAF loop.
-    zzLowerGlowRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(238,234,224,0.22)",
-      lineWidth: 6,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    // ── ZZ lower (faded): every past + current dark-blue channel, dim.
+    // ── ZZ lower (faded): every past + current channel, dim.
     zzLowerRef.current = chart.addSeries(LineSeries, {
       color: "rgba(238,234,224,0.4)",
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ lower (current): bright dark-blue dashed line, current segment
-    // only — drawn on top of the faded history + glow halo.
+    // ── ZZ lower (current): bright dashed line, current segment only —
+    // drawn on top of the faded history.
     zzLowerCurrentRef.current = chart.addSeries(LineSeries, {
       color: "#eeeae0",
-      lineWidth: 2,
+      lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -382,8 +361,6 @@ export function PriceChart({
       zzCenterRef.current.setData([]);
       zzUpperRef.current.setData([]);
       zzLowerRef.current.setData([]);
-      zzUpperGlowRef.current?.setData([]);
-      zzLowerGlowRef.current?.setData([]);
       zzUpperCurrentRef.current?.setData([]);
       zzLowerCurrentRef.current?.setData([]);
       zzPivotsRef.current = [];
@@ -394,12 +371,10 @@ export function PriceChart({
     // Faded lines carry the full history (every past + current channel).
     zzUpperRef.current.setData(upper);
     zzLowerRef.current.setData(lower);
-    // Bright lines + glow halo only ever carry the current (still-forming)
-    // segment's data — previous, already-confirmed channels stay faded only.
+    // Bright lines only ever carry the current (still-forming) segment's
+    // data — previous, already-confirmed channels stay faded only.
     zzUpperCurrentRef.current?.setData(currentUpper);
     zzLowerCurrentRef.current?.setData(currentLower);
-    zzUpperGlowRef.current?.setData(currentUpper);
-    zzLowerGlowRef.current?.setData(currentLower);
     zzPivotsRef.current = pivots;
   }
 
@@ -560,17 +535,6 @@ export function PriceChart({
       positionLine(entryLineRef.current, entry?.price ?? null, !!entry);
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
-
-      // Zig-zag upper/lower band glow — pulses the halo behind the real,
-      // time-varying channel lines (drawn on-canvas, always perfectly
-      // aligned with the actual trend). Only carries data for the current
-      // (still-forming) segment, so older confirmed channels never glow.
-      if (symbolRef.current === "BTCUSDT") {
-        const t = now / 1000;
-        const pulse = 0.16 + 0.28 * (0.5 + 0.5 * Math.sin(t * 2.2));
-        zzUpperGlowRef.current?.applyOptions({ color: `rgba(217,214,194,${pulse.toFixed(3)})` });
-        zzLowerGlowRef.current?.applyOptions({ color: `rgba(238,234,224,${pulse.toFixed(3)})` });
-      }
 
       // Swing high/low price labels — one per confirmed pivot, positioned
       // via the chart's own time/price coordinate mapping so they always
