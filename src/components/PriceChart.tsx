@@ -403,21 +403,25 @@ export function PriceChart({
     }
   }, [priceLines]);
 
-  // Fits all loaded candles into view (fully zoomed out) by default, then on
-  // mobile zooms in 30% from that fully-zoomed-out view — anchored to the
+  // Fits all loaded candles into view (fully zoomed out).
+  function fitAll() {
+    chartRef.current?.timeScale().fitContent();
+  }
+
+  // On mobile, zooms in 30% from the fully-zoomed-out view — anchored to the
   // right edge (most recent candle) so live data stays in frame — since
-  // showing every candle on a narrow screen reads as too cramped.
-  function applyDefaultZoom() {
+  // showing every candle on a narrow screen reads as too cramped. Must only
+  // ever be applied ONCE against a settled fully-zoomed-out range: fitContent()
+  // doesn't update getVisibleLogicalRange() synchronously, so calling this
+  // repeatedly (e.g. once per layout-settle retry) would read an
+  // already-shrunk range each time and compound the zoom far past 30%.
+  function applyMobileZoomIn() {
     const ts = chartRef.current?.timeScale();
-    if (!ts) return;
-    ts.fitContent();
-    if (typeof window !== "undefined" && window.innerWidth <= 768) {
-      const range = ts.getVisibleLogicalRange();
-      if (range) {
-        const span = range.to - range.from;
-        ts.setVisibleLogicalRange({ from: range.to - span * 0.7, to: range.to });
-      }
-    }
+    if (!ts || typeof window === "undefined" || window.innerWidth > 768) return;
+    const range = ts.getVisibleLogicalRange();
+    if (!range) return;
+    const span = range.to - range.from;
+    ts.setVisibleLogicalRange({ from: range.to - span * 0.7, to: range.to });
   }
 
   // ── Data + WebSocket ───────────────────────────────────────────────────────
@@ -441,11 +445,13 @@ export function PriceChart({
         recomputeZigZag();
         // On first mount the wrapper's layout/width can still be settling
         // when this runs, which makes fitContent() compute against a stale
-        // (smaller) width and land zoomed in — so re-apply a couple more
-        // times after the browser has had a chance to finish layout.
-        applyDefaultZoom();
-        requestAnimationFrame(applyDefaultZoom);
-        setTimeout(applyDefaultZoom, 150);
+        // (smaller) width and land zoomed in — so re-fit a couple more times
+        // after the browser has had a chance to finish layout. The mobile
+        // 30% zoom-in is only applied once, after the final re-fit, against
+        // the now-settled fully-zoomed-out range.
+        fitAll();
+        requestAnimationFrame(fitAll);
+        setTimeout(() => { fitAll(); applyMobileZoomIn(); }, 150);
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
 
