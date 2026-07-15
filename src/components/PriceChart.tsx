@@ -403,6 +403,23 @@ export function PriceChart({
     }
   }, [priceLines]);
 
+  // Fits all loaded candles into view (fully zoomed out) by default, then on
+  // mobile zooms in 30% from that fully-zoomed-out view — anchored to the
+  // right edge (most recent candle) so live data stays in frame — since
+  // showing every candle on a narrow screen reads as too cramped.
+  function applyDefaultZoom() {
+    const ts = chartRef.current?.timeScale();
+    if (!ts) return;
+    ts.fitContent();
+    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      const range = ts.getVisibleLogicalRange();
+      if (range) {
+        const span = range.to - range.from;
+        ts.setVisibleLogicalRange({ from: range.to - span * 0.7, to: range.to });
+      }
+    }
+  }
+
   // ── Data + WebSocket ───────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true, ws: WebSocket | null = null;
@@ -422,14 +439,13 @@ export function PriceChart({
         candleRef.current?.setData(candles);
         recomputeEMAs();
         recomputeZigZag();
-        // Fit all loaded candles into view (zoomed out) by default. On first
-        // mount the wrapper's layout/width can still be settling when this
-        // runs, which makes fitContent() compute against a stale (smaller)
-        // width and land zoomed in — so re-fit a couple more times after the
-        // browser has had a chance to finish layout.
-        chartRef.current?.timeScale().fitContent();
-        requestAnimationFrame(() => chartRef.current?.timeScale().fitContent());
-        setTimeout(() => chartRef.current?.timeScale().fitContent(), 150);
+        // On first mount the wrapper's layout/width can still be settling
+        // when this runs, which makes fitContent() compute against a stale
+        // (smaller) width and land zoomed in — so re-apply a couple more
+        // times after the browser has had a chance to finish layout.
+        applyDefaultZoom();
+        requestAnimationFrame(applyDefaultZoom);
+        setTimeout(applyDefaultZoom, 150);
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
 
