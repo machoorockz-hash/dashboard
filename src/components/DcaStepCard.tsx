@@ -15,6 +15,7 @@ interface DcaData {
   dca_take_profit?: number;
   dca_stop_loss?: number;
   dca_usdt_spent?: number;
+  dca_skipped_steps?: number[];
   status?: string;
 }
 
@@ -39,24 +40,29 @@ function fmtPrice(p: number) {
   return p.toFixed(6);
 }
 
-function StepSegments({ step, total }: { step: number; total: number }) {
+function StepSegments({ step, total, skipped }: { step: number; total: number; skipped: number[] }) {
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: total }).map((_, i) => {
+        const stepNumber = i + 1;
         const filled = i < step;
         const isLast = i === step - 1;
+        const isSkipped = skipped.includes(stepNumber);
         return (
           <div
             key={i}
+            title={isSkipped ? `Step ${stepNumber} skipped (fast price drop)` : `Step ${stepNumber}`}
             className={`relative h-2 rounded-full transition-all duration-700 flex-1 ${
-              filled
+              isSkipped
+                ? "bg-amber-500/50 [background-image:repeating-linear-gradient(45deg,transparent,transparent_2px,color-mix(in_oklab,var(--background)_40%,transparent)_2px,color-mix(in_oklab,var(--background)_40%,transparent)_4px)]"
+                : filled
                 ? isLast
                   ? "bg-primary shadow-[0_0_8px_2px_color-mix(in_oklab,var(--primary)_60%,transparent)]"
                   : "bg-primary/70"
                 : "bg-muted/50"
             }`}
           >
-            {isLast && (
+            {isLast && !isSkipped && (
               <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-75" />
             )}
           </div>
@@ -102,6 +108,7 @@ export default function DcaStepCard() {
   const base = symbol.replace(/USDT$|BUSD$|FDUSD$/, "");
   const pnl = d?.dca_pnl_pct ?? 0;
   const isCompleted = d?.status === "COMPLETED";
+  const skippedSteps = d?.dca_skipped_steps ?? [];
 
   if (!snapshot?.updatedAt || isCompleted || step === 0) return null;
 
@@ -192,11 +199,21 @@ export default function DcaStepCard() {
             <span>Step 1</span>
             <span>Step {total}</span>
           </div>
-          <StepSegments step={step} total={total} />
+          <StepSegments step={step} total={total} skipped={skippedSteps} />
           <div className="text-[9px] text-muted-foreground/60 tabular-nums">
             {step} of {total} DCA steps executed
           </div>
         </div>
+
+        {skippedSteps.length > 0 && (
+          <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="text-[10px] uppercase tracking-widest font-bold text-amber-500">
+              Skipped step{skippedSteps.length > 1 ? "s" : ""}: {skippedSteps.join(", ")}
+            </span>
+            <span className="text-[9px] text-amber-500/70 ml-auto">fast drop, jumped ahead</span>
+          </div>
+        )}
 
         {/* Metrics grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
