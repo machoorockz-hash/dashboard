@@ -58,11 +58,13 @@ function StepSegments({
   total,
   stepAmounts,
   stepTimestamps,
+  skippedSteps,
 }: {
   step: number;
   total: number;
   stepAmounts?: number[];
   stepTimestamps?: number[];
+  skippedSteps?: number[];
 }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
@@ -104,20 +106,22 @@ function StepSegments({
       {/* Outer row — nodes + connectors; labels sit below each node */}
       <div style={{ display: "flex", alignItems: "flex-start", width: "100%" }}>
         {Array.from({ length: total }).map((_, i) => {
+          const stepNumber = i + 1;
+          const isSkipped  = !!skippedSteps?.includes(stepNumber);
           const filled    = i < step;
           const isActive  = i === step - 1;
-          const isPast    = filled && !isActive;
+          const isPast    = filled && !isActive && !isSkipped;
           const isLast    = i === total - 1;
           const isHovered = hoveredIdx === i;
 
-          const nodeSize      = isActive ? 30 : isPast ? 22 : 20;
-          const borderW       = isActive ? 2 : isPast ? 0 : 1.5;
+          const nodeSize      = isActive ? 30 : (isPast || isSkipped) ? 22 : 20;
+          const borderW       = isActive ? 2 : isSkipped ? 1.5 : isPast ? 0 : 1.5;
           const NODE_CONTAINER = 32; // fixed height so connector always centres correctly
 
-          const statusLabel  = isPast ? "Completed" : isActive ? "Active" : "Pending";
-          const statusColor  = isPast || isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
-          const statusBg     = isPast ? "color-mix(in oklab,var(--primary) 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
-          const statusBorder = isPast || isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
+          const statusLabel  = isSkipped ? "Skipped" : isPast ? "Completed" : isActive ? "Active" : "Pending";
+          const statusColor  = isSkipped ? "#f59e0b" : isPast || isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
+          const statusBg     = isSkipped ? "color-mix(in oklab,#f59e0b 18%,var(--card))" : isPast ? "color-mix(in oklab,var(--primary) 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
+          const statusBorder = isSkipped ? "color-mix(in oklab,#f59e0b 40%,transparent)" : isPast || isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
 
           const amount    = stepAmounts?.[i];
           const timestamp = stepTimestamps?.[i];
@@ -217,17 +221,23 @@ function StepSegments({
                       transition: "all 0.35s ease",
                       cursor: "default",
                       position: "relative",
-                      background: isActive
+                      background: isSkipped
+                        ? "color-mix(in oklab,#f59e0b 16%,var(--card))"
+                        : isActive
                         ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
                         : isPast ? "var(--primary)"
                         : "color-mix(in oklab,var(--primary) 7%,var(--card))",
-                      border: isActive
+                      border: isSkipped
+                        ? `${borderW}px dashed color-mix(in oklab,#f59e0b 55%,transparent)`
+                        : isActive
                         ? `${borderW}px solid var(--primary)`
                         : isPast ? "none"
                         : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
                       ...(isHovered && !isActive ? {
                         transform: "scale(1.12)",
-                        boxShadow: `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
+                        boxShadow: isSkipped
+                          ? "0 0 0 3px color-mix(in oklab,#f59e0b 25%,transparent), 0 4px 12px -2px rgba(0,0,0,0.4)"
+                          : `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
                       } : {}),
                     }}
                   >
@@ -239,7 +249,11 @@ function StepSegments({
                         willChange: "transform",
                       }} />
                     )}
-                    {isPast ? (
+                    {isSkipped ? (
+                      <svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round">
+                        <path d="M3,3 L9,9 M9,3 L3,9" />
+                      </svg>
+                    ) : isPast ? (
                       <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="var(--card)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="2,6 5,9.5 10,3" />
                       </svg>
@@ -257,7 +271,19 @@ function StepSegments({
 
                 {/* ── USDT amount label below the node ── */}
                 <div style={{ height: "14px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {amount != null ? (
+                  {isSkipped ? (
+                    <span style={{
+                      fontSize: "8px",
+                      fontWeight: 800,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      color: "#f59e0b",
+                    }}>
+                      Skipped
+                    </span>
+                  ) : amount != null ? (
                     <span style={{
                       fontSize: "9px",
                       fontWeight: 700,
@@ -291,7 +317,9 @@ function StepSegments({
                   <div style={{ position: "absolute", inset: 0, background: "color-mix(in oklab,var(--primary) 8%,var(--card))" }} />
                   <div style={{
                     position: "absolute", inset: 0, transition: "background 0.5s ease",
-                    background: isPast
+                    background: isSkipped
+                      ? "linear-gradient(90deg, color-mix(in oklab,#f59e0b 45%,transparent), color-mix(in oklab,#f59e0b 25%,transparent))"
+                      : isPast
                       ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 70%,transparent), color-mix(in oklab,var(--primary) 50%,transparent))"
                       : isActive
                       ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)"
@@ -313,6 +341,7 @@ interface DcaData {
   status?: string;
   dca_step_amounts?: number[];      // USDT spent per step, e.g. [50, 100, 150]
   dca_step_timestamps?: number[];   // unix-ms per step
+  dca_skipped_steps?: number[];     // step numbers jumped over on a fast drop, e.g. [3, 4]
 }
 
 function useDcaData() {
@@ -614,6 +643,7 @@ export default function Dashboard() {
   const dcaTotal      = dcaData?.dca_total_steps ?? 6;
   const dcaAmounts    = dcaData?.dca_step_amounts;
   const dcaTimestamps = dcaData?.dca_step_timestamps;
+  const dcaSkipped    = dcaData?.dca_skipped_steps;
   const showDca = !!primary && dcaStep > 0 && dcaData?.status !== "COMPLETED";
 
   const chartLines = useMemo(() => {
@@ -921,6 +951,7 @@ export default function Dashboard() {
                     total={dcaTotal}
                     stepAmounts={dcaAmounts}
                     stepTimestamps={dcaTimestamps}
+                    skippedSteps={dcaSkipped}
                   />
                 </div>
               )}
