@@ -45,6 +45,129 @@ function fmtPrice(p: number) {
   return p.toFixed(6);
 }
 
+// ─── Zig Zag Channels [LuxAlgo] — ported from Pine Script v4 ────────────────
+// Original: © LuxAlgo  CC BY-NC-SA 4.0
+// Logic: detects swing pivots via a state machine (os), draws zig-zag line
+// between them, and computes upper/lower channel bands from max price deviation.
+function computeZigZagChannels(
+  candles: CandlestickData[],
+  length = 100,
+): { center: LineData[]; upper: LineData[]; lower: LineData[] } {
+  const n = candles.length;
+  if (n < length + 2) return { center: [], upper: [], lower: [] };
+
+  const closes = candles.map((c) => c.close);
+  const highs  = candles.map((c) => c.high);
+  const lows   = candles.map((c) => c.low);
+  const opens  = candles.map((c) => c.open);
+  const times  = candles.map((c) => c.time as UTCTimestamp);
+
+  // Precompute rolling highest/lowest of close over `length` bars
+  // Pine: upper = highest(close, length), lower = lowest(close, length)
+  const rollingMax: number[] = new Array(n).fill(-Infinity);
+  const rollingMin: number[] = new Array(n).fill(Infinity);
+  for (let i = length - 1; i < n; i++) {
+    let mx = -Infinity, mn = Infinity;
+    for (let j = i - length + 1; j <= i; j++) {
+      if (mx < closes[j]) mx = closes[j];
+      if (mn > closes[j]) mn = closes[j];
+    }
+    rollingMax[i] = mx;
+    rollingMin[i] = mn;
+  }
+
+  // os state machine
+  // os=0 → downtrend (looking for bottom), os=1 → uptrend (looking for top)
+  // Pine: os := src[length] > upper ? 0 : src[length] < lower ? 1 : os[1]
+  const os: number[] = new Array(n).fill(0);
+  for (let i = length; i < n; i++) {
+    const srcBack = closes[i - length]; // Pine: close[length]
+    if      (srcBack > rollingMax[i]) os[i] = 0;
+    else if (srcBack < rollingMin[i]) os[i] = 1;
+    else                               os[i] = os[i - 1];
+  }
+
+  // Detect pivot bars
+  // Pine: btm = os==1 && os[1]!=1  → pivot bottom at bar (i-length), price = low[length]
+  // Pine: top = os==0 && os[1]!=0  → pivot top    at bar (i-length), price = high[length]
+  type Pivot = { bar: number; price: number; type: "top" | "btm" };
+  const pivots: Pivot[] = [];
+
+  for (let i = 1; i < n; i++) {
+    const pivotBar = i - length;
+    if (pivotBar < 0) continue;
+    const btm = os[i] === 1 && os[i - 1] !== 1;
+    const top = os[i] === 0 && os[i - 1] !== 0;
+    if (btm) pivots.push({ bar: pivotBar, price: lows[pivotBar],  type: "btm" });
+    if (top) pivots.push({ bar: pivotBar, price: highs[pivotBar], type: "top" });
+  }
+
+  pivots.sort((a, b) => a.bar - b.bar);
+  if (pivots.length === 0) return { center: [], upper: [], lower: [] };
+
+  const centerArr: number[] = new Array(n).fill(NaN);
+  const upperArr:  number[] = new Array(n).fill(NaN);
+  const lowerArr:  number[] = new Array(n).fill(NaN);
+
+  // For a segment from pivot A → B:
+  // interpolate the zig-zag center, then measure max candle deviation above/below
+  // to build the upper/lower channel bands (same as Pine's max_diff_up / max_diff_dn loop)
+  function fillSegment(
+    fromBar: number, fromPrice: number,
+    toBar:   number, toPrice:   number,
+  ) {
+    const segLen = toBar - fromBar;
+    if (segLen <= 0) return;
+
+    let maxUp = 0, maxDn = 0;
+    for (let k = 0; k <= segLen; k++) {
+      const b  = fromBar + k;
+      if (b >= n) break;
+      const t  = k / segLen;
+      const pt = fromPrice + t * (toPrice - fromPrice);
+      const hi = Math.max(closes[b], opens[b]);
+      const lo = Math.min(closes[b], opens[b]);
+      if (hi - pt > maxUp) maxUp = hi - pt;
+      if (pt - lo > maxDn) maxDn = pt - lo;
+    }
+    for (let k = 0; k <= segLen; k++) {
+      const b  = fromBar + k;
+      if (b >= n) break;
+      const t  = k / segLen;
+      const pt = fromPrice + t * (toPrice - fromPrice);
+      centerArr[b] = pt;
+      upperArr[b]  = pt + maxUp;
+      lowerArr[b]  = pt - maxDn;
+    }
+  }
+
+  // Fill completed pivot-to-pivot segments
+  for (let i = 0; i < pivots.length - 1; i++) {
+    fillSegment(
+      pivots[i].bar,     pivots[i].price,
+      pivots[i + 1].bar, pivots[i + 1].price,
+    );
+  }
+
+  // Extend last incomplete segment to the current (rightmost) bar
+  // Pine: barstate.islast + extend=true
+  const last = pivots[pivots.length - 1];
+  fillSegment(last.bar, last.price, n - 1, closes[n - 1]);
+
+  // Convert to lightweight-charts LineData
+  const center: LineData[] = [], upper: LineData[] = [], lower: LineData[] = [];
+  for (let i = 0; i < n; i++) {
+    if (!isNaN(centerArr[i])) {
+      center.push({ time: times[i], value: centerArr[i] });
+      upper.push({  time: times[i], value: upperArr[i]  });
+      lower.push({  time: times[i], value: lowerArr[i]  });
+    }
+  }
+
+  return { center, upper, lower };
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 interface PriceLineSpec { price: number; label: string; color: string; }
 interface Props {
   symbol: string; interval?: Interval; height?: number;
@@ -72,6 +195,11 @@ export function PriceChart({
   const ema200Ref     = useRef<ISeriesApi<"Line"> | null>(null);
   const ema21Ref      = useRef<ISeriesApi<"Line"> | null>(null);
   const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
+  // Zig Zag Channels series
+  const zzCenterRef   = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzUpperRef    = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzLowerRef    = useRef<ISeriesApi<"Line"> | null>(null);
+
   const candlesRef    = useRef<CandlestickData[]>([]);
   const chartLinesRef = useRef<IPriceLine[]>([]);
 
@@ -125,6 +253,36 @@ export function PriceChart({
     ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     ema21Ref.current  = chart.addSeries(LineSeries, { color: "#3b82f6",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     ema9Ref.current   = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+
+    // ── Zig Zag Channels series ──────────────────────────────────────────────
+    // Center zig-zag line (orange, solid)
+    zzCenterRef.current = chart.addSeries(LineSeries, {
+      color: "#ff5d00",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // Upper extremity (red, dashed)
+    zzUpperRef.current = chart.addSeries(LineSeries, {
+      color: "#ff1100",
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // Lower extremity (blue, dashed)
+    zzLowerRef.current = chart.addSeries(LineSeries, {
+      color: "#2157f3",
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
     return () => { chart.remove(); chartRef.current = null; };
   }, []);
 
@@ -141,6 +299,14 @@ export function PriceChart({
         if (vals[i] !== undefined) line.push({ time: times[i], value: vals[i] as number });
       s.setData(line);
     }
+  }
+
+  function recomputeZigZag() {
+    if (!zzCenterRef.current || !zzUpperRef.current || !zzLowerRef.current) return;
+    const { center, upper, lower } = computeZigZagChannels(candlesRef.current);
+    zzCenterRef.current.setData(center);
+    zzUpperRef.current.setData(upper);
+    zzLowerRef.current.setData(lower);
   }
 
   // ── Price lines (Entry / TP / SL) ─────────────────────────────────────────
@@ -180,6 +346,7 @@ export function PriceChart({
         candleRef.current?.applyOptions({ priceFormat: { type: "price", ...pf } });
         candleRef.current?.setData(candles);
         recomputeEMAs();
+        recomputeZigZag();
         chartRef.current?.timeScale().fitContent();
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
@@ -198,6 +365,8 @@ export function PriceChart({
             else { arr.push(c); if (arr.length > 1200) arr.shift(); }
             candleRef.current?.update(c);
             recomputeEMAs();
+            // Recompute ZigZag only on closed candles to avoid per-tick overhead
+            if (k.x) recomputeZigZag();
             const newPrice = c.close;
             setLivePrice((prev) => {
               if (prev !== null && newPrice !== prev) setFlash(newPrice > prev ? "up" : "down");
@@ -447,10 +616,13 @@ export function PriceChart({
               </div>
             )}
           </div>
-          <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground">
+          <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[3px] bg-white/70" />EMA 200</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-blue-500" />EMA 21</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-yellow-400" />EMA 9</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-[#ff5d00]" />ZZ</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[1px] border-t border-dashed border-[#ff1100]" />Upper</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[1px] border-t border-dashed border-[#2157f3]" />Lower</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
