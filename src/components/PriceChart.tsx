@@ -408,16 +408,16 @@ export function PriceChart({
     chartRef.current?.timeScale().fitContent();
   }
 
-  // On mobile, zooms in 30% from the fully-zoomed-out view — anchored to the
-  // right edge (most recent candle) so live data stays in frame — since
-  // showing every candle on a narrow screen reads as too cramped. Must only
-  // ever be applied ONCE against a settled fully-zoomed-out range: fitContent()
-  // doesn't update getVisibleLogicalRange() synchronously, so calling this
-  // repeatedly (e.g. once per layout-settle retry) would read an
-  // already-shrunk range each time and compound the zoom far past 30%.
-  function applyMobileZoomIn() {
+  // Zooms in 30% from the fully-zoomed-out view — anchored to the right edge
+  // (most recent candle) so live data stays in frame — since showing every
+  // candle at once reads as too cramped, on desktop and mobile alike. Must
+  // only ever be applied ONCE against a settled fully-zoomed-out range:
+  // fitContent() doesn't update getVisibleLogicalRange() synchronously, so
+  // calling this repeatedly (e.g. once per layout-settle retry) would read
+  // an already-shrunk range each time and compound the zoom far past 30%.
+  function applyZoomIn() {
     const ts = chartRef.current?.timeScale();
-    if (!ts || typeof window === "undefined" || window.innerWidth > 768) return;
+    if (!ts) return;
     const range = ts.getVisibleLogicalRange();
     if (!range) return;
     const span = range.to - range.from;
@@ -446,12 +446,12 @@ export function PriceChart({
         // On first mount the wrapper's layout/width can still be settling
         // when this runs, which makes fitContent() compute against a stale
         // (smaller) width and land zoomed in — so re-fit a couple more times
-        // after the browser has had a chance to finish layout. The mobile
-        // 30% zoom-in is only applied once, after the final re-fit, against
-        // the now-settled fully-zoomed-out range.
+        // after the browser has had a chance to finish layout. The 30%
+        // zoom-in is only applied once, after the final re-fit, against the
+        // now-settled fully-zoomed-out range.
         fitAll();
         requestAnimationFrame(fitAll);
-        setTimeout(() => { fitAll(); applyMobileZoomIn(); }, 150);
+        setTimeout(() => { fitAll(); applyZoomIn(); }, 150);
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
 
