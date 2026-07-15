@@ -824,7 +824,6 @@ export function PriceChart({
           {/* Live price line */}
           <div ref={liveLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-live-line" />
-            <div className="overlay-live-badge">◆ LIVE &nbsp;${livePrice ? fmtPrice(livePrice) : "…"}</div>
           </div>
 
           {/* Entry line */}
