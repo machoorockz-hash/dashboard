@@ -233,8 +233,6 @@ export function PriceChart({
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
   const zzCenterRef       = useRef<ISeriesApi<"Line"> | null>(null);
   // Faded full-history upper/lower lines (every past + current channel, dim)
-  const zzUpperRef        = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzLowerRef        = useRef<ISeriesApi<"Line"> | null>(null);
   // Bright current-segment lines drawn on top of the faded history.
   const zzUpperCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
   const zzLowerCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -323,18 +321,7 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ upper (faded): every past + current channel, dim so older
-    // trend channels read as history rather than the live resistance line.
-    zzUpperRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(255,45,45,0.4)",
-      lineWidth: 1,
-      lineStyle: LineStyle.LargeDashed,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    // ── ZZ upper (current): bright dashed line, current segment only —
-    // drawn on top of the faded history.
+    // ── ZZ upper (current): bright dashed line, current segment only.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
       color: "#ff2d2d",
       lineWidth: 1,
@@ -343,19 +330,9 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ lower (faded): every past + current channel, dim.
-    zzLowerRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(23,37,110,0.4)",
-      lineWidth: 1,
-      lineStyle: LineStyle.LargeDashed,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
-    // ── ZZ lower (current): bright dashed line, current segment only —
-    // drawn on top of the faded history.
+    // ── ZZ lower (current): bright dashed line, current segment only.
     zzLowerCurrentRef.current = chart.addSeries(LineSeries, {
-      color: "#17256e",
+      color: "#dc2626",
       lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -391,23 +368,18 @@ export function PriceChart({
 
   // ── ZigZag recompute (BTCUSDT only) ──────────────────────────────────────
   function recomputeZigZag() {
-    if (!zzCenterRef.current || !zzUpperRef.current || !zzLowerRef.current) return;
+    if (!zzCenterRef.current) return;
     if (symbol !== "BTCUSDT") {
       zzCenterRef.current.setData([]);
-      zzUpperRef.current.setData([]);
-      zzLowerRef.current.setData([]);
       zzUpperCurrentRef.current?.setData([]);
       zzLowerCurrentRef.current?.setData([]);
       zzPivotsRef.current = [];
       return;
     }
-    const { center, upper, lower, currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
+    const { center, currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
     zzCenterRef.current.setData(center);
-    // Faded lines carry the full history (every past + current channel).
-    zzUpperRef.current.setData(upper);
-    zzLowerRef.current.setData(lower);
-    // Bright lines only ever carry the current (still-forming) segment's
-    // data — previous, already-confirmed channels stay faded only.
+    // Only the current (still-forming) segment's bands are drawn —
+    // previous, already-confirmed channel bands are no longer shown.
     zzUpperCurrentRef.current?.setData(currentUpper);
     zzLowerCurrentRef.current?.setData(currentLower);
     zzPivotsRef.current = pivots;
