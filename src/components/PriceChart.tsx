@@ -424,6 +424,21 @@ export function PriceChart({
     ts.setVisibleLogicalRange({ from: range.to - span * 0.7, to: range.to });
   }
 
+  // Recenters the view so the current (most recent) candle sits in the
+  // middle of the pane by default, instead of hugging the right edge.
+  // Keeps whatever zoom span is already visible (set by applyZoomIn) and
+  // just shifts it so the last bar's logical index is at the center.
+  function centerCurrentCandle() {
+    const ts = chartRef.current?.timeScale();
+    if (!ts) return;
+    const range = ts.getVisibleLogicalRange();
+    if (!range) return;
+    const span = range.to - range.from;
+    const lastIndex = candlesRef.current.length - 1;
+    if (lastIndex < 0) return;
+    ts.setVisibleLogicalRange({ from: lastIndex - span / 2, to: lastIndex + span / 2 });
+  }
+
   // ── Data + WebSocket ───────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true, ws: WebSocket | null = null;
@@ -451,7 +466,7 @@ export function PriceChart({
         // now-settled fully-zoomed-out range.
         fitAll();
         requestAnimationFrame(fitAll);
-        setTimeout(() => { fitAll(); applyZoomIn(); }, 150);
+        setTimeout(() => { fitAll(); applyZoomIn(); centerCurrentCandle(); }, 150);
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
 
