@@ -299,6 +299,19 @@ function StepSegments({
                     }}>
                       Done
                     </span>
+                  ) : isActive ? (
+                    <span style={{
+                      fontSize: "8px",
+                      fontWeight: 800,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      color: "var(--primary)",
+                      filter: "drop-shadow(0 0 4px color-mix(in oklab,var(--primary) 55%,transparent))",
+                    }}>
+                      Active
+                    </span>
                   ) : amount != null ? (
                     <span style={{
                       fontSize: "9px",
