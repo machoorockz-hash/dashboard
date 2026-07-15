@@ -294,7 +294,7 @@ export function PriceChart({
     // ── ZZ upper glow halo: soft, wide amber line — only ever carries the
     // current segment's data; its opacity is pulsed in the RAF loop.
     zzUpperGlowRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(245,158,11,0.18)",
+      color: "rgba(217,214,194,0.22)",
       lineWidth: 6,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -303,7 +303,7 @@ export function PriceChart({
     // ── ZZ upper (faded): every past + current amber channel, dim so older
     // trend channels read as history rather than the live resistance line.
     zzUpperRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(245,158,11,0.32)",
+      color: "rgba(217,214,194,0.4)",
       lineWidth: 2,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -313,7 +313,7 @@ export function PriceChart({
     // ── ZZ upper (current): bright amber dashed line, current segment only —
     // drawn on top of the faded history + glow halo.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
-      color: "#f59e0b",
+      color: "#D9D6C2",
       lineWidth: 2,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -323,7 +323,7 @@ export function PriceChart({
     // ── ZZ lower glow halo: soft, wide dark-blue line — only ever carries
     // the current segment's data; opacity pulsed in the RAF loop.
     zzLowerGlowRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(30,58,138,0.22)",
+      color: "rgba(238,234,224,0.22)",
       lineWidth: 6,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -331,7 +331,7 @@ export function PriceChart({
     });
     // ── ZZ lower (faded): every past + current dark-blue channel, dim.
     zzLowerRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(30,58,138,0.4)",
+      color: "rgba(238,234,224,0.4)",
       lineWidth: 2,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -341,7 +341,7 @@ export function PriceChart({
     // ── ZZ lower (current): bright dark-blue dashed line, current segment
     // only — drawn on top of the faded history + glow halo.
     zzLowerCurrentRef.current = chart.addSeries(LineSeries, {
-      color: "#1e3a8a",
+      color: "#eeeae0",
       lineWidth: 2,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -568,8 +568,8 @@ export function PriceChart({
       if (symbolRef.current === "BTCUSDT") {
         const t = now / 1000;
         const pulse = 0.16 + 0.28 * (0.5 + 0.5 * Math.sin(t * 2.2));
-        zzUpperGlowRef.current?.applyOptions({ color: `rgba(245,158,11,${pulse.toFixed(3)})` });
-        zzLowerGlowRef.current?.applyOptions({ color: `rgba(30,58,138,${pulse.toFixed(3)})` });
+        zzUpperGlowRef.current?.applyOptions({ color: `rgba(217,214,194,${pulse.toFixed(3)})` });
+        zzLowerGlowRef.current?.applyOptions({ color: `rgba(238,234,224,${pulse.toFixed(3)})` });
       }
 
       // Swing high/low price labels — one per confirmed pivot, positioned
@@ -717,15 +717,15 @@ export function PriceChart({
         .overlay-swing-text {
           padding:1px 5px; border-radius:4px; backdrop-filter:blur(2px);
         }
-        .overlay-swing-label.swing-top { transform:translate(-50%,-160%); color:#f59e0b; }
-        .overlay-swing-label.swing-top .overlay-swing-dot { background:#f59e0b; }
+        .overlay-swing-label.swing-top { transform:translate(-50%,-160%); color:#D9D6C2; }
+        .overlay-swing-label.swing-top .overlay-swing-dot { background:#D9D6C2; }
         .overlay-swing-label.swing-top .overlay-swing-text {
-          background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.4); color:#f59e0b;
+          background:rgba(217,214,194,.14); border:1px solid rgba(217,214,194,.45); color:#D9D6C2;
         }
-        .overlay-swing-label.swing-btm { transform:translate(-50%,60%); color:#3b5bdb; }
-        .overlay-swing-label.swing-btm .overlay-swing-dot { background:#1e3a8a; }
+        .overlay-swing-label.swing-btm { transform:translate(-50%,60%); color:#eeeae0; }
+        .overlay-swing-label.swing-btm .overlay-swing-dot { background:#eeeae0; }
         .overlay-swing-label.swing-btm .overlay-swing-text {
-          background:rgba(30,58,138,.18); border:1px solid rgba(30,58,138,.55); color:#5b7fe0;
+          background:rgba(238,234,224,.14); border:1px solid rgba(238,234,224,.5); color:#eeeae0;
         }
       `}</style>
 
