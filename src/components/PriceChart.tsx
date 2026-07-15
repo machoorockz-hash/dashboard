@@ -261,7 +261,13 @@ export function PriceChart({
       timeScale: {
         borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true, secondsVisible: false,
-        rightOffset: 8, barSpacing: 12, minBarSpacing: 4,
+        // minBarSpacing capped how far fitContent() could compress bars to
+        // fit everything into view — on a narrow mobile viewport, 1000
+        // candles at 4px each need ~4000px, so it couldn't fit them all and
+        // fell back to a zoomed-in window instead. Allow much tighter
+        // spacing so fitContent() can actually zoom all the way out on any
+        // screen size, same as desktop.
+        rightOffset: 8, barSpacing: 12, minBarSpacing: 0.5,
       },
       crosshair: { mode: CrosshairMode.Normal },
     });
