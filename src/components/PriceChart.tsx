@@ -475,11 +475,8 @@ export function PriceChart({
       if (!el) {
         el = document.createElement("div");
         el.className = "overlay-swing-label";
-        const dot = document.createElement("span");
-        dot.className = "overlay-swing-dot";
         const txt = document.createElement("span");
         txt.className = "overlay-swing-text";
-        el.appendChild(dot);
         el.appendChild(txt);
         container.appendChild(el);
         zzLabelPoolRef.current[i] = el;
@@ -674,20 +671,14 @@ export function PriceChart({
           transform:translate(-50%,-50%); pointer-events:none; z-index:3;
           font-size:9px; font-weight:800; letter-spacing:.02em; white-space:nowrap;
         }
-        .overlay-swing-dot {
-          width:5px; height:5px; border-radius:50%; flex-shrink:0;
-          box-shadow:0 0 6px 1px currentColor;
-        }
         .overlay-swing-text {
           padding:1px 5px; border-radius:4px; backdrop-filter:blur(2px);
         }
         .overlay-swing-label.swing-top { transform:translate(-50%,-160%); color:#D9D6C2; }
-        .overlay-swing-label.swing-top .overlay-swing-dot { background:#D9D6C2; }
         .overlay-swing-label.swing-top .overlay-swing-text {
           background:rgba(217,214,194,.14); border:1px solid rgba(217,214,194,.45); color:#D9D6C2;
         }
         .overlay-swing-label.swing-btm { transform:translate(-50%,60%); color:#eeeae0; }
-        .overlay-swing-label.swing-btm .overlay-swing-dot { background:#eeeae0; }
         .overlay-swing-label.swing-btm .overlay-swing-text {
           background:rgba(238,234,224,.14); border:1px solid rgba(238,234,224,.5); color:#eeeae0;
         }
