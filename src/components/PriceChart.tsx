@@ -52,9 +52,9 @@ function fmtPrice(p: number) {
 function computeZigZagChannels(
   candles: CandlestickData[],
   length = 100,
-): { center: LineData[]; upper: LineData[]; lower: LineData[]; lastPivotTime: UTCTimestamp | null } {
+): { center: LineData[]; upper: LineData[]; lower: LineData[] } {
   const n = candles.length;
-  if (n < length + 2) return { center: [], upper: [], lower: [], lastPivotTime: null };
+  if (n < length + 2) return { center: [], upper: [], lower: [] };
 
   const closes = candles.map((c) => c.close);
   const highs  = candles.map((c) => c.high);
@@ -103,7 +103,7 @@ function computeZigZagChannels(
   }
 
   pivots.sort((a, b) => a.bar - b.bar);
-  if (pivots.length === 0) return { center: [], upper: [], lower: [], lastPivotTime: null };
+  if (pivots.length === 0) return { center: [], upper: [], lower: [] };
 
   const centerArr: number[] = new Array(n).fill(NaN);
   const upperArr:  number[] = new Array(n).fill(NaN);
@@ -157,12 +157,7 @@ function computeZigZagChannels(
     }
   }
 
-  // The resist/support band is only valid over the still-open segment
-  // (last confirmed pivot → current bar) — anchor the overlay there
-  // instead of stretching it across the whole visible chart.
-  const lastPivotTime = last.bar >= 0 && last.bar < n ? times[last.bar] : null;
-
-  return { center, upper, lower, lastPivotTime };
+  return { center, upper, lower };
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -194,9 +189,12 @@ export function PriceChart({
   const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
-  const zzCenterRef   = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzUpperRef    = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzLowerRef    = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzCenterRef    = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzUpperRef     = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzLowerRef     = useRef<ISeriesApi<"Line"> | null>(null);
+  // Glow halos rendered behind the crisp upper/lower lines (same data, wider + softer)
+  const zzUpperGlowRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzLowerGlowRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   const candlesRef    = useRef<CandlestickData[]>([]);
   const chartLinesRef = useRef<IPriceLine[]>([]);
@@ -206,24 +204,15 @@ export function PriceChart({
   const entryLineRef   = useRef<HTMLDivElement>(null);
   const tpLineRef      = useRef<HTMLDivElement>(null);
   const slLineRef      = useRef<HTMLDivElement>(null);
-  // ZZ band overlays
-  const zzUpperLineRef = useRef<HTMLDivElement>(null);
-  const zzLowerLineRef = useRef<HTMLDivElement>(null);
-  const zzFillRef      = useRef<HTMLDivElement>(null);
 
   // ── Price refs (used inside RAF without stale closure) ────────────────────
   const livePriceRef   = useRef<number | null>(null);
-  const zzUpperPriceRef = useRef<number | null>(null);
-  const zzLowerPriceRef = useRef<number | null>(null);
-  const zzPivotTimeRef = useRef<UTCTimestamp | null>(null);
   const symbolRef      = useRef(symbol);
 
   const [iv, setIv]              = useState<Interval>(interval);
   const [search, setSearch]      = useState("");
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [flash, setFlash]        = useState<"up" | "down" | null>(null);
-  const [zzUpperPrice, setZzUpperPrice] = useState<number | null>(null);
-  const [zzLowerPrice, setZzLowerPrice] = useState<number | null>(null);
 
   const base = symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
 
@@ -275,20 +264,36 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ upper: amber dotted (subtle on canvas — overlay does the heavy lifting)
-    zzUpperRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(245,158,11,0.35)",
-      lineWidth: 1,
-      lineStyle: LineStyle.Dotted,
+    // ── ZZ upper glow halo: soft, wide amber line rendered behind the crisp
+    // line below — its opacity is pulsed in the RAF loop for a glow effect.
+    zzUpperGlowRef.current = chart.addSeries(LineSeries, {
+      color: "rgba(245,158,11,0.18)",
+      lineWidth: 6,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ lower: cyan dotted
+    // ── ZZ upper: crisp amber resistance line
+    zzUpperRef.current = chart.addSeries(LineSeries, {
+      color: "#f59e0b",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // ── ZZ lower glow halo: soft, wide cyan line rendered behind the crisp
+    // line below — its opacity is pulsed in the RAF loop for a glow effect.
+    zzLowerGlowRef.current = chart.addSeries(LineSeries, {
+      color: "rgba(6,182,212,0.18)",
+      lineWidth: 6,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // ── ZZ lower: crisp cyan support line
     zzLowerRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(6,182,212,0.35)",
-      lineWidth: 1,
-      lineStyle: LineStyle.Dotted,
+      color: "#06b6d4",
+      lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
@@ -320,26 +325,16 @@ export function PriceChart({
       zzCenterRef.current.setData([]);
       zzUpperRef.current.setData([]);
       zzLowerRef.current.setData([]);
-      zzUpperPriceRef.current = null;
-      zzLowerPriceRef.current = null;
-      zzPivotTimeRef.current = null;
-      setZzUpperPrice(null);
-      setZzLowerPrice(null);
+      zzUpperGlowRef.current?.setData([]);
+      zzLowerGlowRef.current?.setData([]);
       return;
     }
-    const { center, upper, lower, lastPivotTime } = computeZigZagChannels(candlesRef.current);
+    const { center, upper, lower } = computeZigZagChannels(candlesRef.current);
     zzCenterRef.current.setData(center);
     zzUpperRef.current.setData(upper);
     zzLowerRef.current.setData(lower);
-    zzPivotTimeRef.current = lastPivotTime;
-    if (upper.length > 0) {
-      const u = upper[upper.length - 1].value;
-      const l = lower[lower.length - 1].value;
-      zzUpperPriceRef.current = u;
-      zzLowerPriceRef.current = l;
-      setZzUpperPrice(u);
-      setZzLowerPrice(l);
-    }
+    zzUpperGlowRef.current?.setData(upper);
+    zzLowerGlowRef.current?.setData(lower);
   }
 
   // ── Price lines (Entry / TP / SL) ─────────────────────────────────────────
@@ -432,27 +427,7 @@ export function PriceChart({
       el.style.top = `${Math.round(y)}px`;
     }
 
-    // Resist/Support band is only meaningful from the last confirmed
-    // zigzag pivot forward — anchor its left edge there instead of at
-    // the start of the whole visible chart, so the glow/badge line up
-    // with where the actual support/resistance reaction is happening.
-    function zzBandLeftPx(): number {
-      if (!chartRef.current || zzPivotTimeRef.current === null) return 0;
-      const x = chartRef.current.timeScale().timeToCoordinate(zzPivotTimeRef.current);
-      return x !== null && x >= 0 ? x : 0;
-    }
-
-    function positionZZLine(el: HTMLDivElement | null, price: number | null, visible: boolean, leftPx: number) {
-      if (!el) return;
-      if (!visible || price === null || !candleRef.current) { el.style.display = "none"; return; }
-      const y = candleRef.current.priceToCoordinate(price);
-      if (y === null || y < 0) { el.style.display = "none"; return; }
-      el.style.display = "block";
-      el.style.top  = `${Math.round(y)}px`;
-      el.style.left = `${Math.round(leftPx)}px`;
-    }
-
-    function tick() {
+    function tick(now: number) {
       // Live price line
       positionLine(liveLineRef.current, livePriceRef.current, true);
 
@@ -465,29 +440,14 @@ export function PriceChart({
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
 
-      // ZZ bands (BTCUSDT only) — anchored at the active pivot, not at x=0
-      const zzVisible = symbolRef.current === "BTCUSDT";
-      const zzLeft = zzVisible ? zzBandLeftPx() : 0;
-      positionZZLine(zzUpperLineRef.current, zzUpperPriceRef.current, zzVisible, zzLeft);
-      positionZZLine(zzLowerLineRef.current, zzLowerPriceRef.current, zzVisible, zzLeft);
-
-      // ZZ channel fill between upper and lower
-      const fill = zzFillRef.current;
-      if (fill) {
-        if (!zzVisible || !zzUpperPriceRef.current || !zzLowerPriceRef.current || !candleRef.current) {
-          fill.style.display = "none";
-        } else {
-          const yUp = candleRef.current.priceToCoordinate(zzUpperPriceRef.current);
-          const yDn = candleRef.current.priceToCoordinate(zzLowerPriceRef.current);
-          if (yUp !== null && yDn !== null && yUp >= 0 && yDn > yUp) {
-            fill.style.display = "block";
-            fill.style.top    = `${Math.round(yUp)}px`;
-            fill.style.height = `${Math.round(yDn - yUp)}px`;
-            fill.style.left   = `${Math.round(zzLeft)}px`;
-          } else {
-            fill.style.display = "none";
-          }
-        }
+      // Zig-zag upper/lower band glow — pulses the halo behind the real,
+      // time-varying channel lines (drawn on-canvas, always perfectly
+      // aligned with the actual trend), no separate flat overlay involved.
+      if (symbolRef.current === "BTCUSDT") {
+        const t = now / 1000;
+        const pulse = 0.12 + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.2));
+        zzUpperGlowRef.current?.applyOptions({ color: `rgba(245,158,11,${pulse.toFixed(3)})` });
+        zzLowerGlowRef.current?.applyOptions({ color: `rgba(6,182,212,${pulse.toFixed(3)})` });
       }
 
       rafId = requestAnimationFrame(tick);
@@ -625,114 +585,6 @@ export function PriceChart({
           50%     { box-shadow:0 0 0 4px rgba(255,45,95,0); }
         }
         .overlay-sl-badge { animation:sl-badge-pulse 1.8s ease-in-out .3s infinite; }
-
-        /* ── ZZ Upper band (amber — resistance ceiling) ─────────────────────  */
-        /* Dashes drift RIGHT→LEFT: price "pressing against" the ceiling        */
-        @keyframes zz-upper-drift {
-          0%   { background-position: 0% 0%; }
-          100% { background-position: -200% 0%; }
-        }
-        @keyframes zz-upper-glow {
-          0%,100% { box-shadow:0 0 5px 0 rgba(245,158,11,.2); opacity:.8; }
-          50%     { box-shadow:0 0 20px 4px rgba(245,158,11,.6),0 0 50px 10px rgba(245,158,11,.12); opacity:1; }
-        }
-        @keyframes zz-upper-badge-pulse {
-          0%,100% { box-shadow:0 0 0 0 rgba(245,158,11,.35),0 0 6px 1px rgba(245,158,11,.2); }
-          50%     { box-shadow:0 0 0 5px rgba(245,158,11,0),  0 0 14px 3px rgba(245,158,11,.45); }
-        }
-        .overlay-zz-upper-line {
-          position:absolute; left:0; right:68px; height:1.5px;
-          transform:translateY(-50%);
-          background:repeating-linear-gradient(
-            90deg,
-            rgba(245,158,11,.95) 0px, rgba(245,158,11,.95) 7px,
-            transparent 7px, transparent 15px
-          );
-          background-size:200% 100%;
-          animation:zz-upper-glow 2.2s ease-in-out infinite, zz-upper-drift 2.8s linear infinite;
-          pointer-events:none;
-        }
-        .overlay-zz-upper-line::after {
-          content:"";
-          position:absolute; top:-3px; left:0; right:0; height:7px;
-          background:linear-gradient(180deg,transparent 0%,rgba(245,158,11,.08) 50%,transparent 100%);
-          pointer-events:none;
-        }
-        .overlay-zz-upper-badge {
-          position:absolute; left:8px; transform:translateY(-50%);
-          background:linear-gradient(135deg,rgba(245,158,11,.22) 0%,rgba(245,158,11,.06) 100%);
-          border:1px solid rgba(245,158,11,.5);
-          border-radius:5px; padding:2px 8px;
-          font-size:9px; font-weight:900; color:#f59e0b;
-          letter-spacing:.06em; white-space:nowrap; z-index:2;
-          text-shadow:0 0 10px rgba(245,158,11,.7);
-          animation:zz-upper-badge-pulse 2.2s ease-in-out infinite;
-          backdrop-filter:blur(4px);
-        }
-
-        /* ── ZZ Lower band (cyan — support floor) ───────────────────────────  */
-        /* Dashes drift LEFT→RIGHT: price "bouncing" up from the floor          */
-        @keyframes zz-lower-drift {
-          0%   { background-position: 0% 0%; }
-          100% { background-position: 200% 0%; }
-        }
-        @keyframes zz-lower-glow {
-          0%,100% { box-shadow:0 0 5px 0 rgba(6,182,212,.2); opacity:.8; }
-          50%     { box-shadow:0 0 20px 4px rgba(6,182,212,.6),0 0 50px 10px rgba(6,182,212,.12); opacity:1; }
-        }
-        @keyframes zz-lower-badge-pulse {
-          0%,100% { box-shadow:0 0 0 0 rgba(6,182,212,.35),0 0 6px 1px rgba(6,182,212,.2); }
-          50%     { box-shadow:0 0 0 5px rgba(6,182,212,0),  0 0 14px 3px rgba(6,182,212,.45); }
-        }
-        .overlay-zz-lower-line {
-          position:absolute; left:0; right:68px; height:1.5px;
-          transform:translateY(-50%);
-          background:repeating-linear-gradient(
-            90deg,
-            rgba(6,182,212,.95) 0px, rgba(6,182,212,.95) 7px,
-            transparent 7px, transparent 15px
-          );
-          background-size:200% 100%;
-          animation:zz-lower-glow 2.2s ease-in-out .4s infinite, zz-lower-drift 2.8s linear infinite;
-          pointer-events:none;
-        }
-        .overlay-zz-lower-line::after {
-          content:"";
-          position:absolute; top:-3px; left:0; right:0; height:7px;
-          background:linear-gradient(180deg,transparent 0%,rgba(6,182,212,.08) 50%,transparent 100%);
-          pointer-events:none;
-        }
-        .overlay-zz-lower-badge {
-          position:absolute; left:8px; transform:translateY(-50%);
-          background:linear-gradient(135deg,rgba(6,182,212,.22) 0%,rgba(6,182,212,.06) 100%);
-          border:1px solid rgba(6,182,212,.5);
-          border-radius:5px; padding:2px 8px;
-          font-size:9px; font-weight:900; color:#06b6d4;
-          letter-spacing:.06em; white-space:nowrap; z-index:2;
-          text-shadow:0 0 10px rgba(6,182,212,.7);
-          animation:zz-lower-badge-pulse 2.2s ease-in-out .4s infinite;
-          backdrop-filter:blur(4px);
-        }
-
-        /* ── ZZ channel fill (glassmorphism zone) ───────────────────────────  */
-        @keyframes zz-fill-breathe {
-          0%,100% { opacity:.6; }
-          50%     { opacity:1; }
-        }
-        .overlay-zz-fill {
-          position:absolute; left:0; right:68px;
-          background:linear-gradient(180deg,
-            rgba(245,158,11,.045) 0%,
-            rgba(245,158,11,.02)  25%,
-            rgba(20,20,35,.01)   50%,
-            rgba(6,182,212,.02)  75%,
-            rgba(6,182,212,.045) 100%
-          );
-          border-top:1px solid rgba(245,158,11,.14);
-          border-bottom:1px solid rgba(6,182,212,.14);
-          animation:zz-fill-breathe 3s ease-in-out infinite;
-          pointer-events:none;
-        }
       `}</style>
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
@@ -772,18 +624,6 @@ export function PriceChart({
             {isBtc && <>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
-              </span>
-              <span className="flex items-center gap-1.5 text-amber-400">
-                <span className="inline-block w-5 h-[1.5px] rounded"
-                  style={{ background: "repeating-linear-gradient(90deg,#f59e0b 0 4px,transparent 4px 8px)" }} />
-                Resist
-                {zzUpperPrice && <span className="tabular-nums ml-1 opacity-70">${fmtPrice(zzUpperPrice)}</span>}
-              </span>
-              <span className="flex items-center gap-1.5 text-cyan-400">
-                <span className="inline-block w-5 h-[1.5px] rounded"
-                  style={{ background: "repeating-linear-gradient(90deg,#06b6d4 0 4px,transparent 4px 8px)" }} />
-                Support
-                {zzLowerPrice && <span className="tabular-nums ml-1 opacity-70">${fmtPrice(zzLowerPrice)}</span>}
               </span>
             </>}
           </div>
@@ -842,9 +682,6 @@ export function PriceChart({
         {/* HTML overlay */}
         <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
 
-          {/* ZZ channel fill zone — rendered behind the lines */}
-          <div ref={zzFillRef} className="overlay-zz-fill" style={{ display: "none", position: "absolute", left: 0, right: 68 }} />
-
           {/* Live price line */}
           <div ref={liveLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-live-dot" />
@@ -868,22 +705,6 @@ export function PriceChart({
           <div ref={slLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-sl-line" />
             <div className="overlay-sl-badge">▼ STOP LOSS</div>
-          </div>
-
-          {/* ZZ Upper band — amber resistance ceiling */}
-          <div ref={zzUpperLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
-            <div className="overlay-zz-upper-line" />
-            <div className="overlay-zz-upper-badge">
-              ⬆ RESIST&nbsp;&nbsp;{zzUpperPrice ? `$${fmtPrice(zzUpperPrice)}` : "…"}
-            </div>
-          </div>
-
-          {/* ZZ Lower band — cyan support floor */}
-          <div ref={zzLowerLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
-            <div className="overlay-zz-lower-line" />
-            <div className="overlay-zz-lower-badge">
-              ⬇ SUPPORT&nbsp;&nbsp;{zzLowerPrice ? `$${fmtPrice(zzLowerPrice)}` : "…"}
-            </div>
           </div>
 
         </div>
