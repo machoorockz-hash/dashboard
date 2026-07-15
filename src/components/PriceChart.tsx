@@ -49,12 +49,22 @@ function fmtPrice(p: number) {
 // Original: © LuxAlgo  CC BY-NC-SA 4.0
 // Logic: detects swing pivots via a state machine (os), draws zig-zag line
 // between them, and computes upper/lower channel bands from max price deviation.
+interface ZZPivot { time: UTCTimestamp; price: number; type: "top" | "btm"; }
+interface ZZChannels {
+  center: LineData[]; upper: LineData[]; lower: LineData[];
+  // Upper/lower slice covering ONLY the most recent (still-forming) trend
+  // segment — used to render the glow halo on the current channel only.
+  currentUpper: LineData[]; currentLower: LineData[];
+  // Confirmed swing pivots, for swing-high/low price labels.
+  pivots: ZZPivot[];
+}
+
 function computeZigZagChannels(
   candles: CandlestickData[],
   length = 100,
-): { center: LineData[]; upper: LineData[]; lower: LineData[] } {
+): ZZChannels {
   const n = candles.length;
-  if (n < length + 2) return { center: [], upper: [], lower: [] };
+  if (n < length + 2) return { center: [], upper: [], lower: [], currentUpper: [], currentLower: [], pivots: [] };
 
   const closes = candles.map((c) => c.close);
   const highs  = candles.map((c) => c.high);
@@ -103,7 +113,7 @@ function computeZigZagChannels(
   }
 
   pivots.sort((a, b) => a.bar - b.bar);
-  if (pivots.length === 0) return { center: [], upper: [], lower: [] };
+  if (pivots.length === 0) return { center: [], upper: [], lower: [], currentUpper: [], currentLower: [], pivots: [] };
 
   const centerArr: number[] = new Array(n).fill(NaN);
   const upperArr:  number[] = new Array(n).fill(NaN);
@@ -157,7 +167,15 @@ function computeZigZagChannels(
     }
   }
 
-  return { center, upper, lower };
+  // Only the segment from the last confirmed pivot onward is still "forming"
+  // (the current trend channel) — glow should only ever touch this slice.
+  const currentStart = times[last.bar];
+  const currentUpper = upper.filter((p) => (p.time as number) >= (currentStart as number));
+  const currentLower = lower.filter((p) => (p.time as number) >= (currentStart as number));
+
+  const pivotLabels: ZZPivot[] = pivots.map((p) => ({ time: times[p.bar], price: p.price, type: p.type }));
+
+  return { center, upper, lower, currentUpper, currentLower, pivots: pivotLabels };
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -198,6 +216,11 @@ export function PriceChart({
 
   const candlesRef    = useRef<CandlestickData[]>([]);
   const chartLinesRef = useRef<IPriceLine[]>([]);
+
+  // ── Swing high/low pivot labels (BTCUSDT ZZ only) ─────────────────────────
+  const zzPivotsRef          = useRef<{ time: UTCTimestamp; price: number; type: "top" | "btm" }[]>([]);
+  const zzLabelsContainerRef = useRef<HTMLDivElement>(null);
+  const zzLabelPoolRef       = useRef<HTMLDivElement[]>([]);
 
   // ── Overlay DOM refs ──────────────────────────────────────────────────────
   const liveLineRef    = useRef<HTMLDivElement>(null);
@@ -277,6 +300,7 @@ export function PriceChart({
     zzUpperRef.current = chart.addSeries(LineSeries, {
       color: "#f59e0b",
       lineWidth: 2,
+      lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
@@ -294,6 +318,7 @@ export function PriceChart({
     zzLowerRef.current = chart.addSeries(LineSeries, {
       color: "#06b6d4",
       lineWidth: 2,
+      lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
@@ -327,14 +352,18 @@ export function PriceChart({
       zzLowerRef.current.setData([]);
       zzUpperGlowRef.current?.setData([]);
       zzLowerGlowRef.current?.setData([]);
+      zzPivotsRef.current = [];
       return;
     }
-    const { center, upper, lower } = computeZigZagChannels(candlesRef.current);
+    const { center, upper, lower, currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
     zzCenterRef.current.setData(center);
     zzUpperRef.current.setData(upper);
     zzLowerRef.current.setData(lower);
-    zzUpperGlowRef.current?.setData(upper);
-    zzLowerGlowRef.current?.setData(lower);
+    // Glow halo only ever carries the current (still-forming) segment's data —
+    // previous, already-confirmed trend channels stay plain dashed, no glow.
+    zzUpperGlowRef.current?.setData(currentUpper);
+    zzLowerGlowRef.current?.setData(currentLower);
+    zzPivotsRef.current = pivots;
   }
 
   // ── Price lines (Entry / TP / SL) ─────────────────────────────────────────
@@ -427,6 +456,61 @@ export function PriceChart({
       el.style.top = `${Math.round(y)}px`;
     }
 
+    function getSwingLabelEl(i: number): HTMLDivElement | null {
+      const container = zzLabelsContainerRef.current;
+      if (!container) return null;
+      let el = zzLabelPoolRef.current[i];
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "overlay-swing-label";
+        const dot = document.createElement("span");
+        dot.className = "overlay-swing-dot";
+        const txt = document.createElement("span");
+        txt.className = "overlay-swing-text";
+        el.appendChild(dot);
+        el.appendChild(txt);
+        container.appendChild(el);
+        zzLabelPoolRef.current[i] = el;
+      }
+      return el;
+    }
+
+    function positionSwingLabels() {
+      const container = zzLabelsContainerRef.current;
+      if (!container) return;
+      const pivots = zzPivotsRef.current;
+      if (symbolRef.current !== "BTCUSDT" || pivots.length === 0) {
+        for (const el of zzLabelPoolRef.current) el.style.display = "none";
+        return;
+      }
+      const chart = chartRef.current, series = candleRef.current;
+      const rect = container.getBoundingClientRect();
+      if (!chart || !series) return;
+      const ts = chart.timeScale();
+      for (let i = 0; i < pivots.length; i++) {
+        const p  = pivots[i];
+        const el = getSwingLabelEl(i);
+        if (!el) continue;
+        const x = ts.timeToCoordinate(p.time);
+        const y = series.priceToCoordinate(p.price);
+        if (x === null || y === null || x < 0 || x > rect.width || y < 0 || y > rect.height) {
+          el.style.display = "none";
+          continue;
+        }
+        el.style.display = "flex";
+        el.style.left = `${Math.round(x)}px`;
+        el.style.top  = `${Math.round(y)}px`;
+        el.classList.toggle("swing-top", p.type === "top");
+        el.classList.toggle("swing-btm", p.type === "btm");
+        const txt = el.querySelector(".overlay-swing-text");
+        if (txt) txt.textContent = fmtPrice(p.price);
+      }
+      // Hide any pooled labels left over from a previous, larger pivot set.
+      for (let i = pivots.length; i < zzLabelPoolRef.current.length; i++) {
+        zzLabelPoolRef.current[i].style.display = "none";
+      }
+    }
+
     function tick(now: number) {
       // Live price line
       positionLine(liveLineRef.current, livePriceRef.current, true);
@@ -442,13 +526,19 @@ export function PriceChart({
 
       // Zig-zag upper/lower band glow — pulses the halo behind the real,
       // time-varying channel lines (drawn on-canvas, always perfectly
-      // aligned with the actual trend), no separate flat overlay involved.
+      // aligned with the actual trend). Only carries data for the current
+      // (still-forming) segment, so older confirmed channels never glow.
       if (symbolRef.current === "BTCUSDT") {
         const t = now / 1000;
-        const pulse = 0.12 + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.2));
+        const pulse = 0.16 + 0.28 * (0.5 + 0.5 * Math.sin(t * 2.2));
         zzUpperGlowRef.current?.applyOptions({ color: `rgba(245,158,11,${pulse.toFixed(3)})` });
         zzLowerGlowRef.current?.applyOptions({ color: `rgba(6,182,212,${pulse.toFixed(3)})` });
       }
+
+      // Swing high/low price labels — one per confirmed pivot, positioned
+      // via the chart's own time/price coordinate mapping so they always
+      // sit exactly on the real swing point.
+      positionSwingLabels();
 
       rafId = requestAnimationFrame(tick);
     }
@@ -585,6 +675,30 @@ export function PriceChart({
           50%     { box-shadow:0 0 0 4px rgba(255,45,95,0); }
         }
         .overlay-sl-badge { animation:sl-badge-pulse 1.8s ease-in-out .3s infinite; }
+
+        /* ── Swing high/low labels ──────────────────────────────────────────  */
+        .overlay-swing-label {
+          position:absolute; display:none; align-items:center; gap:4px;
+          transform:translate(-50%,-50%); pointer-events:none; z-index:3;
+          font-size:9px; font-weight:800; letter-spacing:.02em; white-space:nowrap;
+        }
+        .overlay-swing-dot {
+          width:5px; height:5px; border-radius:50%; flex-shrink:0;
+          box-shadow:0 0 6px 1px currentColor;
+        }
+        .overlay-swing-text {
+          padding:1px 5px; border-radius:4px; backdrop-filter:blur(2px);
+        }
+        .overlay-swing-label.swing-top { transform:translate(-50%,-160%); color:#f59e0b; }
+        .overlay-swing-label.swing-top .overlay-swing-dot { background:#f59e0b; }
+        .overlay-swing-label.swing-top .overlay-swing-text {
+          background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.4); color:#f59e0b;
+        }
+        .overlay-swing-label.swing-btm { transform:translate(-50%,60%); color:#06b6d4; }
+        .overlay-swing-label.swing-btm .overlay-swing-dot { background:#06b6d4; }
+        .overlay-swing-label.swing-btm .overlay-swing-text {
+          background:rgba(6,182,212,.12); border:1px solid rgba(6,182,212,.4); color:#06b6d4;
+        }
       `}</style>
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
@@ -706,6 +820,9 @@ export function PriceChart({
             <div className="overlay-sl-line" />
             <div className="overlay-sl-badge">▼ STOP LOSS</div>
           </div>
+
+          {/* Swing high/low price labels (populated imperatively in RAF) */}
+          <div ref={zzLabelsContainerRef} className="absolute inset-0" />
 
         </div>
       </div>
