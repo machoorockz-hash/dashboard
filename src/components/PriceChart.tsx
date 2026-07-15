@@ -52,9 +52,9 @@ function fmtPrice(p: number) {
 function computeZigZagChannels(
   candles: CandlestickData[],
   length = 100,
-): { center: LineData[]; upper: LineData[]; lower: LineData[] } {
+): { center: LineData[]; upper: LineData[]; lower: LineData[]; lastPivotTime: UTCTimestamp | null } {
   const n = candles.length;
-  if (n < length + 2) return { center: [], upper: [], lower: [] };
+  if (n < length + 2) return { center: [], upper: [], lower: [], lastPivotTime: null };
 
   const closes = candles.map((c) => c.close);
   const highs  = candles.map((c) => c.high);
@@ -103,7 +103,7 @@ function computeZigZagChannels(
   }
 
   pivots.sort((a, b) => a.bar - b.bar);
-  if (pivots.length === 0) return { center: [], upper: [], lower: [] };
+  if (pivots.length === 0) return { center: [], upper: [], lower: [], lastPivotTime: null };
 
   const centerArr: number[] = new Array(n).fill(NaN);
   const upperArr:  number[] = new Array(n).fill(NaN);
@@ -157,7 +157,12 @@ function computeZigZagChannels(
     }
   }
 
-  return { center, upper, lower };
+  // The resist/support band is only valid over the still-open segment
+  // (last confirmed pivot → current bar) — anchor the overlay there
+  // instead of stretching it across the whole visible chart.
+  const lastPivotTime = last.bar >= 0 && last.bar < n ? times[last.bar] : null;
+
+  return { center, upper, lower, lastPivotTime };
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -210,6 +215,7 @@ export function PriceChart({
   const livePriceRef   = useRef<number | null>(null);
   const zzUpperPriceRef = useRef<number | null>(null);
   const zzLowerPriceRef = useRef<number | null>(null);
+  const zzPivotTimeRef = useRef<UTCTimestamp | null>(null);
   const symbolRef      = useRef(symbol);
 
   const [iv, setIv]              = useState<Interval>(interval);
@@ -316,14 +322,16 @@ export function PriceChart({
       zzLowerRef.current.setData([]);
       zzUpperPriceRef.current = null;
       zzLowerPriceRef.current = null;
+      zzPivotTimeRef.current = null;
       setZzUpperPrice(null);
       setZzLowerPrice(null);
       return;
     }
-    const { center, upper, lower } = computeZigZagChannels(candlesRef.current);
+    const { center, upper, lower, lastPivotTime } = computeZigZagChannels(candlesRef.current);
     zzCenterRef.current.setData(center);
     zzUpperRef.current.setData(upper);
     zzLowerRef.current.setData(lower);
+    zzPivotTimeRef.current = lastPivotTime;
     if (upper.length > 0) {
       const u = upper[upper.length - 1].value;
       const l = lower[lower.length - 1].value;
@@ -424,6 +432,26 @@ export function PriceChart({
       el.style.top = `${Math.round(y)}px`;
     }
 
+    // Resist/Support band is only meaningful from the last confirmed
+    // zigzag pivot forward — anchor its left edge there instead of at
+    // the start of the whole visible chart, so the glow/badge line up
+    // with where the actual support/resistance reaction is happening.
+    function zzBandLeftPx(): number {
+      if (!chartRef.current || zzPivotTimeRef.current === null) return 0;
+      const x = chartRef.current.timeScale().timeToCoordinate(zzPivotTimeRef.current);
+      return x !== null && x >= 0 ? x : 0;
+    }
+
+    function positionZZLine(el: HTMLDivElement | null, price: number | null, visible: boolean, leftPx: number) {
+      if (!el) return;
+      if (!visible || price === null || !candleRef.current) { el.style.display = "none"; return; }
+      const y = candleRef.current.priceToCoordinate(price);
+      if (y === null || y < 0) { el.style.display = "none"; return; }
+      el.style.display = "block";
+      el.style.top  = `${Math.round(y)}px`;
+      el.style.left = `${Math.round(leftPx)}px`;
+    }
+
     function tick() {
       // Live price line
       positionLine(liveLineRef.current, livePriceRef.current, true);
@@ -437,10 +465,11 @@ export function PriceChart({
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
 
-      // ZZ bands (BTCUSDT only)
+      // ZZ bands (BTCUSDT only) — anchored at the active pivot, not at x=0
       const zzVisible = symbolRef.current === "BTCUSDT";
-      positionLine(zzUpperLineRef.current, zzUpperPriceRef.current, zzVisible);
-      positionLine(zzLowerLineRef.current, zzLowerPriceRef.current, zzVisible);
+      const zzLeft = zzVisible ? zzBandLeftPx() : 0;
+      positionZZLine(zzUpperLineRef.current, zzUpperPriceRef.current, zzVisible, zzLeft);
+      positionZZLine(zzLowerLineRef.current, zzLowerPriceRef.current, zzVisible, zzLeft);
 
       // ZZ channel fill between upper and lower
       const fill = zzFillRef.current;
@@ -454,6 +483,7 @@ export function PriceChart({
             fill.style.display = "block";
             fill.style.top    = `${Math.round(yUp)}px`;
             fill.style.height = `${Math.round(yDn - yUp)}px`;
+            fill.style.left   = `${Math.round(zzLeft)}px`;
           } else {
             fill.style.display = "none";
           }
