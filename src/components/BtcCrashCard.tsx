@@ -718,14 +718,6 @@ export function BtcCrashCard() {
           borderBottom: "1px solid rgba(255,255,255,0.05)",
           background: "transparent",
         }}>
-          <div style={{
-            fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em",
-            textTransform: "uppercase", color: "rgba(255,255,255,0.2)",
-            marginBottom: "8px",
-          }}>
-            Bitcoin · Live Price
-          </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "18px" }}>
             <span
               key={String(flash)}
