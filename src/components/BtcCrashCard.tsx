@@ -609,7 +609,7 @@ export function BtcCrashCard() {
   const trendSwingL   = d?.trend_last_swing_low  ?? null;
   const trendColor    = trendDir === "UPTREND" ? "#0dd9aa" : trendDir === "DOWNTREND" ? "#ef4444" : "rgba(255,255,255,0.35)";
 
-  const priceColor = flash === "down" ? "#FAAD5A" : "#F7931A";
+  const priceColor = "#F7931A";
   const netColor   = LVL[whaleNetLvl] ?? "#0dd9aa";
   const net15mColor = LVL[netFlow15mLvl] ?? "#0dd9aa";
   const fmtSignedK = (n: number) => `${n >= 0 ? "+" : "−"}${fmtK(Math.abs(n))}`;
