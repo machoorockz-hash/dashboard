@@ -121,12 +121,14 @@ function computeZigZagChannels(
 
   // For each segment A→B: interpolate center, measure max candle body deviation
   // to build upper/lower channel (Pine: max_diff_up / max_diff_dn loop)
+  // Returns the channel half-widths (maxUp/maxDn) so the caller can keep
+  // projecting the same channel width when extending the line into the future.
   function fillSegment(
     fromBar: number, fromPrice: number,
     toBar:   number, toPrice:   number,
   ) {
     const segLen = toBar - fromBar;
-    if (segLen <= 0) return;
+    if (segLen <= 0) return { maxUp: 0, maxDn: 0 };
 
     let maxUp = 0, maxDn = 0;
     for (let k = 0; k <= segLen; k++) {
@@ -148,6 +150,7 @@ function computeZigZagChannels(
       upperArr[b]  = pt + maxUp;
       lowerArr[b]  = pt - maxDn;
     }
+    return { maxUp, maxDn };
   }
 
   for (let i = 0; i < pivots.length - 1; i++) {
@@ -156,7 +159,7 @@ function computeZigZagChannels(
 
   // Extend last incomplete segment to current bar (Pine: barstate.islast + extend=true)
   const last = pivots[pivots.length - 1];
-  fillSegment(last.bar, last.price, n - 1, closes[n - 1]);
+  const { maxUp: lastMaxUp, maxDn: lastMaxDn } = fillSegment(last.bar, last.price, n - 1, closes[n - 1]);
 
   const center: LineData[] = [], upper: LineData[] = [], lower: LineData[] = [];
   for (let i = 0; i < n; i++) {
@@ -172,6 +175,27 @@ function computeZigZagChannels(
   const currentStart = times[last.bar];
   const currentUpper = upper.filter((p) => (p.time as number) >= (currentStart as number));
   const currentLower = lower.filter((p) => (p.time as number) >= (currentStart as number));
+
+  // ── Project the current (still-forming) channel forward past the last
+  // real candle, out to empty space on the right of the chart — matching
+  // how TradingView keeps drawing an unfinished trend line/channel into the
+  // future until price actually breaks it. Same slope, same channel width
+  // (lastMaxUp/lastMaxDn), just continued for extensionBars more bars.
+  const segLen = (n - 1) - last.bar;
+  if (segLen > 0) {
+    const slope = (closes[n - 1] - last.price) / segLen; // price change per bar
+    const barDuration = n >= 2 ? (times[n - 1] as number) - (times[n - 2] as number) : 60;
+    const extensionBars = 300;
+    for (let k = 1; k <= extensionBars; k++) {
+      const projectedTime = ((times[n - 1] as number) + k * barDuration) as UTCTimestamp;
+      const projectedPrice = closes[n - 1] + slope * k;
+      center.push({ time: projectedTime, value: projectedPrice });
+      upper.push({  time: projectedTime, value: projectedPrice + lastMaxUp });
+      lower.push({  time: projectedTime, value: projectedPrice - lastMaxDn });
+      currentUpper.push({ time: projectedTime, value: projectedPrice + lastMaxUp });
+      currentLower.push({ time: projectedTime, value: projectedPrice - lastMaxDn });
+    }
+  }
 
   const pivotLabels: ZZPivot[] = pivots.map((p) => ({ time: times[p.bar], price: p.price, type: p.type }));
 
@@ -302,7 +326,7 @@ export function PriceChart({
     // ── ZZ upper (faded): every past + current channel, dim so older
     // trend channels read as history rather than the live resistance line.
     zzUpperRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(217,214,194,0.4)",
+      color: "rgba(255,45,45,0.4)",
       lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -312,7 +336,7 @@ export function PriceChart({
     // ── ZZ upper (current): bright dashed line, current segment only —
     // drawn on top of the faded history.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
-      color: "#D9D6C2",
+      color: "#ff2d2d",
       lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -321,7 +345,7 @@ export function PriceChart({
     });
     // ── ZZ lower (faded): every past + current channel, dim.
     zzLowerRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(238,234,224,0.4)",
+      color: "rgba(23,37,110,0.4)",
       lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -331,7 +355,7 @@ export function PriceChart({
     // ── ZZ lower (current): bright dashed line, current segment only —
     // drawn on top of the faded history.
     zzLowerCurrentRef.current = chart.addSeries(LineSeries, {
-      color: "#eeeae0",
+      color: "#17256e",
       lineWidth: 1,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
