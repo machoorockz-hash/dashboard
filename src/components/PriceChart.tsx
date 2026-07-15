@@ -231,7 +231,6 @@ export function PriceChart({
   const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
-  const zzCenterRef       = useRef<ISeriesApi<"Line"> | null>(null);
   // Faded full-history upper/lower lines (every past + current channel, dim)
   // Bright current-segment lines drawn on top of the faded history.
   const zzUpperCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -313,14 +312,6 @@ export function PriceChart({
     ema21Ref.current  = chart.addSeries(LineSeries, { color: "#3b82f6",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     ema9Ref.current   = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
 
-    // ── ZZ center: orange solid ──────────────────────────────────────────────
-    zzCenterRef.current = chart.addSeries(LineSeries, {
-      color: "#ff5d00",
-      lineWidth: 2,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false,
-    });
     // ── ZZ upper (current): bright dashed line, current segment only.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
       color: "#ff2d2d",
@@ -368,18 +359,16 @@ export function PriceChart({
 
   // ── ZigZag recompute (BTCUSDT only) ──────────────────────────────────────
   function recomputeZigZag() {
-    if (!zzCenterRef.current) return;
     if (symbol !== "BTCUSDT") {
-      zzCenterRef.current.setData([]);
       zzUpperCurrentRef.current?.setData([]);
       zzLowerCurrentRef.current?.setData([]);
       zzPivotsRef.current = [];
       return;
     }
-    const { center, currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
-    zzCenterRef.current.setData(center);
+    const { currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
     // Only the current (still-forming) segment's bands are drawn —
-    // previous, already-confirmed channel bands are no longer shown.
+    // previous, already-confirmed channel bands and the center line are
+    // no longer shown.
     zzUpperCurrentRef.current?.setData(currentUpper);
     zzLowerCurrentRef.current?.setData(currentLower);
     zzPivotsRef.current = pivots;
