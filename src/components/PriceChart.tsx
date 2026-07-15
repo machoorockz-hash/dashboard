@@ -62,7 +62,7 @@ function computeZigZagChannels(
   const opens  = candles.map((c) => c.open);
   const times  = candles.map((c) => c.time as UTCTimestamp);
 
-  // Precompute rolling highest/lowest of close over `length` bars
+  // Rolling highest/lowest of close over `length` bars
   // Pine: upper = highest(close, length), lower = lowest(close, length)
   const rollingMax: number[] = new Array(n).fill(-Infinity);
   const rollingMin: number[] = new Array(n).fill(Infinity);
@@ -88,8 +88,8 @@ function computeZigZagChannels(
   }
 
   // Detect pivot bars
-  // Pine: btm = os==1 && os[1]!=1  → pivot bottom at bar (i-length), price = low[length]
-  // Pine: top = os==0 && os[1]!=0  → pivot top    at bar (i-length), price = high[length]
+  // btm = os==1 && os[1]!=1  → pivot bottom at (i-length), price = low[length]
+  // top = os==0 && os[1]!=0  → pivot top    at (i-length), price = high[length]
   type Pivot = { bar: number; price: number; type: "top" | "btm" };
   const pivots: Pivot[] = [];
 
@@ -109,9 +109,8 @@ function computeZigZagChannels(
   const upperArr:  number[] = new Array(n).fill(NaN);
   const lowerArr:  number[] = new Array(n).fill(NaN);
 
-  // For a segment from pivot A → B:
-  // interpolate the zig-zag center, then measure max candle deviation above/below
-  // to build the upper/lower channel bands (same as Pine's max_diff_up / max_diff_dn loop)
+  // For each segment A→B: interpolate center, measure max candle body deviation
+  // to build upper/lower channel (Pine: max_diff_up / max_diff_dn loop)
   function fillSegment(
     fromBar: number, fromPrice: number,
     toBar:   number, toPrice:   number,
@@ -141,20 +140,14 @@ function computeZigZagChannels(
     }
   }
 
-  // Fill completed pivot-to-pivot segments
   for (let i = 0; i < pivots.length - 1; i++) {
-    fillSegment(
-      pivots[i].bar,     pivots[i].price,
-      pivots[i + 1].bar, pivots[i + 1].price,
-    );
+    fillSegment(pivots[i].bar, pivots[i].price, pivots[i + 1].bar, pivots[i + 1].price);
   }
 
-  // Extend last incomplete segment to the current (rightmost) bar
-  // Pine: barstate.islast + extend=true
+  // Extend last incomplete segment to current bar (Pine: barstate.islast + extend=true)
   const last = pivots[pivots.length - 1];
   fillSegment(last.bar, last.price, n - 1, closes[n - 1]);
 
-  // Convert to lightweight-charts LineData
   const center: LineData[] = [], upper: LineData[] = [], lower: LineData[] = [];
   for (let i = 0; i < n; i++) {
     if (!isNaN(centerArr[i])) {
@@ -175,7 +168,6 @@ interface Props {
   showIntervalControls?: boolean; searchable?: boolean; priceLines?: PriceLineSpec[];
 }
 
-// ─── Overlay line config ────────────────────────────────────────────────────
 interface OverlayLine {
   ref: React.RefObject<HTMLDivElement | null>;
   price: number;
@@ -195,7 +187,8 @@ export function PriceChart({
   const ema200Ref     = useRef<ISeriesApi<"Line"> | null>(null);
   const ema21Ref      = useRef<ISeriesApi<"Line"> | null>(null);
   const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
-  // Zig Zag Channels series
+
+  // ── Zig Zag series (canvas) ──────────────────────────────────────────────
   const zzCenterRef   = useRef<ISeriesApi<"Line"> | null>(null);
   const zzUpperRef    = useRef<ISeriesApi<"Line"> | null>(null);
   const zzLowerRef    = useRef<ISeriesApi<"Line"> | null>(null);
@@ -203,20 +196,33 @@ export function PriceChart({
   const candlesRef    = useRef<CandlestickData[]>([]);
   const chartLinesRef = useRef<IPriceLine[]>([]);
 
-  // overlay line DOM refs
-  const liveLineRef   = useRef<HTMLDivElement>(null);
-  const entryLineRef  = useRef<HTMLDivElement>(null);
-  const tpLineRef     = useRef<HTMLDivElement>(null);
-  const slLineRef     = useRef<HTMLDivElement>(null);
+  // ── Overlay DOM refs ──────────────────────────────────────────────────────
+  const liveLineRef    = useRef<HTMLDivElement>(null);
+  const entryLineRef   = useRef<HTMLDivElement>(null);
+  const tpLineRef      = useRef<HTMLDivElement>(null);
+  const slLineRef      = useRef<HTMLDivElement>(null);
+  // ZZ band overlays
+  const zzUpperLineRef = useRef<HTMLDivElement>(null);
+  const zzLowerLineRef = useRef<HTMLDivElement>(null);
+  const zzFillRef      = useRef<HTMLDivElement>(null);
 
-  const livePriceRef  = useRef<number | null>(null);
-  const [iv, setIv]   = useState<Interval>(interval);
-  const [search, setSearch] = useState("");
+  // ── Price refs (used inside RAF without stale closure) ────────────────────
+  const livePriceRef   = useRef<number | null>(null);
+  const zzUpperPriceRef = useRef<number | null>(null);
+  const zzLowerPriceRef = useRef<number | null>(null);
+  const symbolRef      = useRef(symbol);
+
+  const [iv, setIv]              = useState<Interval>(interval);
+  const [search, setSearch]      = useState("");
   const [livePrice, setLivePrice] = useState<number | null>(null);
-  const [flash, setFlash]   = useState<"up" | "down" | null>(null);
+  const [flash, setFlash]        = useState<"up" | "down" | null>(null);
+  const [zzUpperPrice, setZzUpperPrice] = useState<number | null>(null);
+  const [zzLowerPrice, setZzLowerPrice] = useState<number | null>(null);
+
   const base = symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
 
   useEffect(() => setIv(interval), [interval]);
+  useEffect(() => { symbolRef.current = symbol; }, [symbol]);
 
   // ── Chart init ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -241,6 +247,7 @@ export function PriceChart({
       crosshair: { mode: CrosshairMode.Normal },
     });
     chartRef.current = chart;
+
     candleRef.current = chart.addSeries(CandlestickSeries, {
       upColor:            "rgba(0, 208, 160, 0.55)",
       borderUpColor:      "#00d4a0",
@@ -254,8 +261,7 @@ export function PriceChart({
     ema21Ref.current  = chart.addSeries(LineSeries, { color: "#3b82f6",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     ema9Ref.current   = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
 
-    // ── Zig Zag Channels series ──────────────────────────────────────────────
-    // Center zig-zag line (orange, solid)
+    // ── ZZ center: orange solid ──────────────────────────────────────────────
     zzCenterRef.current = chart.addSeries(LineSeries, {
       color: "#ff5d00",
       lineWidth: 2,
@@ -263,29 +269,29 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // Upper extremity (red, dashed)
+    // ── ZZ upper: amber dotted (subtle on canvas — overlay does the heavy lifting)
     zzUpperRef.current = chart.addSeries(LineSeries, {
-      color: "#ff1100",
+      color: "rgba(245,158,11,0.35)",
       lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
+      lineStyle: LineStyle.Dotted,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // Lower extremity (blue, dashed)
+    // ── ZZ lower: cyan dotted
     zzLowerRef.current = chart.addSeries(LineSeries, {
-      color: "#2157f3",
+      color: "rgba(6,182,212,0.35)",
       lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
+      lineStyle: LineStyle.Dotted,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ────────────────────────────────────────────────────────────────────────
 
     return () => { chart.remove(); chartRef.current = null; };
   }, []);
 
+  // ── EMA recompute ─────────────────────────────────────────────────────────
   function recomputeEMAs() {
     const closes = candlesRef.current.map((c) => c.close);
     const times  = candlesRef.current.map((c) => c.time as UTCTimestamp);
@@ -301,12 +307,31 @@ export function PriceChart({
     }
   }
 
+  // ── ZigZag recompute (BTCUSDT only) ──────────────────────────────────────
   function recomputeZigZag() {
     if (!zzCenterRef.current || !zzUpperRef.current || !zzLowerRef.current) return;
+    if (symbol !== "BTCUSDT") {
+      zzCenterRef.current.setData([]);
+      zzUpperRef.current.setData([]);
+      zzLowerRef.current.setData([]);
+      zzUpperPriceRef.current = null;
+      zzLowerPriceRef.current = null;
+      setZzUpperPrice(null);
+      setZzLowerPrice(null);
+      return;
+    }
     const { center, upper, lower } = computeZigZagChannels(candlesRef.current);
     zzCenterRef.current.setData(center);
     zzUpperRef.current.setData(upper);
     zzLowerRef.current.setData(lower);
+    if (upper.length > 0) {
+      const u = upper[upper.length - 1].value;
+      const l = lower[lower.length - 1].value;
+      zzUpperPriceRef.current = u;
+      zzLowerPriceRef.current = l;
+      setZzUpperPrice(u);
+      setZzLowerPrice(l);
+    }
   }
 
   // ── Price lines (Entry / TP / SL) ─────────────────────────────────────────
@@ -319,7 +344,7 @@ export function PriceChart({
       if (!spec.price || !isFinite(spec.price)) continue;
       chartLinesRef.current.push(series.createPriceLine({
         price: spec.price,
-        color: "transparent",      // hidden — overlay handles the visual
+        color: "transparent",
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true,
@@ -365,7 +390,7 @@ export function PriceChart({
             else { arr.push(c); if (arr.length > 1200) arr.shift(); }
             candleRef.current?.update(c);
             recomputeEMAs();
-            // Recompute ZigZag only on closed candles to avoid per-tick overhead
+            // ZigZag only on candle close to avoid per-tick overhead
             if (k.x) recomputeZigZag();
             const newPrice = c.close;
             setLivePrice((prev) => {
@@ -386,20 +411,13 @@ export function PriceChart({
     return () => clearTimeout(t);
   }, [flash]);
 
-  // ── Overlay RAF — positions HTML lines at chart price coords ──────────────
+  // ── Overlay RAF ─────────────────────────────────────────────────────────────
   useEffect(() => {
     let rafId: number;
 
-    function positionLine(
-      el: HTMLDivElement | null,
-      price: number | null,
-      visible: boolean,
-    ) {
+    function positionLine(el: HTMLDivElement | null, price: number | null, visible: boolean) {
       if (!el) return;
-      if (!visible || price === null || !candleRef.current) {
-        el.style.display = "none";
-        return;
-      }
+      if (!visible || price === null || !candleRef.current) { el.style.display = "none"; return; }
       const y = candleRef.current.priceToCoordinate(price);
       if (y === null || y < 0) { el.style.display = "none"; return; }
       el.style.display = "block";
@@ -407,15 +425,40 @@ export function PriceChart({
     }
 
     function tick() {
-      positionLine(liveLineRef.current,  livePriceRef.current, true);
+      // Live price line
+      positionLine(liveLineRef.current, livePriceRef.current, true);
 
-      const pl = priceLines ?? [];
+      // Entry / TP / SL
+      const pl    = priceLines ?? [];
       const entry = pl.find((l) => l.label.toLowerCase().includes("entry"));
       const tp    = pl.find((l) => l.label.toLowerCase().includes("tp"));
       const sl    = pl.find((l) => l.label.toLowerCase().includes("sl"));
       positionLine(entryLineRef.current, entry?.price ?? null, !!entry);
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
+
+      // ZZ bands (BTCUSDT only)
+      const zzVisible = symbolRef.current === "BTCUSDT";
+      positionLine(zzUpperLineRef.current, zzUpperPriceRef.current, zzVisible);
+      positionLine(zzLowerLineRef.current, zzLowerPriceRef.current, zzVisible);
+
+      // ZZ channel fill between upper and lower
+      const fill = zzFillRef.current;
+      if (fill) {
+        if (!zzVisible || !zzUpperPriceRef.current || !zzLowerPriceRef.current || !candleRef.current) {
+          fill.style.display = "none";
+        } else {
+          const yUp = candleRef.current.priceToCoordinate(zzUpperPriceRef.current);
+          const yDn = candleRef.current.priceToCoordinate(zzLowerPriceRef.current);
+          if (yUp !== null && yDn !== null && yUp >= 0 && yDn > yUp) {
+            fill.style.display = "block";
+            fill.style.top    = `${Math.round(yUp)}px`;
+            fill.style.height = `${Math.round(yDn - yUp)}px`;
+          } else {
+            fill.style.display = "none";
+          }
+        }
+      }
 
       rafId = requestAnimationFrame(tick);
     }
@@ -433,168 +476,236 @@ export function PriceChart({
   }
 
   const hasLines = priceLines?.some((l) => l.price > 0 && isFinite(l.price));
+  const isBtc    = symbol === "BTCUSDT";
 
   return (
     <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
       <style>{`
-        /* ── Header price flash ── */
+        /* ── Header price flash ────────────────────────────────────────────── */
         @keyframes hdr-up   { 0% { color:#00d4a0; text-shadow:0 0 14px rgba(0,212,160,.8); } 100% { color:inherit; text-shadow:none; } }
         @keyframes hdr-down { 0% { color:#ff2d5f; text-shadow:0 0 14px rgba(255,45,95,.8); }  100% { color:inherit; text-shadow:none; } }
         .hdr-flash-up   { animation: hdr-up   .6s ease-out both; }
         .hdr-flash-down { animation: hdr-down .6s ease-out both; }
 
-        /* ── Priceline label pulses ── */
+        /* ── Priceline label pulses ─────────────────────────────────────────  */
         @keyframes chart-line-pulse { 0%,100% { opacity:1; } 50% { opacity:.45; } }
         .chart-line-entry { animation: chart-line-pulse 2s ease-in-out infinite; }
         .chart-line-tp    { animation: chart-line-pulse 2s ease-in-out .4s infinite; }
         .chart-line-sl    { animation: chart-line-pulse 2s ease-in-out .8s infinite; }
 
-        /* ── Live price overlay line ── */
+        /* ── Live price overlay ─────────────────────────────────────────────  */
         @keyframes live-line-glow {
-          0%,100% {
-            box-shadow: 0 0 6px 1px rgba(94,234,212,.25), 0 0 0 0 rgba(94,234,212,0);
-            opacity: .85;
-          }
-          50% {
-            box-shadow: 0 0 18px 4px rgba(94,234,212,.55), 0 0 40px 8px rgba(94,234,212,.18);
-            opacity: 1;
-          }
+          0%,100% { box-shadow:0 0 6px 1px rgba(94,234,212,.25); opacity:.85; }
+          50%     { box-shadow:0 0 18px 4px rgba(94,234,212,.55),0 0 40px 8px rgba(94,234,212,.18); opacity:1; }
         }
         @keyframes live-dot-beat {
           0%,100% { transform:scale(1);   box-shadow:0 0 0 0 rgba(94,234,212,.7); }
-          50%      { transform:scale(1.5); box-shadow:0 0 0 5px rgba(94,234,212,0); }
+          50%     { transform:scale(1.5); box-shadow:0 0 0 5px rgba(94,234,212,0); }
         }
         @keyframes scan-sweep {
           0%   { transform:translateX(-100%); }
           100% { transform:translateX(350%); }
         }
-
         .overlay-live-line {
-          position: absolute;
-          left: 0; right: 68px;
-          height: 1.5px;
-          transform: translateY(-50%);
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(94,234,212,.15) 5%,
-            rgba(94,234,212,.85) 40%,
-            rgba(94,234,212,.85) 60%,
-            rgba(94,234,212,.15) 95%,
-            transparent 100%
-          );
-          animation: live-line-glow 1.6s ease-in-out infinite;
-          pointer-events: none;
+          position:absolute; left:0; right:68px; height:1.5px;
+          transform:translateY(-50%);
+          background:linear-gradient(90deg,transparent 0%,rgba(94,234,212,.15) 5%,rgba(94,234,212,.85) 40%,rgba(94,234,212,.85) 60%,rgba(94,234,212,.15) 95%,transparent 100%);
+          animation:live-line-glow 1.6s ease-in-out infinite;
+          pointer-events:none;
         }
         .overlay-live-line::before {
-          content:"";
-          position:absolute; top:0; left:0; right:0; bottom:0;
+          content:""; position:absolute; top:0; left:0; right:0; bottom:0;
           background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.55) 50%,transparent 100%);
           background-size:40% 100%;
-          animation: scan-sweep 2.4s ease-in-out infinite;
+          animation:scan-sweep 2.4s ease-in-out infinite;
         }
         .overlay-live-dot {
-          position:absolute; left:6px;
-          width:8px; height:8px; border-radius:50%;
-          background: #5eead4;
-          transform:translateY(-50%);
-          animation: live-dot-beat 1.6s ease-in-out infinite;
-          z-index:2;
+          position:absolute; left:6px; width:8px; height:8px; border-radius:50%;
+          background:#5eead4; transform:translateY(-50%);
+          animation:live-dot-beat 1.6s ease-in-out infinite; z-index:2;
         }
         .overlay-live-badge {
-          position:absolute; left:20px;
-          transform:translateY(-50%);
-          background: linear-gradient(90deg,rgba(94,234,212,.18),rgba(94,234,212,.06));
-          border:1px solid rgba(94,234,212,.45);
-          border-radius:5px;
-          padding:1px 7px;
-          font-size:10px; font-weight:900;
-          color:#5eead4;
-          letter-spacing:.04em;
-          white-space:nowrap;
-          z-index:2;
+          position:absolute; left:20px; transform:translateY(-50%);
+          background:linear-gradient(90deg,rgba(94,234,212,.18),rgba(94,234,212,.06));
+          border:1px solid rgba(94,234,212,.45); border-radius:5px;
+          padding:1px 7px; font-size:10px; font-weight:900; color:#5eead4;
+          letter-spacing:.04em; white-space:nowrap; z-index:2;
           text-shadow:0 0 8px rgba(94,234,212,.6);
         }
 
-        /* ── Entry line ── */
+        /* ── Entry line ─────────────────────────────────────────────────────  */
         @keyframes entry-glow {
           0%,100% { box-shadow:0 0 4px 0 rgba(163,177,194,.2); opacity:.6; }
-          50%      { box-shadow:0 0 12px 2px rgba(163,177,194,.4); opacity:1; }
+          50%     { box-shadow:0 0 12px 2px rgba(163,177,194,.4); opacity:1; }
         }
         .overlay-entry-line {
-          position:absolute; left:0; right:68px; height:1px;
-          transform:translateY(-50%);
-          background:repeating-linear-gradient(90deg, rgba(163,177,194,.8) 0 6px, transparent 6px 12px);
-          animation: entry-glow 2s ease-in-out infinite;
-          pointer-events:none;
+          position:absolute; left:0; right:68px; height:1px; transform:translateY(-50%);
+          background:repeating-linear-gradient(90deg,rgba(163,177,194,.8) 0 6px,transparent 6px 12px);
+          animation:entry-glow 2s ease-in-out infinite; pointer-events:none;
         }
         .overlay-entry-badge {
-          position:absolute; left:8px;
-          transform:translateY(-50%);
-          background:rgba(163,177,194,.12);
-          border:1px solid rgba(163,177,194,.35);
-          border-radius:4px; padding:1px 6px;
-          font-size:9px; font-weight:900; color:rgba(163,177,194,.9);
-          letter-spacing:.05em; white-space:nowrap; z-index:2;
+          position:absolute; left:8px; transform:translateY(-50%);
+          background:rgba(163,177,194,.12); border:1px solid rgba(163,177,194,.35);
+          border-radius:4px; padding:1px 6px; font-size:9px; font-weight:900;
+          color:rgba(163,177,194,.9); letter-spacing:.05em; white-space:nowrap; z-index:2;
         }
 
-        /* ── TP line ── */
+        /* ── TP line ────────────────────────────────────────────────────────  */
         @keyframes tp-glow {
           0%,100% { box-shadow:0 0 6px 0 rgba(0,208,160,.2); opacity:.7; }
-          50%      { box-shadow:0 0 18px 4px rgba(0,208,160,.5); opacity:1; }
+          50%     { box-shadow:0 0 18px 4px rgba(0,208,160,.5); opacity:1; }
         }
         .overlay-tp-line {
-          position:absolute; left:0; right:68px; height:1.5px;
-          transform:translateY(-50%);
-          background:repeating-linear-gradient(90deg, rgba(0,208,160,.9) 0 8px, transparent 8px 14px);
-          animation: tp-glow 1.8s ease-in-out infinite;
-          pointer-events:none;
+          position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
+          background:repeating-linear-gradient(90deg,rgba(0,208,160,.9) 0 8px,transparent 8px 14px);
+          animation:tp-glow 1.8s ease-in-out infinite; pointer-events:none;
         }
         .overlay-tp-badge {
-          position:absolute; left:8px;
-          transform:translateY(-50%);
+          position:absolute; left:8px; transform:translateY(-50%);
           background:linear-gradient(90deg,rgba(0,208,160,.2),rgba(0,208,160,.06));
-          border:1px solid rgba(0,208,160,.5);
-          border-radius:4px; padding:1px 6px;
-          font-size:9px; font-weight:900; color:#00d4a0;
-          letter-spacing:.05em; white-space:nowrap; z-index:2;
-          text-shadow:0 0 6px rgba(0,208,160,.5);
+          border:1px solid rgba(0,208,160,.5); border-radius:4px; padding:1px 6px;
+          font-size:9px; font-weight:900; color:#00d4a0; letter-spacing:.05em;
+          white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(0,208,160,.5);
         }
         @keyframes tp-badge-pulse {
           0%,100% { box-shadow:0 0 0 0 rgba(0,208,160,.4); }
-          50%      { box-shadow:0 0 0 4px rgba(0,208,160,0); }
+          50%     { box-shadow:0 0 0 4px rgba(0,208,160,0); }
         }
-        .overlay-tp-badge { animation: tp-badge-pulse 1.8s ease-in-out infinite; }
+        .overlay-tp-badge { animation:tp-badge-pulse 1.8s ease-in-out infinite; }
 
-        /* ── SL line ── */
+        /* ── SL line ────────────────────────────────────────────────────────  */
         @keyframes sl-glow {
           0%,100% { box-shadow:0 0 6px 0 rgba(255,45,95,.2); opacity:.7; }
-          50%      { box-shadow:0 0 18px 4px rgba(255,45,95,.5); opacity:1; }
+          50%     { box-shadow:0 0 18px 4px rgba(255,45,95,.5); opacity:1; }
         }
         .overlay-sl-line {
-          position:absolute; left:0; right:68px; height:1.5px;
-          transform:translateY(-50%);
-          background:repeating-linear-gradient(90deg, rgba(255,45,95,.9) 0 8px, transparent 8px 14px);
-          animation: sl-glow 1.8s ease-in-out .3s infinite;
-          pointer-events:none;
+          position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
+          background:repeating-linear-gradient(90deg,rgba(255,45,95,.9) 0 8px,transparent 8px 14px);
+          animation:sl-glow 1.8s ease-in-out .3s infinite; pointer-events:none;
         }
         .overlay-sl-badge {
-          position:absolute; left:8px;
-          transform:translateY(-50%);
+          position:absolute; left:8px; transform:translateY(-50%);
           background:linear-gradient(90deg,rgba(255,45,95,.2),rgba(255,45,95,.06));
-          border:1px solid rgba(255,45,95,.5);
-          border-radius:4px; padding:1px 6px;
-          font-size:9px; font-weight:900; color:#ff2d5f;
-          letter-spacing:.05em; white-space:nowrap; z-index:2;
-          text-shadow:0 0 6px rgba(255,45,95,.5);
+          border:1px solid rgba(255,45,95,.5); border-radius:4px; padding:1px 6px;
+          font-size:9px; font-weight:900; color:#ff2d5f; letter-spacing:.05em;
+          white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(255,45,95,.5);
         }
         @keyframes sl-badge-pulse {
           0%,100% { box-shadow:0 0 0 0 rgba(255,45,95,.4); }
-          50%      { box-shadow:0 0 0 4px rgba(255,45,95,0); }
+          50%     { box-shadow:0 0 0 4px rgba(255,45,95,0); }
         }
-        .overlay-sl-badge { animation: sl-badge-pulse 1.8s ease-in-out .3s infinite; }
+        .overlay-sl-badge { animation:sl-badge-pulse 1.8s ease-in-out .3s infinite; }
+
+        /* ── ZZ Upper band (amber — resistance ceiling) ─────────────────────  */
+        /* Dashes drift RIGHT→LEFT: price "pressing against" the ceiling        */
+        @keyframes zz-upper-drift {
+          0%   { background-position: 0% 0%; }
+          100% { background-position: -200% 0%; }
+        }
+        @keyframes zz-upper-glow {
+          0%,100% { box-shadow:0 0 5px 0 rgba(245,158,11,.2); opacity:.8; }
+          50%     { box-shadow:0 0 20px 4px rgba(245,158,11,.6),0 0 50px 10px rgba(245,158,11,.12); opacity:1; }
+        }
+        @keyframes zz-upper-badge-pulse {
+          0%,100% { box-shadow:0 0 0 0 rgba(245,158,11,.35),0 0 6px 1px rgba(245,158,11,.2); }
+          50%     { box-shadow:0 0 0 5px rgba(245,158,11,0),  0 0 14px 3px rgba(245,158,11,.45); }
+        }
+        .overlay-zz-upper-line {
+          position:absolute; left:0; right:68px; height:1.5px;
+          transform:translateY(-50%);
+          background:repeating-linear-gradient(
+            90deg,
+            rgba(245,158,11,.95) 0px, rgba(245,158,11,.95) 7px,
+            transparent 7px, transparent 15px
+          );
+          background-size:200% 100%;
+          animation:zz-upper-glow 2.2s ease-in-out infinite, zz-upper-drift 2.8s linear infinite;
+          pointer-events:none;
+        }
+        .overlay-zz-upper-line::after {
+          content:"";
+          position:absolute; top:-3px; left:0; right:0; height:7px;
+          background:linear-gradient(180deg,transparent 0%,rgba(245,158,11,.08) 50%,transparent 100%);
+          pointer-events:none;
+        }
+        .overlay-zz-upper-badge {
+          position:absolute; left:8px; transform:translateY(-50%);
+          background:linear-gradient(135deg,rgba(245,158,11,.22) 0%,rgba(245,158,11,.06) 100%);
+          border:1px solid rgba(245,158,11,.5);
+          border-radius:5px; padding:2px 8px;
+          font-size:9px; font-weight:900; color:#f59e0b;
+          letter-spacing:.06em; white-space:nowrap; z-index:2;
+          text-shadow:0 0 10px rgba(245,158,11,.7);
+          animation:zz-upper-badge-pulse 2.2s ease-in-out infinite;
+          backdrop-filter:blur(4px);
+        }
+
+        /* ── ZZ Lower band (cyan — support floor) ───────────────────────────  */
+        /* Dashes drift LEFT→RIGHT: price "bouncing" up from the floor          */
+        @keyframes zz-lower-drift {
+          0%   { background-position: 0% 0%; }
+          100% { background-position: 200% 0%; }
+        }
+        @keyframes zz-lower-glow {
+          0%,100% { box-shadow:0 0 5px 0 rgba(6,182,212,.2); opacity:.8; }
+          50%     { box-shadow:0 0 20px 4px rgba(6,182,212,.6),0 0 50px 10px rgba(6,182,212,.12); opacity:1; }
+        }
+        @keyframes zz-lower-badge-pulse {
+          0%,100% { box-shadow:0 0 0 0 rgba(6,182,212,.35),0 0 6px 1px rgba(6,182,212,.2); }
+          50%     { box-shadow:0 0 0 5px rgba(6,182,212,0),  0 0 14px 3px rgba(6,182,212,.45); }
+        }
+        .overlay-zz-lower-line {
+          position:absolute; left:0; right:68px; height:1.5px;
+          transform:translateY(-50%);
+          background:repeating-linear-gradient(
+            90deg,
+            rgba(6,182,212,.95) 0px, rgba(6,182,212,.95) 7px,
+            transparent 7px, transparent 15px
+          );
+          background-size:200% 100%;
+          animation:zz-lower-glow 2.2s ease-in-out .4s infinite, zz-lower-drift 2.8s linear infinite;
+          pointer-events:none;
+        }
+        .overlay-zz-lower-line::after {
+          content:"";
+          position:absolute; top:-3px; left:0; right:0; height:7px;
+          background:linear-gradient(180deg,transparent 0%,rgba(6,182,212,.08) 50%,transparent 100%);
+          pointer-events:none;
+        }
+        .overlay-zz-lower-badge {
+          position:absolute; left:8px; transform:translateY(-50%);
+          background:linear-gradient(135deg,rgba(6,182,212,.22) 0%,rgba(6,182,212,.06) 100%);
+          border:1px solid rgba(6,182,212,.5);
+          border-radius:5px; padding:2px 8px;
+          font-size:9px; font-weight:900; color:#06b6d4;
+          letter-spacing:.06em; white-space:nowrap; z-index:2;
+          text-shadow:0 0 10px rgba(6,182,212,.7);
+          animation:zz-lower-badge-pulse 2.2s ease-in-out .4s infinite;
+          backdrop-filter:blur(4px);
+        }
+
+        /* ── ZZ channel fill (glassmorphism zone) ───────────────────────────  */
+        @keyframes zz-fill-breathe {
+          0%,100% { opacity:.6; }
+          50%     { opacity:1; }
+        }
+        .overlay-zz-fill {
+          position:absolute; left:0; right:68px;
+          background:linear-gradient(180deg,
+            rgba(245,158,11,.045) 0%,
+            rgba(245,158,11,.02)  25%,
+            rgba(20,20,35,.01)   50%,
+            rgba(6,182,212,.02)  75%,
+            rgba(6,182,212,.045) 100%
+          );
+          border-top:1px solid rgba(245,158,11,.14);
+          border-bottom:1px solid rgba(6,182,212,.14);
+          animation:zz-fill-breathe 3s ease-in-out infinite;
+          pointer-events:none;
+        }
       `}</style>
 
-      {/* ── HEADER ── */}
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center gap-3 min-w-0">
           <CoinIcon symbol={base} size={28} />
@@ -606,7 +717,7 @@ export function PriceChart({
                 <span
                   key={String(livePrice)}
                   className={`text-xs font-black tabular-nums leading-none ${
-                    flash === "up" ? "hdr-flash-up text-emerald-400"
+                    flash === "up"   ? "hdr-flash-up text-emerald-400"
                     : flash === "down" ? "hdr-flash-down text-red-400"
                     : "text-muted-foreground"
                   }`}
@@ -616,15 +727,38 @@ export function PriceChart({
               </div>
             )}
           </div>
+
+          {/* Legend */}
           <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[3px] bg-white/70" />EMA 200</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-blue-500" />EMA 21</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-yellow-400" />EMA 9</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[2px] bg-[#ff5d00]" />ZZ</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[1px] border-t border-dashed border-[#ff1100]" />Upper</span>
-            <span className="flex items-center gap-1.5"><span className="inline-block w-5 h-[1px] border-t border-dashed border-[#2157f3]" />Lower</span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-5 h-[2px] bg-blue-500 rounded" />EMA 21
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 9
+            </span>
+            {isBtc && <>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
+              </span>
+              <span className="flex items-center gap-1.5 text-amber-400">
+                <span className="inline-block w-5 h-[1.5px] rounded"
+                  style={{ background: "repeating-linear-gradient(90deg,#f59e0b 0 4px,transparent 4px 8px)" }} />
+                Resist
+                {zzUpperPrice && <span className="tabular-nums ml-1 opacity-70">${fmtPrice(zzUpperPrice)}</span>}
+              </span>
+              <span className="flex items-center gap-1.5 text-cyan-400">
+                <span className="inline-block w-5 h-[1.5px] rounded"
+                  style={{ background: "repeating-linear-gradient(90deg,#06b6d4 0 4px,transparent 4px 8px)" }} />
+                Support
+                {zzLowerPrice && <span className="tabular-nums ml-1 opacity-70">${fmtPrice(zzLowerPrice)}</span>}
+              </span>
+            </>}
           </div>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           {searchable && (
             <form onSubmit={submitSearch} className="flex items-center gap-1 bg-muted/40 rounded-lg px-2 py-1">
@@ -647,7 +781,7 @@ export function PriceChart({
         </div>
       </div>
 
-      {/* ── TP / SL / Entry label strip ── */}
+      {/* ── TP / SL / Entry label strip ─────────────────────────────────────── */}
       {hasLines && (
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-muted/10 flex-wrap">
           {priceLines!.map((spec, i) => {
@@ -658,8 +792,8 @@ export function PriceChart({
             return (
               <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold ${
                 isEntry ? "chart-line-entry border-border/80 bg-muted/30 text-muted-foreground"
-                : isTp  ? "chart-line-tp  border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                : isSl  ? "chart-line-sl  border-red-500/30    bg-red-500/10    text-red-400"
+                : isTp  ? "chart-line-tp border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : isSl  ? "chart-line-sl border-red-500/30 bg-red-500/10 text-red-400"
                 :          "border-border/60 bg-muted/20 text-muted-foreground"
               }`}>
                 <span className="inline-block w-3 h-[2px] rounded" style={{ background: spec.color }} />
@@ -670,46 +804,58 @@ export function PriceChart({
         </div>
       )}
 
-      {/* ── CHART + OVERLAY ── */}
+      {/* ── CHART + OVERLAY ─────────────────────────────────────────────────── */}
       <div className="relative" style={{ height }}>
         {/* lightweight-charts canvas */}
         <div ref={chartWrapRef} className="absolute inset-0" />
 
-        {/* HTML overlay — price line effects */}
+        {/* HTML overlay */}
         <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+
+          {/* ZZ channel fill zone — rendered behind the lines */}
+          <div ref={zzFillRef} className="overlay-zz-fill" style={{ display: "none", position: "absolute", left: 0, right: 68 }} />
 
           {/* Live price line */}
           <div ref={liveLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-live-dot" />
             <div className="overlay-live-line" />
-            <div className="overlay-live-badge">
-              ◆ LIVE &nbsp;${livePrice ? fmtPrice(livePrice) : "…"}
-            </div>
+            <div className="overlay-live-badge">◆ LIVE &nbsp;${livePrice ? fmtPrice(livePrice) : "…"}</div>
           </div>
 
           {/* Entry line */}
           <div ref={entryLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-entry-line" />
-            <div className="overlay-entry-badge">
-              ── ENTRY
-            </div>
+            <div className="overlay-entry-badge">── ENTRY</div>
           </div>
 
           {/* TP line */}
           <div ref={tpLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-tp-line" />
-            <div className="overlay-tp-badge">
-              ▲ TAKE PROFIT
-            </div>
+            <div className="overlay-tp-badge">▲ TAKE PROFIT</div>
           </div>
 
           {/* SL line */}
           <div ref={slLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-sl-line" />
-            <div className="overlay-sl-badge">
-              ▼ STOP LOSS
+            <div className="overlay-sl-badge">▼ STOP LOSS</div>
+          </div>
+
+          {/* ZZ Upper band — amber resistance ceiling */}
+          <div ref={zzUpperLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
+            <div className="overlay-zz-upper-line" />
+            <div className="overlay-zz-upper-badge">
+              ⬆ RESIST&nbsp;&nbsp;{zzUpperPrice ? `$${fmtPrice(zzUpperPrice)}` : "…"}
             </div>
           </div>
+
+          {/* ZZ Lower band — cyan support floor */}
+          <div ref={zzLowerLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
+            <div className="overlay-zz-lower-line" />
+            <div className="overlay-zz-lower-badge">
+              ⬇ SUPPORT&nbsp;&nbsp;{zzLowerPrice ? `$${fmtPrice(zzLowerPrice)}` : "…"}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
