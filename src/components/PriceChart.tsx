@@ -207,12 +207,16 @@ export function PriceChart({
   const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
-  const zzCenterRef    = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzUpperRef     = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzLowerRef     = useRef<ISeriesApi<"Line"> | null>(null);
-  // Glow halos rendered behind the crisp upper/lower lines (same data, wider + softer)
-  const zzUpperGlowRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const zzLowerGlowRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzCenterRef       = useRef<ISeriesApi<"Line"> | null>(null);
+  // Faded full-history upper/lower lines (every past + current channel, dim)
+  const zzUpperRef        = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzLowerRef        = useRef<ISeriesApi<"Line"> | null>(null);
+  // Glow halos — only ever fed the current (still-forming) segment's data.
+  const zzUpperGlowRef    = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzLowerGlowRef    = useRef<ISeriesApi<"Line"> | null>(null);
+  // Bright current-segment lines drawn on top of the faded history + glow.
+  const zzUpperCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const zzLowerCurrentRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   const candlesRef    = useRef<CandlestickData[]>([]);
   const chartLinesRef = useRef<IPriceLine[]>([]);
@@ -287,8 +291,8 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ upper glow halo: soft, wide amber line rendered behind the crisp
-    // line below — its opacity is pulsed in the RAF loop for a glow effect.
+    // ── ZZ upper glow halo: soft, wide amber line — only ever carries the
+    // current segment's data; its opacity is pulsed in the RAF loop.
     zzUpperGlowRef.current = chart.addSeries(LineSeries, {
       color: "rgba(245,158,11,0.18)",
       lineWidth: 6,
@@ -296,8 +300,19 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ upper: crisp amber resistance line
+    // ── ZZ upper (faded): every past + current amber channel, dim so older
+    // trend channels read as history rather than the live resistance line.
     zzUpperRef.current = chart.addSeries(LineSeries, {
+      color: "rgba(245,158,11,0.32)",
+      lineWidth: 2,
+      lineStyle: LineStyle.LargeDashed,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // ── ZZ upper (current): bright amber dashed line, current segment only —
+    // drawn on top of the faded history + glow halo.
+    zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
       color: "#f59e0b",
       lineWidth: 2,
       lineStyle: LineStyle.LargeDashed,
@@ -305,18 +320,28 @@ export function PriceChart({
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ lower glow halo: soft, wide cyan line rendered behind the crisp
-    // line below — its opacity is pulsed in the RAF loop for a glow effect.
+    // ── ZZ lower glow halo: soft, wide dark-blue line — only ever carries
+    // the current segment's data; opacity pulsed in the RAF loop.
     zzLowerGlowRef.current = chart.addSeries(LineSeries, {
-      color: "rgba(6,182,212,0.18)",
+      color: "rgba(30,58,138,0.22)",
       lineWidth: 6,
       priceLineVisible: false,
       lastValueVisible: false,
       crosshairMarkerVisible: false,
     });
-    // ── ZZ lower: crisp cyan support line
+    // ── ZZ lower (faded): every past + current dark-blue channel, dim.
     zzLowerRef.current = chart.addSeries(LineSeries, {
-      color: "#06b6d4",
+      color: "rgba(30,58,138,0.4)",
+      lineWidth: 2,
+      lineStyle: LineStyle.LargeDashed,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    // ── ZZ lower (current): bright dark-blue dashed line, current segment
+    // only — drawn on top of the faded history + glow halo.
+    zzLowerCurrentRef.current = chart.addSeries(LineSeries, {
+      color: "#1e3a8a",
       lineWidth: 2,
       lineStyle: LineStyle.LargeDashed,
       priceLineVisible: false,
@@ -359,15 +384,20 @@ export function PriceChart({
       zzLowerRef.current.setData([]);
       zzUpperGlowRef.current?.setData([]);
       zzLowerGlowRef.current?.setData([]);
+      zzUpperCurrentRef.current?.setData([]);
+      zzLowerCurrentRef.current?.setData([]);
       zzPivotsRef.current = [];
       return;
     }
     const { center, upper, lower, currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
     zzCenterRef.current.setData(center);
+    // Faded lines carry the full history (every past + current channel).
     zzUpperRef.current.setData(upper);
     zzLowerRef.current.setData(lower);
-    // Glow halo only ever carries the current (still-forming) segment's data —
-    // previous, already-confirmed trend channels stay plain dashed, no glow.
+    // Bright lines + glow halo only ever carry the current (still-forming)
+    // segment's data — previous, already-confirmed channels stay faded only.
+    zzUpperCurrentRef.current?.setData(currentUpper);
+    zzLowerCurrentRef.current?.setData(currentLower);
     zzUpperGlowRef.current?.setData(currentUpper);
     zzLowerGlowRef.current?.setData(currentLower);
     zzPivotsRef.current = pivots;
@@ -539,7 +569,7 @@ export function PriceChart({
         const t = now / 1000;
         const pulse = 0.16 + 0.28 * (0.5 + 0.5 * Math.sin(t * 2.2));
         zzUpperGlowRef.current?.applyOptions({ color: `rgba(245,158,11,${pulse.toFixed(3)})` });
-        zzLowerGlowRef.current?.applyOptions({ color: `rgba(6,182,212,${pulse.toFixed(3)})` });
+        zzLowerGlowRef.current?.applyOptions({ color: `rgba(30,58,138,${pulse.toFixed(3)})` });
       }
 
       // Swing high/low price labels — one per confirmed pivot, positioned
@@ -585,10 +615,6 @@ export function PriceChart({
           0%,100% { box-shadow:0 0 6px 1px rgba(94,234,212,.25); opacity:.85; }
           50%     { box-shadow:0 0 18px 4px rgba(94,234,212,.55),0 0 40px 8px rgba(94,234,212,.18); opacity:1; }
         }
-        @keyframes live-dot-beat {
-          0%,100% { transform:scale(1);   box-shadow:0 0 0 0 rgba(94,234,212,.7); }
-          50%     { transform:scale(1.5); box-shadow:0 0 0 5px rgba(94,234,212,0); }
-        }
         @keyframes scan-sweep {
           0%   { transform:translateX(-100%); }
           100% { transform:translateX(350%); }
@@ -606,13 +632,8 @@ export function PriceChart({
           background-size:40% 100%;
           animation:scan-sweep 2.4s ease-in-out infinite;
         }
-        .overlay-live-dot {
-          position:absolute; left:6px; width:8px; height:8px; border-radius:50%;
-          background:#5eead4; transform:translateY(-50%);
-          animation:live-dot-beat 1.6s ease-in-out infinite; z-index:2;
-        }
         .overlay-live-badge {
-          position:absolute; left:20px; transform:translateY(-50%);
+          position:absolute; left:6px; transform:translateY(-50%);
           background:linear-gradient(90deg,rgba(94,234,212,.18),rgba(94,234,212,.06));
           border:1px solid rgba(94,234,212,.45); border-radius:5px;
           padding:1px 7px; font-size:10px; font-weight:900; color:#5eead4;
@@ -701,10 +722,10 @@ export function PriceChart({
         .overlay-swing-label.swing-top .overlay-swing-text {
           background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.4); color:#f59e0b;
         }
-        .overlay-swing-label.swing-btm { transform:translate(-50%,60%); color:#06b6d4; }
-        .overlay-swing-label.swing-btm .overlay-swing-dot { background:#06b6d4; }
+        .overlay-swing-label.swing-btm { transform:translate(-50%,60%); color:#3b5bdb; }
+        .overlay-swing-label.swing-btm .overlay-swing-dot { background:#1e3a8a; }
         .overlay-swing-label.swing-btm .overlay-swing-text {
-          background:rgba(6,182,212,.12); border:1px solid rgba(6,182,212,.4); color:#06b6d4;
+          background:rgba(30,58,138,.18); border:1px solid rgba(30,58,138,.55); color:#5b7fe0;
         }
       `}</style>
 
@@ -807,7 +828,6 @@ export function PriceChart({
 
           {/* Live price line */}
           <div ref={liveLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
-            <div className="overlay-live-dot" />
             <div className="overlay-live-line" />
             <div className="overlay-live-badge">◆ LIVE &nbsp;${livePrice ? fmtPrice(livePrice) : "…"}</div>
           </div>
