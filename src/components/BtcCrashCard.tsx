@@ -734,12 +734,12 @@ export function BtcCrashCard() {
                 fontVariantNumeric: "tabular-nums", letterSpacing: "-0.04em",
                 color: priceColor,
                 transition: "color 0.4s ease",
+                textShadow: `0 0 10px ${priceColor}55`,
                 animation: flash === "up"
                   ? "_bc_flash_up 0.7s ease both, _bc_pricetick 0.25s ease both"
                   : flash === "down"
                   ? "_bc_flash_dn 0.7s ease both, _bc_pricetick 0.25s ease both"
                   : "none",
-                textShadow: "none",
               }}
             >
               {price ? `$${fmt2(price)}` : "—"}
