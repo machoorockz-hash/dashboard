@@ -115,13 +115,13 @@ function StepSegments({
           const isHovered = hoveredIdx === i;
 
           const nodeSize      = isActive ? 30 : (isPast || isSkipped) ? 22 : 20;
-          const borderW       = isActive ? 2 : isSkipped ? 1.5 : isPast ? 0 : 1.5;
+          const borderW       = isActive ? 2 : 1.5;
           const NODE_CONTAINER = 32; // fixed height so connector always centres correctly
 
-          const statusLabel  = isSkipped ? "Skipped" : isPast ? "Completed" : isActive ? "Active" : "Pending";
-          const statusColor  = isSkipped ? "#f59e0b" : isPast || isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
-          const statusBg     = isSkipped ? "color-mix(in oklab,#f59e0b 18%,var(--card))" : isPast ? "color-mix(in oklab,var(--primary) 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
-          const statusBorder = isSkipped ? "color-mix(in oklab,#f59e0b 40%,transparent)" : isPast || isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
+          const statusLabel  = isSkipped ? "Skipped" : isPast ? "Done" : isActive ? "Active" : "Pending";
+          const statusColor  = isSkipped || isPast ? "#f59e0b" : isActive ? "var(--primary)" : "color-mix(in oklab,var(--muted-foreground) 55%,transparent)";
+          const statusBg     = isSkipped || isPast ? "color-mix(in oklab,#f59e0b 18%,var(--card))" : isActive ? "color-mix(in oklab,var(--primary) 12%,var(--card))" : "color-mix(in oklab,var(--muted-foreground) 8%,var(--card))";
+          const statusBorder = isSkipped || isPast ? "color-mix(in oklab,#f59e0b 40%,transparent)" : isActive ? "color-mix(in oklab,var(--primary) 35%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 18%,transparent)";
 
           const amount    = stepAmounts?.[i];
           const timestamp = stepTimestamps?.[i];
@@ -156,7 +156,7 @@ function StepSegments({
                       background: "transparent",
                       backdropFilter: "blur(14px)",
                       WebkitBackdropFilter: "blur(14px)",
-                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      border: isPast ? `1px solid color-mix(in oklab,#f59e0b 30%,transparent)` : `1px solid color-mix(in oklab,var(--primary) ${isActive ? "30%" : "14%"},transparent)`,
                       borderRadius: "10px",
                       padding: "8px 10px",
                       boxShadow: "0 8px 24px -4px rgba(0,0,0,0.45), 0 2px 8px -2px rgba(0,0,0,0.3)",
@@ -174,7 +174,7 @@ function StepSegments({
                           {statusLabel}
                         </span>
                       </div>
-                      <div style={{ margin: "6px 0", height: "1px", background: `linear-gradient(90deg,transparent,color-mix(in oklab,var(--primary) ${isPast || isActive ? "25%" : "10%"},transparent),transparent)` }} />
+                      <div style={{ margin: "6px 0", height: "1px", background: isPast ? `linear-gradient(90deg,transparent,color-mix(in oklab,#f59e0b 25%,transparent),transparent)` : `linear-gradient(90deg,transparent,color-mix(in oklab,var(--primary) ${isActive ? "25%" : "10%"},transparent),transparent)` }} />
                       {amount != null ? (
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
                           <span style={{ fontSize: "9px", color: "color-mix(in oklab,var(--muted-foreground) 70%,transparent)", fontWeight: 600 }}>Buy</span>
@@ -201,7 +201,7 @@ function StepSegments({
                       width: "9px", height: "9px",
                       background: "transparent",
                       backdropFilter: "blur(14px)",
-                      border: `1px solid color-mix(in oklab,var(--primary) ${isPast || isActive ? "30%" : "14%"},transparent)`,
+                      border: isPast ? `1px solid color-mix(in oklab,#f59e0b 30%,transparent)` : `1px solid color-mix(in oklab,var(--primary) ${isActive ? "30%" : "14%"},transparent)`,
                       borderTop: "none", borderLeft: "none",
                     }} />
                   </div>
@@ -221,23 +221,21 @@ function StepSegments({
                       transition: "all 0.35s ease",
                       cursor: "default",
                       position: "relative",
-                      background: isSkipped
+                      background: isSkipped || isPast
                         ? "color-mix(in oklab,#f59e0b 16%,var(--card))"
                         : isActive
                         ? "radial-gradient(circle at 35% 35%, color-mix(in oklab,var(--primary) 22%,var(--card)), var(--card))"
-                        : isPast ? "var(--primary)"
                         : "color-mix(in oklab,var(--primary) 7%,var(--card))",
-                      border: isSkipped
+                      border: isSkipped || isPast
                         ? `${borderW}px dashed color-mix(in oklab,#f59e0b 55%,transparent)`
                         : isActive
                         ? `${borderW}px solid var(--primary)`
-                        : isPast ? "none"
                         : `${borderW}px solid color-mix(in oklab,var(--primary) 20%,var(--card))`,
                       ...(isHovered && !isActive ? {
                         transform: "scale(1.12)",
-                        boxShadow: isSkipped
+                        boxShadow: isSkipped || isPast
                           ? "0 0 0 3px color-mix(in oklab,#f59e0b 25%,transparent), 0 4px 12px -2px rgba(0,0,0,0.4)"
-                          : `0 0 0 3px color-mix(in oklab,var(--primary) ${isPast ? "22%" : "12%"},transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
+                          : `0 0 0 3px color-mix(in oklab,var(--primary) 12%,transparent), 0 4px 12px -2px rgba(0,0,0,0.4)`,
                       } : {}),
                     }}
                   >
@@ -254,7 +252,7 @@ function StepSegments({
                         <path d="M3,3 L9,9 M9,3 L3,9" />
                       </svg>
                     ) : isPast ? (
-                      <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="var(--card)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="2,6 5,9.5 10,3" />
                       </svg>
                     ) : (
@@ -282,6 +280,18 @@ function StepSegments({
                       color: "#f59e0b",
                     }}>
                       Skipped
+                    </span>
+                  ) : isPast ? (
+                    <span style={{
+                      fontSize: "8px",
+                      fontWeight: 800,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                      color: "#f59e0b",
+                    }}>
+                      Done
                     </span>
                   ) : amount != null ? (
                     <span style={{
@@ -317,10 +327,8 @@ function StepSegments({
                   <div style={{ position: "absolute", inset: 0, background: "color-mix(in oklab,var(--primary) 8%,var(--card))" }} />
                   <div style={{
                     position: "absolute", inset: 0, transition: "background 0.5s ease",
-                    background: isSkipped
+                    background: isSkipped || isPast
                       ? "linear-gradient(90deg, color-mix(in oklab,#f59e0b 45%,transparent), color-mix(in oklab,#f59e0b 25%,transparent))"
-                      : isPast
-                      ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 70%,transparent), color-mix(in oklab,var(--primary) 50%,transparent))"
                       : isActive
                       ? "linear-gradient(90deg, color-mix(in oklab,var(--primary) 55%,transparent) 0%, color-mix(in oklab,var(--primary) 12%,transparent) 100%)"
                       : "transparent",
