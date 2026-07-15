@@ -257,7 +257,10 @@ export function PriceChart({
         vertLines: { color: "rgba(255,255,255,0.04)" },
         horzLines: { color: "rgba(255,255,255,0.04)" },
       },
-      rightPriceScale: { borderColor: "rgba(255,255,255,0.06)", scaleMargins: { top: 0.08, bottom: 0.08 } },
+      // Squeezed vertically: bigger top/bottom margins compress the
+      // candle range into a smaller band of the pane, leaving more empty
+      // space above/below — makes the price axis feel "tighter".
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.06)", scaleMargins: { top: 0.18, bottom: 0.18 } },
       timeScale: {
         borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true, secondsVisible: false,
@@ -267,7 +270,9 @@ export function PriceChart({
         // fell back to a zoomed-in window instead. Allow much tighter
         // spacing so fitContent() can actually zoom all the way out on any
         // screen size, same as desktop.
-        rightOffset: 8, barSpacing: 12, minBarSpacing: 0.5,
+        // Stretched horizontally: wider default barSpacing spreads candles
+        // further apart along the time axis.
+        rightOffset: 8, barSpacing: 16, minBarSpacing: 0.5,
       },
       crosshair: { mode: CrosshairMode.Normal },
     });
