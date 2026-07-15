@@ -329,6 +329,13 @@ export function PriceChart({
 
   // ── EMA recompute ─────────────────────────────────────────────────────────
   function recomputeEMAs() {
+    // EMAs are hidden for BTCUSDT — the ZZ channel is the only overlay there.
+    if (symbol === "BTCUSDT") {
+      ema200Ref.current?.setData([]);
+      ema21Ref.current?.setData([]);
+      ema9Ref.current?.setData([]);
+      return;
+    }
     const closes = candlesRef.current.map((c) => c.close);
     const times  = candlesRef.current.map((c) => c.time as UTCTimestamp);
     for (const [s, period] of [
@@ -726,15 +733,17 @@ export function PriceChart({
 
           {/* Legend */}
           <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-5 h-[2px] bg-blue-500 rounded" />EMA 21
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 9
-            </span>
+            {!isBtc && <>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-5 h-[2px] bg-blue-500 rounded" />EMA 21
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 9
+              </span>
+            </>}
             {isBtc && <>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
