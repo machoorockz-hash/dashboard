@@ -609,7 +609,7 @@ export function BtcCrashCard() {
   const trendSwingL   = d?.trend_last_swing_low  ?? null;
   const trendColor    = trendDir === "UPTREND" ? "#0dd9aa" : trendDir === "DOWNTREND" ? "#ef4444" : "rgba(255,255,255,0.35)";
 
-  const priceColor = flash === "down" ? "#ef4444" : "#C5A028";
+  const priceColor = flash === "down" ? "#ef4444" : "#F7931A";
   const netColor   = LVL[whaleNetLvl] ?? "#0dd9aa";
   const net15mColor = LVL[netFlow15mLvl] ?? "#0dd9aa";
   const fmtSignedK = (n: number) => `${n >= 0 ? "+" : "−"}${fmtK(Math.abs(n))}`;
@@ -624,6 +624,11 @@ export function BtcCrashCard() {
         @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 8px #ef444480} 100%{text-shadow:none} }
         @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
         @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
+        ._bc_live_price {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          text-rendering: geometricPrecision;
+        }
       `}</style>
 
       <section style={{
@@ -721,12 +726,12 @@ export function BtcCrashCard() {
           <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "18px" }}>
             <span
               key={String(flash)}
+              className="_bc_live_price"
               style={{
                 fontSize: "40px", fontWeight: 900, lineHeight: 1,
-                fontVariantNumeric: "tabular-nums", letterSpacing: "-0.04em",
+                fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
                 color: priceColor,
                 transition: "color 0.4s ease",
-                textShadow: `0 0 10px ${priceColor}55`,
                 animation: flash === "up"
                   ? "_bc_flash_up 0.7s ease both, _bc_pricetick 0.25s ease both"
                   : flash === "down"
