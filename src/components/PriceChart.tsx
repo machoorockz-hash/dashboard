@@ -272,7 +272,7 @@ export function PriceChart({
         // screen size, same as desktop.
         // Stretched horizontally: wider default barSpacing spreads candles
         // further apart along the time axis.
-        rightOffset: 8, barSpacing: 16, minBarSpacing: 0.5,
+        rightOffset: 8, barSpacing: 20, minBarSpacing: 0.5,
       },
       crosshair: { mode: CrosshairMode.Normal },
     });
