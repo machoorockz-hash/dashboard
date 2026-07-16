@@ -245,9 +245,9 @@ export default function PumpScannerCard() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border" style={{ borderColor: "rgba(192,192,192,0.3)", background: "linear-gradient(135deg, rgba(192,192,192,0.25) 0%, rgba(192,192,192,0.10) 50%, transparent 100%)" }}>
-            <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(circle at top left, rgba(192,192,192,0.30), transparent 70%)" }} />
-            <TrendingUp className="relative h-4 w-4 fb-blink" style={{ color: "silver", filter: "drop-shadow(0 0 4px rgba(192,192,192,0.8))" }} strokeWidth={2.5} />
+          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border" style={{ borderColor: "rgba(20,184,166,0.3)", background: "linear-gradient(135deg, rgba(20,184,166,0.25) 0%, rgba(20,184,166,0.10) 50%, transparent 100%)" }}>
+            <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(circle at top left, rgba(20,184,166,0.30), transparent 70%)" }} />
+            <TrendingUp className="relative h-4 w-4 fb-blink" style={{ color: "#14b8a6", filter: "drop-shadow(0 0 4px rgba(20,184,166,0.8))" }} strokeWidth={2.5} />
           </div>
           <span style={{
             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
