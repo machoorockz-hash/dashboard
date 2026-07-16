@@ -338,13 +338,6 @@ export default function PumpScannerCard() {
             );
           })}
         </div>
-      ) : active ? (
-        /* ── EMPTY STATE: text only when active but no signals yet ── */
-        <div className="flex items-center justify-center py-4">
-          <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase" style={{ color: "silver" }}>
-            Scanning Markets
-          </div>
-        </div>
       ) : null}
 
       {/* ── SIGNAL COUNT FOOTER ── */}
