@@ -44,9 +44,9 @@ function formatPrice(p: number) {
 function FlareBeamAnimation() {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div style={{ position: "relative", width: 62, height: 62 }}>
+      <div style={{ position: "relative", width: 81, height: 81 }}>
         {/* outer rings */}
-        <svg width="62" height="62" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
+        <svg width="81" height="81" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <circle
             className="fb-ring"
             cx="44" cy="44" r="40"
@@ -65,7 +65,7 @@ function FlareBeamAnimation() {
         </svg>
 
         {/* rotating beam */}
-        <svg width="62" height="62" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
+        <svg width="81" height="81" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <defs>
             <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.7" />
@@ -99,7 +99,7 @@ function FlareBeamAnimation() {
         }} />
 
         {/* crosshairs */}
-        <svg width="62" height="62" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
+        <svg width="81" height="81" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
           <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
           <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
           <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
@@ -245,7 +245,7 @@ export default function PumpScannerCard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div style={{ width: 32, height: 32, borderRadius: 12, overflow: "hidden", flexShrink: 0, position: "relative" }}>
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.516)", transformOrigin: "top center" }}>
+            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.395)", transformOrigin: "top center" }}>
               <FlareBeamAnimation />
             </div>
           </div>
