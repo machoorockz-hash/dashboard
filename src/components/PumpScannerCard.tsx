@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { TrendingUp } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -244,10 +245,9 @@ export default function PumpScannerCard() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div style={{ width: 40, height: 40, borderRadius: 12, overflow: "hidden", flexShrink: 0, position: "relative" }}>
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.645)", transformOrigin: "top center" }}>
-              <FlareBeamAnimation />
-            </div>
+          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border" style={{ borderColor: "rgba(192,192,192,0.3)", background: "linear-gradient(135deg, rgba(192,192,192,0.25) 0%, rgba(192,192,192,0.10) 50%, transparent 100%)" }}>
+            <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(circle at top left, rgba(192,192,192,0.30), transparent 70%)" }} />
+            <TrendingUp className="relative h-4 w-4" style={{ color: "silver", filter: "drop-shadow(0 0 4px rgba(192,192,192,0.8))" }} strokeWidth={2.5} />
           </div>
           <span style={{
             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -339,9 +339,11 @@ export default function PumpScannerCard() {
           })}
         </div>
       ) : active ? (
-        /* ── EMPTY STATE: Flare Beam animation when active but no signals yet ── */
+        /* ── EMPTY STATE: text only when active but no signals yet ── */
         <div className="flex items-center justify-center py-4">
-          <FlareBeamAnimation />
+          <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase" style={{ color: "silver" }}>
+            Scanning Markets
+          </div>
         </div>
       ) : null}
 
@@ -354,12 +356,9 @@ export default function PumpScannerCard() {
 
       {/* ── SCANNING MARKETS: always shows at bottom when bot is active ── */}
       {active && data && data.signals.length > 0 && (
-        <div className="flex flex-col items-center gap-1 pt-1 pb-1">
+        <div className="flex items-center justify-center pt-1 pb-1">
           <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase" style={{ color: "silver" }}>
             Scanning Markets
-          </div>
-          <div className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground/45">
-            monitoring all USDT pairs
           </div>
         </div>
       )}
