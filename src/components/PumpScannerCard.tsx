@@ -354,14 +354,6 @@ export default function PumpScannerCard() {
         </div>
       )}
 
-      {/* ── SCANNING MARKETS: always shows at bottom when bot is active ── */}
-      {active && data && data.signals.length > 0 && (
-        <div className="flex items-center justify-center pt-1 pb-1">
-          <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase" style={{ color: "silver" }}>
-            Scanning Markets
-          </div>
-        </div>
-      )}
     </section>
   );
 }
