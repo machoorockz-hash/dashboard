@@ -351,6 +351,18 @@ export default function PumpScannerCard() {
           {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
         </div>
       )}
+
+      {/* ── SCANNING MARKETS: always shows at bottom when bot is active ── */}
+      {active && data && data.signals.length > 0 && (
+        <div className="flex flex-col items-center gap-1 pt-1 pb-1">
+          <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase" style={{ color: "silver" }}>
+            Scanning Markets
+          </div>
+          <div className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground/45">
+            monitoring all USDT pairs
+          </div>
+        </div>
+      )}
     </section>
   );
 }
