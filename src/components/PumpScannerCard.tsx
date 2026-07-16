@@ -244,8 +244,8 @@ export default function PumpScannerCard() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div style={{ width: 32, height: 32, borderRadius: 12, overflow: "hidden", flexShrink: 0, position: "relative" }}>
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.395)", transformOrigin: "top center" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, overflow: "hidden", flexShrink: 0, position: "relative" }}>
+            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.494)", transformOrigin: "top center" }}>
               <FlareBeamAnimation />
             </div>
           </div>
