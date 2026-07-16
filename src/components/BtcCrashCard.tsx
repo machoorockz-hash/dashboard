@@ -285,9 +285,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
           <span style={{
             fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em",
             textTransform: "uppercase",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
+            color: "#0dd9aa",
           }}>
             Cycle Oracle
           </span>
