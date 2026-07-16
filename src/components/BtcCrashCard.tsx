@@ -281,7 +281,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
         borderBottom: "1px solid rgba(255,255,255,0.055)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-          <span style={{ fontSize: "16px" }}>₿</span>
+          <span style={{ fontSize: "16px", color: "#0dd9aa" }}>₿</span>
           <span style={{
             fontSize: "11px", fontWeight: 900, letterSpacing: "0.12em",
             textTransform: "uppercase",
