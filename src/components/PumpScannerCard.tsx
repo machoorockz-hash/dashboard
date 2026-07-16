@@ -44,14 +44,14 @@ function formatPrice(p: number) {
 function FlareBeamAnimation() {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div style={{ position: "relative", width: 81, height: 81 }}>
+      <div style={{ position: "relative", width: 62, height: 62 }}>
         {/* outer rings */}
-        <svg width="81" height="81" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
+        <svg width="62" height="62" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <circle
             className="fb-ring"
             cx="44" cy="44" r="40"
             fill="none"
-            stroke="color-mix(in oklab, var(--primary) 30%, transparent)"
+            stroke="color-mix(in oklab, silver 30%, transparent)"
             strokeWidth="1"
             strokeDasharray="3 9"
           />
@@ -59,22 +59,22 @@ function FlareBeamAnimation() {
             className="fb-ring"
             cx="44" cy="44" r="32"
             fill="none"
-            stroke="color-mix(in oklab, var(--primary) 15%, transparent)"
+            stroke="color-mix(in oklab, silver 15%, transparent)"
             strokeWidth="0.8"
           />
         </svg>
 
         {/* rotating beam */}
-        <svg width="81" height="81" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
+        <svg width="62" height="62" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0 }}>
           <defs>
             <linearGradient id="fb-beam-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 95%, white)" stopOpacity="0.7" />
-              <stop offset="40%" stopColor="color-mix(in oklab, var(--primary) 80%, transparent)" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 60%, transparent)" stopOpacity="0" />
+              <stop offset="0%" stopColor="color-mix(in oklab, silver 95%, white)" stopOpacity="0.7" />
+              <stop offset="40%" stopColor="color-mix(in oklab, silver 80%, transparent)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="color-mix(in oklab, silver 60%, transparent)" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="fb-beam2-cg" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="color-mix(in oklab, var(--primary) 70%, white)" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="color-mix(in oklab, var(--primary) 50%, transparent)" stopOpacity="0" />
+              <stop offset="0%" stopColor="color-mix(in oklab, silver 70%, white)" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="color-mix(in oklab, silver 50%, transparent)" stopOpacity="0" />
             </linearGradient>
           </defs>
           <g className="fb-spin">
@@ -95,20 +95,20 @@ function FlareBeamAnimation() {
           position: "absolute", top: "50%", left: "50%",
           transform: "translate(-50%,-50%)",
           width: 8, height: 8, borderRadius: "50%",
-          background: "radial-gradient(circle, white 0%, color-mix(in oklab, var(--primary) 90%, white) 40%, color-mix(in oklab, var(--primary) 80%, transparent) 100%)",
+          background: "radial-gradient(circle, white 0%, color-mix(in oklab, silver 90%, white) 40%, color-mix(in oklab, silver 80%, transparent) 100%)",
         }} />
 
         {/* crosshairs */}
-        <svg width="81" height="81" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
-          <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
-          <line x1="68" y1="44" x2="86" y2="44" stroke="color-mix(in oklab, var(--primary) 80%, transparent)" strokeWidth="1" />
+        <svg width="62" height="62" viewBox="0 0 88 88" style={{ position: "absolute", inset: 0, opacity: 0.2 }}>
+          <line x1="44" y1="2"  x2="44" y2="20" stroke="color-mix(in oklab, silver 80%, transparent)" strokeWidth="1" />
+          <line x1="44" y1="68" x2="44" y2="86" stroke="color-mix(in oklab, silver 80%, transparent)" strokeWidth="1" />
+          <line x1="2"  y1="44" x2="20" y2="44" stroke="color-mix(in oklab, silver 80%, transparent)" strokeWidth="1" />
+          <line x1="68" y1="44" x2="86" y2="44" stroke="color-mix(in oklab, silver 80%, transparent)" strokeWidth="1" />
         </svg>
       </div>
 
       <div className="text-center">
-        <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase text-primary">
+        <div className="fb-blink text-[10px] font-black tracking-[0.22em] uppercase" style={{ color: "silver" }}>
           Scanning Markets
         </div>
         <div className="text-[9px] tracking-[0.15em] uppercase text-muted-foreground/45 mt-1">
@@ -230,8 +230,8 @@ export default function PumpScannerCard() {
         }
         @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fb-orb {
-          0%,100% { box-shadow: 0 0 4px 2px color-mix(in oklab,var(--primary) 25%,transparent), 0 0 8px 3px color-mix(in oklab,var(--primary) 10%,transparent); }
-          50%     { box-shadow: 0 0 6px 3px color-mix(in oklab,var(--primary) 35%,transparent), 0 0 14px 5px color-mix(in oklab,var(--primary) 15%,transparent); }
+          0%,100% { box-shadow: 0 0 4px 2px color-mix(in oklab,silver 25%,transparent), 0 0 8px 3px color-mix(in oklab,silver 10%,transparent); }
+          50%     { box-shadow: 0 0 6px 3px color-mix(in oklab,silver 35%,transparent), 0 0 14px 5px color-mix(in oklab,silver 15%,transparent); }
         }
         @keyframes fb-ring  { 0%,100%{opacity:.2} 50%{opacity:.5} }
         @keyframes fb-blink { 0%,100%{opacity:1}  50%{opacity:.3} }
@@ -245,7 +245,7 @@ export default function PumpScannerCard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div style={{ width: 40, height: 40, borderRadius: 12, overflow: "hidden", flexShrink: 0, position: "relative" }}>
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.494)", transformOrigin: "top center" }}>
+            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%) scale(0.645)", transformOrigin: "top center" }}>
               <FlareBeamAnimation />
             </div>
           </div>
