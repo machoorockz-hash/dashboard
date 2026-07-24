@@ -21,6 +21,8 @@ interface PumpData {
 
 function toUAE(iso: string) {
   const d = new Date(iso);
+  // Guard: invalid / missing timestamp — never let Intl throw and crash the tree
+  if (!iso || isNaN(d.getTime())) return { date: "--/--/----", time: "--:-- --" };
   const date = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Dubai",
     day: "2-digit",
@@ -37,6 +39,8 @@ function toUAE(iso: string) {
 }
 
 function formatPrice(p: number) {
+  // Guard: non-number price (e.g. heartbeat row accidentally stored as signal)
+  if (typeof p !== "number" || isNaN(p)) return "-";
   if (p >= 1) return p.toFixed(4);
   if (p >= 0.001) return p.toFixed(6);
   return p.toFixed(8);
@@ -326,7 +330,16 @@ export default function PumpScannerCard() {
       {/* ── SIGNAL LIST ── */}
       {data && data.signals.length > 0 ? (
         <div className="pump-scroll flex flex-col gap-2 overflow-y-auto pr-2" style={{ maxHeight: "19rem" }}>
-          {data.signals.map((sig) => {
+          {data.signals
+            // Drop any row that isn't a real signal (e.g. a heartbeat payload
+            // accidentally stored by the server — those have no symbol/timestamp/score).
+            .filter((sig) =>
+              sig &&
+              typeof sig.symbol === "string" && sig.symbol.length > 0 &&
+              typeof sig.timestamp === "string" && sig.timestamp.length > 0 &&
+              typeof sig.score === "number"
+            )
+            .map((sig) => {
             const k = `${sig.symbol}-${sig.timestamp}`;
             const { date, time } = toUAE(sig.timestamp);
             const isLatest = latestKey === k;
