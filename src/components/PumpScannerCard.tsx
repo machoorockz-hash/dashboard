@@ -285,7 +285,6 @@ export default function PumpScannerCard() {
         .rs-blip-1 { animation: rs-blip 2.1s ease-in-out 0.3s infinite; }
         .rs-blip-2 { animation: rs-blip 2.1s ease-in-out 0.9s infinite; }
         .rs-blip-3 { animation: rs-blip 2.1s ease-in-out 1.5s infinite; }
-        .rs-sym    { animation: rs-label 2s ease-in-out var(--d,0s) infinite; }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -494,9 +493,9 @@ export default function PumpScannerCard() {
       )}
 
       {/* ── RADAR SWEEP FOOTER ── */}
-      <div className="flex items-center gap-3 px-2 pt-1 pb-0.5" style={{ borderTop: "1px solid rgba(0,255,180,0.07)" }}>
+      <div className="flex flex-col items-center gap-1.5 pt-1" style={{ borderTop: "1px solid rgba(0,255,180,0.07)" }}>
         {/* Radar orb */}
-        <div style={{ position: "relative", width: 44, height: 44, flexShrink: 0 }}>
+        <div style={{ position: "relative", width: 44, height: 44 }}>
           <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", inset: 0 }}>
             <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(0,255,180,0.15)" strokeWidth="0.8" strokeDasharray="2 6" className="rs-ring" />
             <circle cx="22" cy="22" r="13" fill="none" stroke="rgba(0,255,180,0.10)" strokeWidth="0.7" className="rs-ring" style={{ animationDelay: "0.5s" }} />
@@ -530,30 +529,8 @@ export default function PumpScannerCard() {
             <circle cx="22" cy="22" r="0.8" fill="#00ffb4" />
           </svg>
         </div>
-
-        {/* Scrolling pair labels */}
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            {["BTC","ETH","SOL","BNB","ARB","WIF","PEPE","DOGE","OP","INJ"].map((sym, i) => (
-              <span
-                key={sym}
-                className="rs-sym"
-                style={{
-                  "--d": `${i * 0.18}s`,
-                  fontSize: 8,
-                  fontFamily: "monospace",
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  color: "rgba(0,255,180,0.45)",
-                } as React.CSSProperties}
-              >
-                {sym}
-              </span>
-            ))}
-          </div>
-          <div style={{ fontSize: 8, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.18)", fontFamily: "monospace", marginTop: 3 }}>
-            scanning all USDT pairs
-          </div>
+        <div style={{ fontSize: 8, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.18)", fontFamily: "monospace" }}>
+          scanning all USDT pairs
         </div>
       </div>
 
