@@ -395,6 +395,25 @@ export default function PumpScannerCard() {
                           NEW
                         </span>
                       )}
+                      {tier && (
+                        <div
+                          className="px-1.5 py-0.5 rounded-md"
+                          style={{
+                            background: `color-mix(in oklab, ${tier.color} 15%, transparent)`,
+                            border: `1px solid color-mix(in oklab, ${tier.color} 40%, transparent)`,
+                          }}
+                        >
+                          <span
+                            className="text-[8px] font-black uppercase tracking-widest leading-none"
+                            style={{
+                              color: tier.color,
+                              textShadow: `0 0 6px color-mix(in oklab, ${tier.color} 70%, transparent)`,
+                            }}
+                          >
+                            {tier.label}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                       {date} · {time}
@@ -435,26 +454,6 @@ export default function PumpScannerCard() {
                     </span>
                     <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>/100</span>
                   </div>
-                  {/* Signal tier tag */}
-                  {tier && (
-                    <div
-                      className="px-1.5 py-0.5 rounded-md"
-                      style={{
-                        background: `color-mix(in oklab, ${tier.color} 15%, transparent)`,
-                        border: `1px solid color-mix(in oklab, ${tier.color} 40%, transparent)`,
-                      }}
-                    >
-                      <span
-                        className="text-[8px] font-black uppercase tracking-widest leading-none"
-                        style={{
-                          color: tier.color,
-                          textShadow: `0 0 6px color-mix(in oklab, ${tier.color} 70%, transparent)`,
-                        }}
-                      >
-                        {tier.label}
-                      </span>
-                    </div>
-                  )}
                   {/* Price */}
                   <div className="text-right">
                     <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
