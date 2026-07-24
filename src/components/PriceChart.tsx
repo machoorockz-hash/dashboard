@@ -596,6 +596,9 @@ export function PriceChart({
   return (
     <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
       <style>{`
+        /* ── Hide TradingView attribution logo ─────────────────────────────── */
+        .tv-lightweight-charts a { display:none !important; }
+
         /* ── Header price flash ────────────────────────────────────────────── */
         @keyframes hdr-up   { 0% { color:#00d4a0; text-shadow:0 0 14px rgba(0,212,160,.8); } 100% { color:inherit; text-shadow:none; } }
         @keyframes hdr-down { 0% { color:#ff2d5f; text-shadow:0 0 14px rgba(255,45,95,.8); }  100% { color:inherit; text-shadow:none; } }
