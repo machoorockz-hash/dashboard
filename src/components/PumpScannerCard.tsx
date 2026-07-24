@@ -397,16 +397,20 @@ export default function PumpScannerCard() {
                       )}
                       {tier && (
                         <div
-                          className="px-1.5 py-0.5 rounded-md"
+                          className="px-1.5 rounded-md inline-flex items-center"
                           style={{
+                            paddingTop: "2px",
+                            paddingBottom: "2px",
                             background: `color-mix(in oklab, ${tier.color} 15%, transparent)`,
                             border: `1px solid color-mix(in oklab, ${tier.color} 40%, transparent)`,
+                            lineHeight: 1,
                           }}
                         >
                           <span
-                            className="text-[8px] font-black uppercase tracking-widest leading-none"
+                            className="text-[8px] font-black uppercase tracking-widest"
                             style={{
                               color: tier.color,
+                              lineHeight: 1,
                               textShadow: `0 0 6px color-mix(in oklab, ${tier.color} 70%, transparent)`,
                             }}
                           >
