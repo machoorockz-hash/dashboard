@@ -274,6 +274,18 @@ export default function PumpScannerCard() {
         .ca-node-2  { animation: ca-node 1.8s ease-in-out 0.6s infinite; }
         .ca-node-3  { animation: ca-node 1.8s ease-in-out 1.2s infinite; }
         .ca-arrow   { animation: ca-arrow-glow 2s ease-in-out infinite; }
+
+        /* ── Radar Sweep footer ── */
+        @keyframes rs-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes rs-ring { 0%,100%{opacity:0.15} 50%{opacity:0.45} }
+        @keyframes rs-blip { 0%,100%{opacity:0.15;r:1.5} 50%{opacity:1;r:2.8} }
+        @keyframes rs-label { 0%,100%{opacity:0.35} 50%{opacity:0.9} }
+        .rs-spin { animation: rs-spin 3s linear infinite; transform-origin: 22px 22px; }
+        .rs-ring { animation: rs-ring 2s ease-in-out infinite; }
+        .rs-blip-1 { animation: rs-blip 2.1s ease-in-out 0.3s infinite; }
+        .rs-blip-2 { animation: rs-blip 2.1s ease-in-out 0.9s infinite; }
+        .rs-blip-3 { animation: rs-blip 2.1s ease-in-out 1.5s infinite; }
+        .rs-sym    { animation: rs-label 2s ease-in-out var(--d,0s) infinite; }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -480,6 +492,70 @@ export default function PumpScannerCard() {
           {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
         </div>
       )}
+
+      {/* ── RADAR SWEEP FOOTER ── */}
+      <div className="flex items-center gap-3 px-2 pt-1 pb-0.5" style={{ borderTop: "1px solid rgba(0,255,180,0.07)" }}>
+        {/* Radar orb */}
+        <div style={{ position: "relative", width: 44, height: 44, flexShrink: 0 }}>
+          <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", inset: 0 }}>
+            <circle cx="22" cy="22" r="19" fill="none" stroke="rgba(0,255,180,0.15)" strokeWidth="0.8" strokeDasharray="2 6" className="rs-ring" />
+            <circle cx="22" cy="22" r="13" fill="none" stroke="rgba(0,255,180,0.10)" strokeWidth="0.7" className="rs-ring" style={{ animationDelay: "0.5s" }} />
+            <circle cx="22" cy="22" r="7"  fill="none" stroke="rgba(0,255,180,0.08)" strokeWidth="0.6" className="rs-ring" style={{ animationDelay: "1s" }} />
+            {/* crosshair ticks */}
+            <line x1="22" y1="2"  x2="22" y2="7"  stroke="rgba(0,255,180,0.2)" strokeWidth="0.6" />
+            <line x1="22" y1="37" x2="22" y2="42" stroke="rgba(0,255,180,0.2)" strokeWidth="0.6" />
+            <line x1="2"  y1="22" x2="7"  y2="22" stroke="rgba(0,255,180,0.2)" strokeWidth="0.6" />
+            <line x1="37" y1="22" x2="42" y2="22" stroke="rgba(0,255,180,0.2)" strokeWidth="0.6" />
+          </svg>
+          {/* rotating beam layer */}
+          <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", inset: 0 }}>
+            <defs>
+              <radialGradient id="rs-beam-grad" cx="0%" cy="50%" r="100%">
+                <stop offset="0%"   stopColor="#00ffb4" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#00ffb4" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <g className="rs-spin">
+              <path d="M22,22 L41,22 A19,19,0,0,0,22,3 Z" fill="url(#rs-beam-grad)" opacity="0.35" />
+              <line x1="22" y1="22" x2="41" y2="22" stroke="#00ffb4" strokeWidth="1.2" strokeLinecap="round" opacity="0.85" />
+            </g>
+          </svg>
+          {/* blips */}
+          <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", inset: 0 }}>
+            <circle cx="31" cy="14" r="1.5" fill="#00ffb4" className="rs-blip-1" style={{ filter: "drop-shadow(0 0 3px rgba(0,255,180,0.9))" }} />
+            <circle cx="16" cy="29" r="1.2" fill="#00ffb4" className="rs-blip-2" style={{ filter: "drop-shadow(0 0 3px rgba(0,255,180,0.9))" }} />
+            <circle cx="28" cy="30" r="1.0" fill="#00ffb4" className="rs-blip-3" style={{ filter: "drop-shadow(0 0 3px rgba(0,255,180,0.9))" }} />
+            {/* center dot */}
+            <circle cx="22" cy="22" r="2" fill="none" stroke="rgba(0,255,180,0.7)" strokeWidth="1" />
+            <circle cx="22" cy="22" r="0.8" fill="#00ffb4" />
+          </svg>
+        </div>
+
+        {/* Scrolling pair labels */}
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {["BTC","ETH","SOL","BNB","ARB","WIF","PEPE","DOGE","OP","INJ"].map((sym, i) => (
+              <span
+                key={sym}
+                className="rs-sym"
+                style={{
+                  "--d": `${i * 0.18}s`,
+                  fontSize: 8,
+                  fontFamily: "monospace",
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  color: "rgba(0,255,180,0.45)",
+                } as React.CSSProperties}
+              >
+                {sym}
+              </span>
+            ))}
+          </div>
+          <div style={{ fontSize: 8, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(255,255,255,0.18)", fontFamily: "monospace", marginTop: 3 }}>
+            scanning all USDT pairs
+          </div>
+        </div>
+      </div>
 
     </section>
   );
