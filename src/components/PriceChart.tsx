@@ -608,11 +608,8 @@ export function PriceChart({
         .chart-line-tp    { animation: chart-line-pulse 2s ease-in-out .4s infinite; }
         .chart-line-sl    { animation: chart-line-pulse 2s ease-in-out .8s infinite; }
 
+
         /* ── Live price overlay ─────────────────────────────────────────────  */
-        @keyframes live-line-glow {
-          0%,100% { box-shadow:0 0 6px 1px rgba(94,234,212,.25); opacity:.85; }
-          50%     { box-shadow:0 0 18px 4px rgba(94,234,212,.55),0 0 40px 8px rgba(94,234,212,.18); opacity:1; }
-        }
         @keyframes scan-sweep {
           0%   { transform:translateX(-100%); }
           100% { transform:translateX(350%); }
@@ -621,7 +618,6 @@ export function PriceChart({
           position:absolute; left:0; right:68px; height:1.5px;
           transform:translateY(-50%);
           background:linear-gradient(90deg,transparent 0%,rgba(94,234,212,.15) 5%,rgba(94,234,212,.85) 40%,rgba(94,234,212,.85) 60%,rgba(94,234,212,.15) 95%,transparent 100%);
-          animation:live-line-glow 1.6s ease-in-out infinite;
           pointer-events:none;
         }
         .overlay-live-line::before {
