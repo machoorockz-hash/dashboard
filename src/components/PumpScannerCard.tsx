@@ -124,6 +124,15 @@ function FlareBeamAnimation() {
   );
 }
 
+/** Returns the signal tier label and its matching color for a given score. */
+function getSignalTier(sc: number | null): { label: string; color: string } | null {
+  if (sc === null) return null;
+  if (sc >= 90) return { label: "ELITE",  color: "#f97316" };
+  if (sc >= 85) return { label: "STRONG", color: "#eab308" };
+  if (sc >= 80) return { label: "SIGNAL", color: "#14b8a6" };
+  return null;
+}
+
 export default function PumpScannerCard() {
   const [data, setData] = useState<PumpData | null>(null);
   const [stale, setStale] = useState(false);
@@ -352,6 +361,8 @@ export default function PumpScannerCard() {
                 ? Number(rawScore)
                 : null;
 
+            const tier = getSignalTier(sc);
+
             return (
               <div
                 key={k}
@@ -424,6 +435,26 @@ export default function PumpScannerCard() {
                     </span>
                     <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>/100</span>
                   </div>
+                  {/* Signal tier tag */}
+                  {tier && (
+                    <div
+                      className="px-1.5 py-0.5 rounded-md"
+                      style={{
+                        background: `color-mix(in oklab, ${tier.color} 15%, transparent)`,
+                        border: `1px solid color-mix(in oklab, ${tier.color} 40%, transparent)`,
+                      }}
+                    >
+                      <span
+                        className="text-[8px] font-black uppercase tracking-widest leading-none"
+                        style={{
+                          color: tier.color,
+                          textShadow: `0 0 6px color-mix(in oklab, ${tier.color} 70%, transparent)`,
+                        }}
+                      >
+                        {tier.label}
+                      </span>
+                    </div>
+                  )}
                   {/* Price */}
                   <div className="text-right">
                     <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
