@@ -640,8 +640,8 @@ export function PriceChart({
 
         /* ── Entry line ─────────────────────────────────────────────────────  */
         @keyframes entry-glow {
-          0%,100% { box-shadow:0 0 4px 0 rgba(163,177,194,.2); opacity:.6; }
-          50%     { box-shadow:0 0 12px 2px rgba(163,177,194,.4); opacity:1; }
+          0%,100% { opacity:.6; }
+          50%     { opacity:1; }
         }
         .overlay-entry-line {
           position:absolute; left:0; right:68px; height:1px; transform:translateY(-50%);
@@ -657,8 +657,8 @@ export function PriceChart({
 
         /* ── TP line ────────────────────────────────────────────────────────  */
         @keyframes tp-glow {
-          0%,100% { box-shadow:0 0 6px 0 rgba(0,208,160,.2); opacity:.7; }
-          50%     { box-shadow:0 0 18px 4px rgba(0,208,160,.5); opacity:1; }
+          0%,100% { opacity:.7; }
+          50%     { opacity:1; }
         }
         .overlay-tp-line {
           position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
@@ -672,16 +672,11 @@ export function PriceChart({
           font-size:9px; font-weight:900; color:#00d4a0; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(0,208,160,.5);
         }
-        @keyframes tp-badge-pulse {
-          0%,100% { box-shadow:0 0 0 0 rgba(0,208,160,.4); }
-          50%     { box-shadow:0 0 0 4px rgba(0,208,160,0); }
-        }
-        .overlay-tp-badge { animation:tp-badge-pulse 1.8s ease-in-out infinite; }
 
         /* ── SL line ────────────────────────────────────────────────────────  */
         @keyframes sl-glow {
-          0%,100% { box-shadow:0 0 6px 0 rgba(255,45,95,.2); opacity:.7; }
-          50%     { box-shadow:0 0 18px 4px rgba(255,45,95,.5); opacity:1; }
+          0%,100% { opacity:.7; }
+          50%     { opacity:1; }
         }
         .overlay-sl-line {
           position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
@@ -695,11 +690,6 @@ export function PriceChart({
           font-size:9px; font-weight:900; color:#ff2d5f; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(255,45,95,.5);
         }
-        @keyframes sl-badge-pulse {
-          0%,100% { box-shadow:0 0 0 0 rgba(255,45,95,.4); }
-          50%     { box-shadow:0 0 0 4px rgba(255,45,95,0); }
-        }
-        .overlay-sl-badge { animation:sl-badge-pulse 1.8s ease-in-out .3s infinite; }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
         .overlay-swing-label {
