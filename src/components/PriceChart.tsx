@@ -307,7 +307,7 @@ export function PriceChart({
       wickDownColor:      "#ff2d5f",
       lastPriceAnimation: LastPriceAnimationMode.Disabled,
     });
-    ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
     ema50Ref.current  = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
 
     // ── ZZ upper (current): bright dashed line, current segment only.
