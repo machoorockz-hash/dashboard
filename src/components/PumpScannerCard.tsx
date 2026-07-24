@@ -331,13 +331,13 @@ export default function PumpScannerCard() {
       {data && data.signals.length > 0 ? (
         <div className="pump-scroll flex flex-col gap-2 overflow-y-auto pr-2" style={{ maxHeight: "19rem" }}>
           {data.signals
-            // Drop any row that isn't a real signal (e.g. a heartbeat payload
-            // accidentally stored by the server — those have no symbol/timestamp/score).
+            // Drop rows that are missing the minimum required fields (e.g. a heartbeat
+            // payload accidentally stored by the server). Score is optional — the server
+            // may not return it yet, so we default to 0 when absent.
             .filter((sig) =>
               sig &&
               typeof sig.symbol === "string" && sig.symbol.length > 0 &&
-              typeof sig.timestamp === "string" && sig.timestamp.length > 0 &&
-              typeof sig.score === "number"
+              typeof sig.timestamp === "string" && sig.timestamp.length > 0
             )
             .map((sig) => {
             const k = `${sig.symbol}-${sig.timestamp}`;
@@ -384,18 +384,19 @@ export default function PumpScannerCard() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
-                  {/* Score badge */}
+                  {/* Score badge — score may be absent if server doesn't return it yet; default to 0 */}
+                  {(() => { const sc = sig.score ?? 0; return (
                   <div
                     className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
                     style={{
-                      background: sig.score >= 90
+                      background: sc >= 90
                         ? "linear-gradient(135deg,rgba(249,115,22,0.25),rgba(239,68,68,0.15))"
-                        : sig.score >= 85
+                        : sc >= 85
                         ? "linear-gradient(135deg,rgba(234,179,8,0.22),rgba(249,115,22,0.12))"
                         : "linear-gradient(135deg,rgba(20,184,166,0.20),rgba(16,185,129,0.10))",
-                      border: sig.score >= 90
+                      border: sc >= 90
                         ? "1px solid rgba(249,115,22,0.45)"
-                        : sig.score >= 85
+                        : sc >= 85
                         ? "1px solid rgba(234,179,8,0.40)"
                         : "1px solid rgba(20,184,166,0.35)",
                     }}
@@ -403,20 +404,21 @@ export default function PumpScannerCard() {
                     <span
                       className="text-[10px] font-black tabular-nums leading-none"
                       style={{
-                        color: sig.score >= 90 ? "#f97316"
-                          : sig.score >= 85 ? "#eab308"
+                        color: sc >= 90 ? "#f97316"
+                          : sc >= 85 ? "#eab308"
                           : "#14b8a6",
-                        textShadow: sig.score >= 90
+                        textShadow: sc >= 90
                           ? "0 0 8px rgba(249,115,22,0.7)"
-                          : sig.score >= 85
+                          : sc >= 85
                           ? "0 0 8px rgba(234,179,8,0.6)"
                           : "0 0 8px rgba(20,184,166,0.6)",
                       }}
                     >
-                      {sig.score.toFixed(1)}
+                      {sc > 0 ? sc.toFixed(1) : "—"}
                     </span>
                     <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>/100</span>
                   </div>
+                  ); })()}
                   {/* Price */}
                   <div className="text-right">
                     <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
