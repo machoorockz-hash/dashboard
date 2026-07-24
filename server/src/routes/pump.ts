@@ -6,6 +6,7 @@ interface PumpSignal {
   symbol: string;
   price: number;
   timestamp: string;
+  score: number;
 }
 
 interface PumpStore {
@@ -25,7 +26,7 @@ router.post("/pump/push", (req, res) => {
     return;
   }
 
-  const body = req.body as { symbol?: string; price?: number; heartbeat?: boolean };
+  const body = req.body as { symbol?: string; price?: number; score?: number; timestamp?: string; heartbeat?: boolean };
   const now = new Date().toISOString();
 
   if (!store.has(key)) {
@@ -39,7 +40,12 @@ router.post("/pump/push", (req, res) => {
       res.status(400).json({ error: "invalid payload" });
       return;
     }
-    entry.signals.unshift({ symbol: body.symbol, price: body.price, timestamp: now });
+    entry.signals.unshift({
+      symbol: body.symbol,
+      price: body.price,
+      score: typeof body.score === "number" ? body.score : 0,
+      timestamp: typeof body.timestamp === "string" ? body.timestamp : now,
+    });
     if (entry.signals.length > MAX_SIGNALS) {
       entry.signals = entry.signals.slice(0, MAX_SIGNALS);
     }
