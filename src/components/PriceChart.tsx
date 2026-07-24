@@ -57,6 +57,9 @@ interface ZZChannels {
   currentUpper: LineData[]; currentLower: LineData[];
   // Confirmed swing pivots, for swing-high/low price labels.
   pivots: ZZPivot[];
+  // Current trend direction derived from the last confirmed pivot type.
+  // "btm" pivot → price bounced up → uptrend; "top" pivot → downtrend.
+  trend: "up" | "down";
 }
 
 function computeZigZagChannels(
@@ -199,7 +202,12 @@ function computeZigZagChannels(
 
   const pivotLabels: ZZPivot[] = pivots.map((p) => ({ time: times[p.bar], price: p.price, type: p.type }));
 
-  return { center, upper, lower, currentUpper, currentLower, pivots: pivotLabels };
+  // Last confirmed pivot type tells us the current trend:
+  // the ZZ just made a bottom → price is now heading up → uptrend,
+  // the ZZ just made a top   → price is now heading down → downtrend.
+  const trend: "up" | "down" = last.type === "btm" ? "up" : "down";
+
+  return { center, upper, lower, currentUpper, currentLower, pivots: pivotLabels, trend };
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -362,7 +370,14 @@ export function PriceChart({
       zzPivotsRef.current = [];
       return;
     }
-    const { currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
+    const { currentUpper, currentLower, pivots, trend } = computeZigZagChannels(candlesRef.current);
+
+    // Uptrend  → teal green bands; downtrend → red bands.
+    const upperColor = trend === "up" ? "#00d4a0" : "#ff2d2d";
+    const lowerColor = trend === "up" ? "#009e7a" : "#dc2626";
+    zzUpperCurrentRef.current?.applyOptions({ color: upperColor });
+    zzLowerCurrentRef.current?.applyOptions({ color: lowerColor });
+
     // Only the current (still-forming) segment's bands are drawn —
     // previous, already-confirmed channel bands and the center line are
     // no longer shown.
