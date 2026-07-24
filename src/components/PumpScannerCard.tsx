@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { TrendingUp } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -241,14 +240,58 @@ export default function PumpScannerCard() {
         .fb-orb   { animation: fb-orb   2s ease-in-out infinite; }
         .fb-ring  { animation: fb-ring  2s ease-in-out infinite; }
         .fb-blink { animation: fb-blink 2s ease-in-out infinite; }
+        @keyframes ca-trace {
+          0%   { stroke-dashoffset: 120; opacity: 0.3; }
+          40%  { stroke-dashoffset: 0;   opacity: 1; }
+          80%  { stroke-dashoffset: 0;   opacity: 1; }
+          100% { stroke-dashoffset: -120; opacity: 0.3; }
+        }
+        @keyframes ca-node {
+          0%,100% { fill: rgba(0,255,180,0.2); }
+          50%     { fill: rgba(0,255,180,0.9); filter: drop-shadow(0 0 3px #00ffb4); }
+        }
+        @keyframes ca-arrow-glow {
+          0%,100% { filter: drop-shadow(0 0 3px rgba(0,255,180,0.7)) drop-shadow(0 0 7px rgba(0,255,180,0.3)); }
+          50%     { filter: drop-shadow(0 0 6px rgba(0,255,180,1)) drop-shadow(0 0 14px rgba(0,255,180,0.5)); }
+        }
+        .ca-trace-1 { stroke-dasharray: 120; animation: ca-trace 2.8s ease-in-out infinite; }
+        .ca-trace-2 { stroke-dasharray: 80;  animation: ca-trace 2.8s ease-in-out 0.5s infinite; }
+        .ca-trace-3 { stroke-dasharray: 60;  animation: ca-trace 2.8s ease-in-out 1s infinite; }
+        .ca-node-1  { animation: ca-node 1.8s ease-in-out infinite; }
+        .ca-node-2  { animation: ca-node 1.8s ease-in-out 0.6s infinite; }
+        .ca-node-3  { animation: ca-node 1.8s ease-in-out 1.2s infinite; }
+        .ca-arrow   { animation: ca-arrow-glow 2s ease-in-out infinite; }
       `}</style>
 
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border" style={{ borderColor: "rgba(20,184,166,0.3)", background: "linear-gradient(135deg, rgba(20,184,166,0.25) 0%, rgba(20,184,166,0.10) 50%, transparent 100%)" }}>
-            <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(circle at top left, rgba(20,184,166,0.30), transparent 70%)" }} />
-            <TrendingUp className="relative h-4 w-4 fb-blink" style={{ color: "#14b8a6", filter: "drop-shadow(0 0 4px rgba(20,184,166,0.8))" }} strokeWidth={2.5} />
+          <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border" style={{ borderColor: "rgba(0,255,180,0.25)", background: "linear-gradient(135deg, rgba(0,255,180,0.15) 0%, rgba(0,255,180,0.06) 50%, transparent 100%)" }}>
+            <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(circle at top left, rgba(0,255,180,0.20), transparent 70%)" }} />
+            <svg className="relative" width="18" height="18" viewBox="0 0 88 88">
+              <path d="M14,70 L14,50 L30,50 L30,36" fill="none" stroke="rgba(0,255,180,0.55)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" className="ca-trace-1" />
+              <path d="M74,70 L74,54 L58,54 L58,36" fill="none" stroke="rgba(0,255,180,0.45)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" className="ca-trace-2" />
+              <path d="M44,74 L44,60" fill="none" stroke="rgba(0,255,180,0.50)" strokeWidth="5" strokeLinecap="round" className="ca-trace-3" />
+              <circle cx="14" cy="70" r="5" className="ca-node-1" stroke="rgba(0,255,180,0.6)" strokeWidth="2" />
+              <circle cx="74" cy="70" r="5" className="ca-node-2" stroke="rgba(0,255,180,0.6)" strokeWidth="2" />
+              <circle cx="44" cy="74" r="5" className="ca-node-3" stroke="rgba(0,255,180,0.6)" strokeWidth="2" />
+              <circle cx="30" cy="50" r="4" className="ca-node-2" stroke="rgba(0,255,180,0.5)" strokeWidth="2" />
+              <circle cx="58" cy="54" r="4" className="ca-node-1" stroke="rgba(0,255,180,0.5)" strokeWidth="2" />
+              <g className="ca-arrow">
+                <rect x="38" y="36" width="12" height="28" rx="2" fill="url(#ca-arrow-grad)" />
+                <polygon points="44,6 64,36 24,36" fill="url(#ca-head-grad)" />
+              </g>
+              <defs>
+                <linearGradient id="ca-arrow-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#00ffb4" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#00cc8f" stopOpacity="0.5" />
+                </linearGradient>
+                <linearGradient id="ca-head-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#00ffb4" stopOpacity="1" />
+                  <stop offset="100%" stopColor="#00dd99" stopOpacity="0.8" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
           <span style={{
             fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
