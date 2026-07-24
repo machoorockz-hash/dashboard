@@ -11,6 +11,7 @@ interface PumpSignal {
   symbol: string;
   price: number;
   timestamp: string;
+  score: number;
 }
 
 interface PumpData {
@@ -326,12 +327,48 @@ export default function PumpScannerCard() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
-                    ${formatPrice(sig.price)}
+                <div className="flex flex-col items-end gap-1.5">
+                  {/* Score badge */}
+                  <div
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
+                    style={{
+                      background: sig.score >= 90
+                        ? "linear-gradient(135deg,rgba(249,115,22,0.25),rgba(239,68,68,0.15))"
+                        : sig.score >= 85
+                        ? "linear-gradient(135deg,rgba(234,179,8,0.22),rgba(249,115,22,0.12))"
+                        : "linear-gradient(135deg,rgba(20,184,166,0.20),rgba(16,185,129,0.10))",
+                      border: sig.score >= 90
+                        ? "1px solid rgba(249,115,22,0.45)"
+                        : sig.score >= 85
+                        ? "1px solid rgba(234,179,8,0.40)"
+                        : "1px solid rgba(20,184,166,0.35)",
+                    }}
+                  >
+                    <span
+                      className="text-[10px] font-black tabular-nums leading-none"
+                      style={{
+                        color: sig.score >= 90 ? "#f97316"
+                          : sig.score >= 85 ? "#eab308"
+                          : "#14b8a6",
+                        textShadow: sig.score >= 90
+                          ? "0 0 8px rgba(249,115,22,0.7)"
+                          : sig.score >= 85
+                          ? "0 0 8px rgba(234,179,8,0.6)"
+                          : "0 0 8px rgba(20,184,166,0.6)",
+                      }}
+                    >
+                      {sig.score.toFixed(1)}
+                    </span>
+                    <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>/100</span>
                   </div>
-                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground/60 mt-0.5">
-                    price
+                  {/* Price */}
+                  <div className="text-right">
+                    <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
+                      ${formatPrice(sig.price)}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-muted-foreground/60 mt-0.5">
+                      price
+                    </div>
                   </div>
                 </div>
               </div>
