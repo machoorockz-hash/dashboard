@@ -227,8 +227,7 @@ export function PriceChart({
   const chartRef      = useRef<IChartApi | null>(null);
   const candleRef     = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const ema200Ref     = useRef<ISeriesApi<"Line"> | null>(null);
-  const ema21Ref      = useRef<ISeriesApi<"Line"> | null>(null);
-  const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
+  const ema50Ref      = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
   // Faded full-history upper/lower lines (every past + current channel, dim)
@@ -309,8 +308,7 @@ export function PriceChart({
       lastPriceAnimation: LastPriceAnimationMode.Disabled,
     });
     ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema21Ref.current  = chart.addSeries(LineSeries, { color: "#3b82f6",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema9Ref.current   = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current  = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
 
     // ── ZZ upper (current): bright dashed line, current segment only.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
@@ -339,14 +337,13 @@ export function PriceChart({
     // EMAs are hidden for BTCUSDT — the ZZ channel is the only overlay there.
     if (symbol === "BTCUSDT") {
       ema200Ref.current?.setData([]);
-      ema21Ref.current?.setData([]);
-      ema9Ref.current?.setData([]);
+      ema50Ref.current?.setData([]);
       return;
     }
     const closes = candlesRef.current.map((c) => c.close);
     const times  = candlesRef.current.map((c) => c.time as UTCTimestamp);
     for (const [s, period] of [
-      [ema200Ref.current, 200], [ema21Ref.current, 21], [ema9Ref.current, 9],
+      [ema200Ref.current, 200], [ema50Ref.current, 50],
     ] as [ISeriesApi<"Line"> | null, number][]) {
       if (!s) continue;
       const vals = ema(closes, period);
@@ -754,10 +751,7 @@ export function PriceChart({
                 <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-blue-500 rounded" />EMA 21
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 9
+                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 50
               </span>
             </>}
             {isBtc && <>
