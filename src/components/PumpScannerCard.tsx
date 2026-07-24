@@ -469,7 +469,12 @@ export default function PumpScannerCard() {
                     </span>
                     <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>/100</span>
                   </div>
-
+                  {/* Price */}
+                  <div className="text-right">
+                    <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
+                      ${formatPrice(sig.price)}
+                    </div>
+                  </div>
                 </div>
               </div>
             );
