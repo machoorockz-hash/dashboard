@@ -644,7 +644,7 @@ export function PriceChart({
           50%     { opacity:1; }
         }
         .overlay-entry-line {
-          position:absolute; left:0; right:68px; height:1px; transform:translateY(-50%);
+          position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
           background:repeating-linear-gradient(90deg,rgba(163,177,194,.8) 0 6px,transparent 6px 12px);
           animation:entry-glow 2s ease-in-out infinite; pointer-events:none;
         }
