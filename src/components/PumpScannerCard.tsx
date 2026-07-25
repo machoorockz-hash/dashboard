@@ -400,7 +400,6 @@ export default function PumpScannerCard() {
                       <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
                         {sig.symbol.replace("USDT", "")}
                       </span>
-                      <span className="text-muted-foreground font-normal text-xs">/USDT</span>
                       {isLatest && (
                         <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md bg-primary/20 text-primary border border-primary/30">
                           NEW
