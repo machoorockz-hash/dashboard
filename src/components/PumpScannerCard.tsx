@@ -10,7 +10,6 @@ interface PumpSignal {
   symbol: string;
   price: number;
   timestamp: string;
-  score?: number | null; // optional — server may omit it on older records
 }
 
 interface PumpData {
@@ -122,15 +121,6 @@ function FlareBeamAnimation() {
       </div>
     </div>
   );
-}
-
-/** Returns the signal tier label and its matching color for a given score. */
-function getSignalTier(sc: number | null): { label: string; color: string } | null {
-  if (sc === null) return null;
-  if (sc >= 90) return { label: "ELITE",  color: "#f97316" };
-  if (sc >= 85) return { label: "STRONG", color: "#eab308" };
-  if (sc >= 80) return { label: "SIGNAL", color: "#14b8a6" };
-  return null;
 }
 
 export default function PumpScannerCard() {
@@ -364,16 +354,6 @@ export default function PumpScannerCard() {
             const isLatest = latestKey === k;
             const isNew = newKeys.has(k) && !isLatest;
 
-            // Coerce score to a finite number; treat missing/null/NaN as null so
-            // the badge shows "—" rather than silently hiding a valid 0.
-            const rawScore = sig.score;
-            const sc: number | null =
-              rawScore != null && isFinite(Number(rawScore))
-                ? Number(rawScore)
-                : null;
-
-            const tier = getSignalTier(sc);
-
             return (
               <div
                 key={k}
@@ -400,29 +380,6 @@ export default function PumpScannerCard() {
                       <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
                         {sig.symbol.replace("USDT", "")}
                       </span>
-                      {tier && (
-                        <div
-                          className="px-1.5 rounded-md inline-flex items-center"
-                          style={{
-                            paddingTop: "2px",
-                            paddingBottom: "2px",
-                            background: `color-mix(in oklab, ${tier.color} 15%, transparent)`,
-                            border: `1px solid color-mix(in oklab, ${tier.color} 40%, transparent)`,
-                            lineHeight: 1,
-                          }}
-                        >
-                          <span
-                            className="text-[8px] font-black uppercase tracking-widest"
-                            style={{
-                              color: tier.color,
-                              lineHeight: 1,
-                              textShadow: `0 0 6px color-mix(in oklab, ${tier.color} 70%, transparent)`,
-                            }}
-                          >
-                            {tier.label}
-                          </span>
-                        </div>
-                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                       {date} · {time}
@@ -430,39 +387,6 @@ export default function PumpScannerCard() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
-                  {/* Score badge */}
-                  <div
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
-                    style={{
-                      background: sc !== null && sc >= 90
-                        ? "linear-gradient(135deg,rgba(249,115,22,0.25),rgba(239,68,68,0.15))"
-                        : sc !== null && sc >= 85
-                        ? "linear-gradient(135deg,rgba(234,179,8,0.22),rgba(249,115,22,0.12))"
-                        : "linear-gradient(135deg,rgba(20,184,166,0.20),rgba(16,185,129,0.10))",
-                      border: sc !== null && sc >= 90
-                        ? "1px solid rgba(249,115,22,0.45)"
-                        : sc !== null && sc >= 85
-                        ? "1px solid rgba(234,179,8,0.40)"
-                        : "1px solid rgba(20,184,166,0.35)",
-                    }}
-                  >
-                    <span
-                      className="text-[10px] font-black tabular-nums leading-none"
-                      style={{
-                        color: sc !== null && sc >= 90 ? "#f97316"
-                          : sc !== null && sc >= 85 ? "#eab308"
-                          : "#14b8a6",
-                        textShadow: sc !== null && sc >= 90
-                          ? "0 0 8px rgba(249,115,22,0.7)"
-                          : sc !== null && sc >= 85
-                          ? "0 0 8px rgba(234,179,8,0.6)"
-                          : "0 0 8px rgba(20,184,166,0.6)",
-                      }}
-                    >
-                      {sc !== null ? sc.toFixed(1) : "—"}
-                    </span>
-                    <span className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>/100</span>
-                  </div>
                   {/* Price */}
                   <div className="text-right">
                     <div className={`font-black text-xs tabular-nums ${isLatest ? "text-primary" : "text-emerald-400"}`}>
