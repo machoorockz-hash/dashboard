@@ -123,7 +123,12 @@ function FlareBeamAnimation() {
   );
 }
 
-export default function PumpScannerCard() {
+// ── NEW: accept an optional callback so the parent can react to coin clicks ──
+interface PumpScannerCardProps {
+  onCoinSelect?: (symbol: string) => void;
+}
+
+export default function PumpScannerCard({ onCoinSelect }: PumpScannerCardProps) {
   const [data, setData] = useState<PumpData | null>(null);
   const [stale, setStale] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
@@ -231,6 +236,17 @@ export default function PumpScannerCard() {
         }
         .pump-scroll::-webkit-scrollbar-thumb:hover {
           background: color-mix(in oklab, var(--primary) 65%, transparent);
+        }
+        .pump-row-clickable {
+          cursor: pointer;
+          transition: filter 0.15s ease, transform 0.15s ease;
+        }
+        .pump-row-clickable:hover {
+          filter: brightness(1.15);
+          transform: scale(1.01);
+        }
+        .pump-row-clickable:active {
+          transform: scale(0.99);
         }
         @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fb-orb {
@@ -357,13 +373,15 @@ export default function PumpScannerCard() {
             return (
               <div
                 key={k}
-                className={`relative flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 overflow-hidden ${
+                className={`pump-row-clickable relative flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 overflow-hidden ${
                   isLatest
                     ? "pump-latest pump-latest-shimmer border-primary/50 bg-gradient-to-r from-primary/10 to-primary/5"
                     : isNew
                     ? "pump-new border-emerald-500/40 bg-emerald-500/[0.08]"
                     : "border-border bg-muted/20"
                 }`}
+                onClick={() => onCoinSelect?.(sig.symbol)}
+                title={`View ${sig.symbol.replace("USDT", "")} chart`}
               >
                 {isLatest && (
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -403,7 +421,7 @@ export default function PumpScannerCard() {
       {/* ── SIGNAL COUNT FOOTER ── */}
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
-          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first
+          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first · tap to view chart
         </div>
       )}
 
