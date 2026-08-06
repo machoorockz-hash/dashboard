@@ -6,7 +6,7 @@ const PUMP_KEY = import.meta.env.VITE_PUMP_KEY ?? "pump";
 const POLL_MS = 5_000;
 const STALE_MS = 10_000;
 
-interface PumpSignal {
+export interface PumpSignal {
   symbol: string;
   price: number;
   timestamp: string;
@@ -126,9 +126,10 @@ function FlareBeamAnimation() {
 // ── NEW: accept an optional callback so the parent can react to coin clicks ──
 interface PumpScannerCardProps {
   onCoinSelect?: (symbol: string) => void;
+  onLatestSignalsChange?: (signals: PumpSignal[]) => void;
 }
 
-export default function PumpScannerCard({ onCoinSelect }: PumpScannerCardProps) {
+export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }: PumpScannerCardProps) {
   const [data, setData] = useState<PumpData | null>(null);
   const [stale, setStale] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
@@ -145,6 +146,18 @@ export default function PumpScannerCard({ onCoinSelect }: PumpScannerCardProps) 
         const json: PumpData = await r.json();
         lastFetchRef.current = Date.now();
         setStale(false);
+
+        // Keep one signal per coin, selecting the newest timestamp. The
+        // parent uses this to place a marker on the matching chart candle.
+        const latestBySymbol = new Map<string, PumpSignal>();
+        for (const signal of json.signals) {
+          if (!signal || typeof signal.symbol !== "string" || typeof signal.timestamp !== "string") continue;
+          const previous = latestBySymbol.get(signal.symbol);
+          if (!previous || Date.parse(signal.timestamp) >= Date.parse(previous.timestamp)) {
+            latestBySymbol.set(signal.symbol, signal);
+          }
+        }
+        onLatestSignalsChange?.(Array.from(latestBySymbol.values()));
 
         const incoming = new Set<string>();
         let newestKey: string | null = null;
