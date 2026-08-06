@@ -285,6 +285,7 @@ interface Props {
   symbol: string; interval?: Interval; height?: number;
   onIntervalChange?: (i: Interval) => void; onSymbolChange?: (s: string) => void;
   showIntervalControls?: boolean; searchable?: boolean; priceLines?: PriceLineSpec[];
+  signalTimestamp?: string | number | null;
 }
 
 interface OverlayLine {
@@ -297,7 +298,7 @@ interface OverlayLine {
 export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
-  showIntervalControls = true, searchable = false, priceLines,
+  showIntervalControls = true, searchable = false, priceLines, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -325,10 +326,12 @@ export function PriceChart({
   const entryLineRef   = useRef<HTMLDivElement>(null);
   const tpLineRef      = useRef<HTMLDivElement>(null);
   const slLineRef      = useRef<HTMLDivElement>(null);
+  const signalMarkerRef = useRef<HTMLDivElement>(null);
 
   // ── Price refs (used inside RAF without stale closure) ────────────────────
   const livePriceRef   = useRef<number | null>(null);
   const symbolRef      = useRef(symbol);
+  const signalTimestampRef = useRef<string | number | null>(null);
 
   const [iv, setIv]              = useState<Interval>(interval);
   const [search, setSearch]      = useState("");
@@ -339,6 +342,9 @@ export function PriceChart({
 
   useEffect(() => setIv(interval), [interval]);
   useEffect(() => { symbolRef.current = symbol; }, [symbol]);
+  useEffect(() => {
+    signalTimestampRef.current = signalTimestamp ?? null;
+  }, [signalTimestamp]);
 
   // ── Chart init ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -519,6 +525,7 @@ export function PriceChart({
     let alive = true, ws: WebSocket | null = null;
     setLivePrice(null);
     livePriceRef.current = null;
+    if (signalMarkerRef.current) signalMarkerRef.current.style.display = "none";
     (async () => {
       try {
         const data = await getKlines({ data: { symbol, interval: iv, limit: 1000 } });
@@ -609,6 +616,54 @@ export function PriceChart({
       return el;
     }
 
+    function positionSignalMarker() {
+      const el = signalMarkerRef.current;
+      const chart = chartRef.current;
+      const series = candleRef.current;
+      const timestamp = signalTimestampRef.current;
+      const candles = candlesRef.current;
+
+      if (!el || !chart || !series || timestamp == null || candles.length === 0) {
+        if (el) el.style.display = "none";
+        return;
+      }
+
+      const numericTimestamp = typeof timestamp === "number"
+        ? (timestamp > 1_000_000_000_000 ? timestamp / 1000 : timestamp)
+        : Date.parse(timestamp) / 1000;
+      if (!Number.isFinite(numericTimestamp)) {
+        el.style.display = "none";
+        return;
+      }
+
+      let candle: CandlestickData | undefined;
+      for (let i = 0; i < candles.length; i++) {
+        const start = candles[i].time as number;
+        const nextStart = i + 1 < candles.length ? candles[i + 1].time as number : Infinity;
+        if (numericTimestamp >= start && numericTimestamp < nextStart) {
+          candle = candles[i];
+          break;
+        }
+      }
+
+      if (!candle) {
+        el.style.display = "none";
+        return;
+      }
+
+      const rect = el.parentElement?.getBoundingClientRect();
+      const x = chart.timeScale().timeToCoordinate(candle.time);
+      const y = series.priceToCoordinate(candle.high);
+      if (x === null || y === null || !rect || x < 0 || x > rect.width || y < 0 || y > rect.height) {
+        el.style.display = "none";
+        return;
+      }
+
+      el.style.display = "flex";
+      el.style.left = `${Math.round(x)}px`;
+      el.style.top = `${Math.round(y)}px`;
+    }
+
     function positionSwingLabels() {
       const container = zzLabelsContainerRef.current;
       if (!container) return;
@@ -657,6 +712,10 @@ export function PriceChart({
       positionLine(entryLineRef.current, entry?.price ?? null, !!entry);
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
+
+      // Pump signal marker — one orange S on the candle containing the
+      // latest signal timestamp for the currently selected symbol.
+      positionSignalMarker();
 
       // Swing high/low price labels — one per confirmed pivot, positioned
       // via the chart's own time/price coordinate mapping so they always
@@ -780,6 +839,15 @@ export function PriceChart({
         }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
+        .overlay-signal-marker {
+          position:absolute; display:none; align-items:center; justify-content:center;
+          transform:translate(-50%,-115%); pointer-events:none; z-index:4;
+          width:18px; height:18px; border-radius:5px;
+          background:#f97316; border:1px solid #fed7aa; color:#1c0a00;
+          box-shadow:0 0 10px rgba(249,115,22,.75), 0 2px 5px rgba(0,0,0,.45);
+          font-size:11px; font-weight:1000; line-height:1;
+        }
+
         .overlay-swing-label {
           position:absolute; display:none; align-items:center; gap:4px;
           transform:translate(-50%,-50%); pointer-events:none; z-index:3;
@@ -914,6 +982,9 @@ export function PriceChart({
             <div className="overlay-sl-line" />
             <div className="overlay-sl-badge">▼ STOP LOSS</div>
           </div>
+
+          {/* Latest pump signal marker (positioned on the matching candle) */}
+          <div ref={signalMarkerRef} className="overlay-signal-marker">S</div>
 
           {/* Swing high/low price labels (populated imperatively in RAF) */}
           <div ref={zzLabelsContainerRef} className="absolute inset-0" />
