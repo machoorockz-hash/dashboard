@@ -1011,7 +1011,7 @@ export default function Dashboard() {
 
         <BtcCrashCard />
 
-        <PumpScannerCard />
+        <PumpScannerCard onCoinSelect={(sym) => setChartSymbol(sym)} />
 
         <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
       </div>
