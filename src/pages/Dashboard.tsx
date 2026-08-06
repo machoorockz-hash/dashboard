@@ -5,7 +5,7 @@ import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
-import PumpScannerCard from "../components/PumpScannerCard";
+import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -619,10 +619,32 @@ export default function Dashboard() {
   }, [flash]);
 
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
+  const [pumpSignalsBySymbol, setPumpSignalsBySymbol] = useState<Record<string, PumpSignal>>({});
+
   useEffect(() => {
     if (orderSymbol) setChartSymbol(orderSymbol);
     else setChartSymbol("BTCUSDT");
   }, [orderSymbol]);
+
+  const handleLatestPumpSignals = (signals: PumpSignal[]) => {
+    setPumpSignalsBySymbol((previous) => {
+      let changed = false;
+      const next = { ...previous };
+
+      for (const signal of signals) {
+        const key = signal.symbol.toUpperCase();
+        const existing = next[key];
+        if (!existing || Date.parse(signal.timestamp) >= Date.parse(existing.timestamp)) {
+          if (!existing || existing.timestamp !== signal.timestamp) {
+            next[key] = signal;
+            changed = true;
+          }
+        }
+      }
+
+      return changed ? next : previous;
+    });
+  };
 
   const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
@@ -1011,9 +1033,20 @@ export default function Dashboard() {
 
         <BtcCrashCard />
 
-        <PumpScannerCard onCoinSelect={(sym) => setChartSymbol(sym)} />
+        <PumpScannerCard
+          onCoinSelect={(sym) => setChartSymbol(sym)}
+          onLatestSignalsChange={handleLatestPumpSignals}
+        />
 
-        <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
+        <PriceChart
+          symbol={chartSymbol}
+          interval="1m"
+          height={500}
+          searchable
+          onSymbolChange={setChartSymbol}
+          priceLines={chartLines}
+          signalTimestamp={pumpSignalsBySymbol[chartSymbol.toUpperCase()]?.timestamp ?? null}
+        />
       </div>
     </AppLayout>
   );
