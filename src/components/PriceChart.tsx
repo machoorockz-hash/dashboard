@@ -12,6 +12,42 @@ import { CoinIcon } from "./CoinIcon";
 type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 export const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
+const DUBAI_TIME_ZONE = "Asia/Dubai";
+
+function formatDubaiTime(time: unknown): string {
+  let timestampSeconds: number;
+
+  if (typeof time === "number") {
+    timestampSeconds = time;
+  } else if (typeof time === "string") {
+    timestampSeconds = Date.parse(time) / 1000;
+  } else if (
+    time &&
+    typeof time === "object" &&
+    "year" in time &&
+    "month" in time &&
+    "day" in time
+  ) {
+    const businessDay = time as { year: number; month: number; day: number };
+    timestampSeconds = Date.UTC(
+      businessDay.year,
+      businessDay.month - 1,
+      businessDay.day,
+    ) / 1000;
+  } else {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: DUBAI_TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(timestampSeconds * 1000));
+}
+
 function ema(values: number[], period: number): (number | undefined)[] {
   const k = 2 / (period + 1);
   const out: (number | undefined)[] = new Array(values.length).fill(undefined);
@@ -182,8 +218,8 @@ function computeZigZagChannels(
   // ── Project the current (still-forming) channel forward past the last
   // real candle, out to empty space on the right of the chart — matching
   // how TradingView keeps drawing an unfinished trend line/channel into the
-  // future until price actually breaks it. Same slope, same channel width
-  // (lastMaxUp/lastMaxDn), just continued for extensionBars more bars.
+  // future until price actually breaks it. Same slope, same channel width,
+  // just continued for extensionBars more bars.
   const segLen = (n - 1) - last.bar;
   if (segLen > 0) {
     const slope = (closes[n - 1] - last.price) / segLen; // price change per bar
@@ -281,6 +317,9 @@ export function PriceChart({
         textColor: "#a3b1c2",
         fontFamily: "ui-sans-serif,system-ui",
       },
+      localization: {
+        timeFormatter: formatDubaiTime,
+      },
       grid: {
         vertLines: { color: "rgba(255,255,255,0.04)" },
         horzLines: { color: "rgba(255,255,255,0.04)" },
@@ -292,6 +331,7 @@ export function PriceChart({
       timeScale: {
         borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true, secondsVisible: false,
+        tickMarkFormatter: formatDubaiTime,
         // minBarSpacing capped how far fitContent() could compress bars to
         // fit everything into view — on a narrow mobile viewport, 1000
         // candles at 4px each need ~4000px, so it couldn't fit them all and
