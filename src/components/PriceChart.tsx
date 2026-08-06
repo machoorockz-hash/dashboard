@@ -14,7 +14,7 @@ export const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
 const DUBAI_TIME_ZONE = "Asia/Dubai";
 
-function formatDubaiTime(time: unknown): string {
+function getDubaiDateParts(time: unknown) {
   let timestampSeconds: number;
 
   if (typeof time === "number") {
@@ -35,17 +35,50 @@ function formatDubaiTime(time: unknown): string {
       businessDay.day,
     ) / 1000;
   } else {
-    return "";
+    return null;
   }
 
-  return new Intl.DateTimeFormat("en-GB", {
+  const date = new Date(timestampSeconds * 1000);
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: DUBAI_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
-  }).format(new Date(timestampSeconds * 1000));
+    hour12: true,
+  }).formatToParts(date);
+
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return {
+    month: getPart("month"),
+    day: getPart("day"),
+    year: getPart("year"),
+    hour: getPart("hour"),
+    minute: getPart("minute"),
+    dayPeriod: getPart("dayPeriod"),
+  };
+}
+
+function formatDubaiTime(time: unknown): string {
+  const parts = getDubaiDateParts(time);
+  if (!parts) return "";
+  return `${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+}
+
+function formatDubaiTick(time: unknown, tickMarkType?: unknown): string {
+  const parts = getDubaiDateParts(time);
+  if (!parts) return "";
+
+  // lightweight-charts marks the first tick of a new calendar day with
+  // tickMarkType 2 (DayOfMonth). Show the date only at that boundary.
+  if (tickMarkType === 2) {
+    return `${parts.month.toUpperCase()} ${parts.day}`;
+  }
+
+  return `${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
 }
 
 function ema(values: number[], period: number): (number | undefined)[] {
@@ -331,7 +364,7 @@ export function PriceChart({
       timeScale: {
         borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true, secondsVisible: false,
-        tickMarkFormatter: formatDubaiTime,
+        tickMarkFormatter: formatDubaiTick,
         // minBarSpacing capped how far fitContent() could compress bars to
         // fit everything into view — on a narrow mobile viewport, 1000
         // candles at 4px each need ~4000px, so it couldn't fit them all and
