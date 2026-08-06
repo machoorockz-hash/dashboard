@@ -1,9 +1,6 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./pages/Dashboard";
-import TradePage from "./pages/TradePage";
-import AssetsPage from "./pages/AssetsPage";
-import LiveChartPage from "./pages/LiveChartPage";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
@@ -14,9 +11,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/trade" component={TradePage} />
-      <Route path="/assets" component={AssetsPage} />
-      <Route path="/live-chart" component={LiveChartPage} />
       <Route component={NotFound} />
     </Switch>
   );
