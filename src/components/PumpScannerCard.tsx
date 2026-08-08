@@ -134,6 +134,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
   const [stale, setStale] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
   const [latestKey, setLatestKey] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const seenRef = useRef<Set<string>>(new Set());
   const lastFetchRef = useRef<number>(0);
 
@@ -261,6 +262,11 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
         .pump-row-clickable:active {
           transform: scale(0.99);
         }
+        .pump-row-selected {
+          border-color: color-mix(in oklab, var(--primary) 75%, transparent) !important;
+          background: color-mix(in oklab, var(--primary) 16%, transparent) !important;
+          box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent), 0 0 14px color-mix(in oklab, var(--primary) 18%, transparent);
+        }
         @keyframes fb-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes fb-orb {
           0%,100% { box-shadow: 0 0 4px 2px color-mix(in oklab,silver 25%,transparent), 0 0 8px 3px color-mix(in oklab,silver 10%,transparent); }
@@ -382,18 +388,25 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
             const { date, time } = toUAE(sig.timestamp);
             const isLatest = latestKey === k;
             const isNew = newKeys.has(k) && !isLatest;
+            const isSelected = selectedSymbol === sig.symbol;
 
             return (
               <div
                 key={k}
                 className={`pump-row-clickable relative flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 overflow-hidden ${
-                  isLatest
+                  isSelected
+                    ? "pump-row-selected"
+                    : isLatest
                     ? "pump-latest pump-latest-shimmer border-primary/50 bg-gradient-to-r from-primary/10 to-primary/5"
                     : isNew
                     ? "pump-new border-emerald-500/40 bg-emerald-500/[0.08]"
                     : "border-border bg-muted/20"
                 }`}
-                onClick={() => onCoinSelect?.(sig.symbol)}
+                onClick={() => {
+                  setSelectedSymbol(sig.symbol);
+                  onCoinSelect?.(sig.symbol);
+                }}
+                aria-pressed={isSelected}
                 title={`View ${sig.symbol.replace("USDT", "")} chart`}
               >
                 {isLatest && (
