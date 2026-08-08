@@ -134,7 +134,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
   const [stale, setStale] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
   const [latestKey, setLatestKey] = useState<string | null>(null);
-  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
   const seenRef = useRef<Set<string>>(new Set());
   const lastFetchRef = useRef<number>(0);
 
@@ -383,16 +383,17 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
               typeof sig.symbol === "string" && sig.symbol.length > 0 &&
               typeof sig.timestamp === "string" && sig.timestamp.length > 0
             )
-            .map((sig) => {
+            .map((sig, index) => {
             const k = `${sig.symbol}-${sig.timestamp}`;
+            const rowKey = `${k}-${index}`;
             const { date, time } = toUAE(sig.timestamp);
-            const isLatest = latestKey === k;
+            const isLatest = selectedRowKey === null && latestKey === k;
             const isNew = newKeys.has(k) && !isLatest;
-            const isSelected = selectedSymbol === sig.symbol;
+            const isSelected = selectedRowKey === rowKey;
 
             return (
               <div
-                key={k}
+                key={rowKey}
                 className={`pump-row-clickable relative flex items-center justify-between rounded-xl border px-3 py-2.5 shrink-0 overflow-hidden ${
                   isSelected
                     ? "pump-row-selected"
@@ -403,7 +404,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
                     : "border-border bg-muted/20"
                 }`}
                 onClick={() => {
-                  setSelectedSymbol(sig.symbol);
+                  setSelectedRowKey(rowKey);
                   onCoinSelect?.(sig.symbol);
                 }}
                 aria-pressed={isSelected}
