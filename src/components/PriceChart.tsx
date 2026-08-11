@@ -9,8 +9,8 @@ import { Search } from "lucide-react";
 import { getKlines } from "../lib/binance";
 import { CoinIcon } from "./CoinIcon";
 
-type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
-export const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
+type Interval = "1m" | "3m" | "5m" | "15m" | "1h" | "4h" | "1d";
+export const INTERVALS: Interval[] = ["1m", "3m", "5m", "15m", "1h", "4h", "1d"];
 
 const DUBAI_TIME_ZONE = "Asia/Dubai";
 
@@ -296,7 +296,7 @@ interface OverlayLine {
 }
 
 export function PriceChart({
-  symbol, interval = "5m", height = 460,
+  symbol, interval = "3m", height = 460,
   onIntervalChange, onSymbolChange,
   showIntervalControls = true, searchable = false, priceLines, signalTimestamp,
 }: Props) {
