@@ -333,14 +333,14 @@ export function PriceChart({
   const symbolRef      = useRef(symbol);
   const signalTimestampRef = useRef<string | number | null>(null);
 
-  const [iv, setIv]              = useState<Interval>(interval);
+  const [iv, setIv]              = useState<Interval>(interval === "1m" ? "5m" : interval);
   const [search, setSearch]      = useState("");
   const [livePrice, setLivePrice] = useState<number | null>(null);
   const [flash, setFlash]        = useState<"up" | "down" | null>(null);
 
   const base = symbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
 
-  useEffect(() => setIv(interval), [interval]);
+  useEffect(() => setIv(interval === "1m" ? "5m" : interval), [interval]);
   useEffect(() => { symbolRef.current = symbol; }, [symbol]);
   useEffect(() => {
     signalTimestampRef.current = signalTimestamp ?? null;
