@@ -296,7 +296,7 @@ interface OverlayLine {
 }
 
 export function PriceChart({
-  symbol, interval = "1m", height = 460,
+  symbol, interval = "5m", height = 460,
   onIntervalChange, onSymbolChange,
   showIntervalControls = true, searchable = false, priceLines, signalTimestamp,
 }: Props) {
