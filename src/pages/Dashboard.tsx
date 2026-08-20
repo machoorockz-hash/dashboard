@@ -1031,6 +1031,11 @@ export default function Dashboard() {
           )}
         </section>
 
+        <PumpScannerCard
+          onCoinSelect={(sym) => setChartSymbol(sym)}
+          onLatestSignalsChange={handleLatestPumpSignals}
+        />
+
         <PriceChart
           symbol={chartSymbol}
           interval="1m"
@@ -1039,11 +1044,6 @@ export default function Dashboard() {
           onSymbolChange={setChartSymbol}
           priceLines={chartLines}
           signalTimestamp={pumpSignalsBySymbol[chartSymbol.toUpperCase()]?.timestamp ?? null}
-        />
-
-        <PumpScannerCard
-          onCoinSelect={(sym) => setChartSymbol(sym)}
-          onLatestSignalsChange={handleLatestPumpSignals}
         />
 
         <BtcCrashCard />
