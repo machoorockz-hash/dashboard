@@ -2,17 +2,22 @@ import { Router, type Response } from "express";
 
 const router = Router();
 
-const PRIVATE_BASES = [
-  "https://api-gcp.binance.com",
-  "https://api1.binance.com",
-  "https://api2.binance.com",
-  "https://api3.binance.com",
-  "https://api.binance.com",
-];
+// Use one Binance API host. Falling through several hosts after a transient
+// response sends the same signed request to Binance multiple times and can
+// turn a busy service into a weight ban. Set BINANCE_API_BASE only if Binance
+// has told you to use a different official API host for your region.
+const PRIVATE_BASE = (process.env.BINANCE_API_BASE ?? "https://api.binance.com").replace(/\/+$/, "");
 const BINANCE_TIMEOUT_MS = 9_000;
-// Do not retry rate-limit, WAF, or regional responses against every host.
-// Doing so multiplies request weight and can turn a 429 into an IP ban (418).
-const RETRYABLE_STATUSES = new Set([500, 502, 503, 504]);
+const PRIVATE_MIN_INTERVAL_MS = 250;
+const PRIVATE_WEIGHT_WINDOW_MS = 60_000;
+// Keep a deliberately conservative local budget. Binance's limit is shared
+// by every process using the same public IP, so this is a safety ceiling, not
+// a replacement for checking the Binance API response headers.
+const configuredWeightBudget = Number(process.env.BINANCE_WEIGHT_BUDGET ?? 1_000);
+const PRIVATE_WEIGHT_BUDGET =
+  Number.isFinite(configuredWeightBudget) && configuredWeightBudget > 0
+    ? configuredWeightBudget
+    : 1_000;
 
 interface BinanceErrorBody {
   code?: number;
@@ -23,16 +28,23 @@ class BinanceRequestError extends Error {
   readonly code: number | string | null;
   readonly status: number | null;
   readonly endpoint: string;
+  readonly retryAfterMs: number | null;
 
   constructor(
     message: string,
-    details: { code?: number | string | null; status?: number | null; endpoint: string },
+    details: {
+      code?: number | string | null;
+      status?: number | null;
+      endpoint: string;
+      retryAfterMs?: number | null;
+    },
   ) {
     super(message);
     this.name = "BinanceRequestError";
     this.code = details.code ?? null;
     this.status = details.status ?? null;
     this.endpoint = details.endpoint;
+    this.retryAfterMs = details.retryAfterMs ?? null;
   }
 }
 
@@ -54,17 +66,86 @@ async function hmacSha256Hex(secret: string, msg: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function privateRequestWeight(path: string): number {
+  if (path.endsWith("/account")) return 20;
+  // These calls omit symbol, or request historical trades, so use the
+  // conservative Spot API weights rather than the lighter symbol-specific
+  // values.
+  if (path.endsWith("/openOrders")) return 6;
+  if (path.endsWith("/myTrades")) return 20;
+  return 1;
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+let privateQueue = Promise.resolve();
+let nextPrivateRequestAt = 0;
+const recentPrivateWeights: Array<{ at: number; weight: number }> = [];
+
+/**
+ * Serialises signed calls and keeps a conservative rolling weight budget.
+ * This protects the shared Render egress IP even when several browser tabs,
+ * routes, or history requests refresh at the same time.
+ */
+async function schedulePrivate<T>(path: string, task: () => Promise<T>): Promise<T> {
+  const run = privateQueue.then(async () => {
+    const weight = privateRequestWeight(path);
+
+    for (;;) {
+      const now = Date.now();
+      while (recentPrivateWeights.length > 0 &&
+        now - recentPrivateWeights[0].at >= PRIVATE_WEIGHT_WINDOW_MS) {
+        recentPrivateWeights.shift();
+      }
+
+      const used = recentPrivateWeights.reduce((sum, item) => sum + item.weight, 0);
+      const budgetWait = used + weight > PRIVATE_WEIGHT_BUDGET && recentPrivateWeights.length > 0
+        ? recentPrivateWeights[0].at + PRIVATE_WEIGHT_WINDOW_MS - now
+        : 0;
+      const spacingWait = Math.max(0, nextPrivateRequestAt - now);
+      const waitMs = Math.max(budgetWait, spacingWait);
+      if (waitMs <= 0) break;
+      await sleep(waitMs);
+    }
+
+    const reservedAt = Date.now();
+    recentPrivateWeights.push({ at: reservedAt, weight });
+    nextPrivateRequestAt = reservedAt + PRIVATE_MIN_INTERVAL_MS;
+    return task();
+  });
+
+  // Keep the queue alive after a failed request, while returning the failure
+  // to the caller that owns this request.
+  privateQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
+
+const privateInFlight = new Map<string, Promise<unknown>>();
+
+function privateCacheTtl(path: string): number {
+  if (path.endsWith("/account")) return 30_000;
+  if (path.endsWith("/openOrders")) return 15_000;
+  if (path.endsWith("/myTrades")) return 30_000;
+  return 10_000;
+}
+
 async function signedGet<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const { apiKey, apiSecret } = getKeys();
-  let lastError: unknown = null;
-  const deadline = Date.now() + BINANCE_TIMEOUT_MS;
+  const serializedParams = Object.entries(params)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join("&");
+  const cacheKey = `private:${path}?${serializedParams}`;
 
-  for (const base of PRIVATE_BASES) {
-    const remainingMs = deadline - Date.now();
-    if (remainingMs <= 0) break;
+  const cached = getCache<T>(cacheKey);
+  if (cached !== undefined) return cached;
 
-    // Rebuild the signed query for each endpoint attempt. This keeps the
-    // timestamp fresh if a previous Binance host was slow or unavailable.
+  const existing = privateInFlight.get(cacheKey);
+  if (existing) return existing as Promise<T>;
+
+  const request = schedulePrivate(path, async () => {
     const q = new URLSearchParams({
       ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
       recvWindow: "10000",
@@ -73,9 +154,9 @@ async function signedGet<T>(path: string, params: Record<string, string | number
     q.append("signature", await hmacSha256Hex(apiSecret, q.toString()));
 
     try {
-      const res = await fetch(`${base}${path}?${q.toString()}`, {
+      const res = await fetch(`${PRIVATE_BASE}${path}?${q.toString()}`, {
         headers: { "X-MBX-APIKEY": apiKey },
-        signal: AbortSignal.timeout(remainingMs),
+        signal: AbortSignal.timeout(BINANCE_TIMEOUT_MS),
       });
       const text = await res.text();
 
@@ -104,38 +185,51 @@ async function signedGet<T>(path: string, params: Record<string, string | number
       }
 
       const message = body?.msg || text || `HTTP ${res.status}`;
-      const error = new BinanceRequestError(message, {
+      const bannedUntil = message.match(/banned until\s+(\d+)/i)?.[1];
+      const retryAfterMs = bannedUntil
+        ? Math.max(0, Number(bannedUntil) - Date.now())
+        : (res.status === 418 || res.status === 429 ? 60_000 : null);
+      throw new BinanceRequestError(message, {
         code: body?.code,
         status: res.status,
         endpoint: path,
+        retryAfterMs,
       });
-      lastError = error;
-      if (!RETRYABLE_STATUSES.has(res.status)) throw error;
     } catch (err) {
-      lastError = err;
-      if (err instanceof BinanceRequestError && err.status !== null && !RETRYABLE_STATUSES.has(err.status)) {
-        throw err;
-      }
+      if (err instanceof BinanceRequestError) throw err;
+      const message = err instanceof Error ? err.message : String(err);
+      throw new BinanceRequestError(
+        message.includes("aborted") || message.includes("timeout")
+          ? `Binance ${path} timed out after ${BINANCE_TIMEOUT_MS / 1000}s`
+          : `Binance ${path} network request failed: ${message}`,
+        { code: "NETWORK_ERROR", status: null, endpoint: path },
+      );
     }
-  }
+  }).then((data) => {
+    setCache(cacheKey, data, privateCacheTtl(path));
+    return data;
+  });
 
-  if (lastError instanceof BinanceRequestError) throw lastError;
-  const message = lastError instanceof Error ? lastError.message : String(lastError ?? "request failed");
-  throw new BinanceRequestError(
-    message.includes("aborted") || message.includes("timeout")
-      ? `Binance ${path} timed out after ${BINANCE_TIMEOUT_MS / 1000}s`
-      : `Binance ${path} network request failed: ${message}`,
-    { code: "NETWORK_ERROR", status: null, endpoint: path },
-  );
+  privateInFlight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    privateInFlight.delete(cacheKey);
+  }
 }
 
 function sendBinanceError(res: Response, err: unknown) {
   if (err instanceof BinanceRequestError) {
-    res.status(502).json({
+    const rateLimited = err.code === -1003 || err.status === 418 || err.status === 429;
+    if (err.retryAfterMs != null) {
+      res.setHeader("Retry-After", Math.max(1, Math.ceil(err.retryAfterMs / 1000)));
+    }
+    res.status(rateLimited ? 429 : 502).json({
       error: err.message,
       code: err.code,
       upstreamStatus: err.status,
       endpoint: err.endpoint,
+      retryAfterMs: err.retryAfterMs,
     });
     return;
   }
@@ -144,12 +238,6 @@ function sendBinanceError(res: Response, err: unknown) {
     error: err instanceof Error ? err.message : String(err),
     code: "BINANCE_REQUEST_FAILED",
   });
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 async function batchSettled<T>(
@@ -273,9 +361,9 @@ router.get("/binance/account", async (_req, res) => {
       .map((b) => ({ asset: b.asset, free: parseFloat(b.free), locked: parseFloat(b.locked) }))
       .filter((b) => b.free + b.locked > 0);
     const payload = { balances, canTrade: acc.canTrade, accountType: acc.accountType };
-    // One Binance account is configured for this service. A short cache keeps
-    // multiple browser tabs from multiplying signed request weight.
-    setCache("account", payload, 5_000);
+    // One Binance account is configured for this service. Keep this longer
+    // than the UI poll interval so tabs share one signed request.
+    setCache("account", payload, 30_000);
     res.json(payload);
   } catch (err) {
     sendBinanceError(res, err);
@@ -299,7 +387,7 @@ router.get("/binance/openOrders", async (_req, res) => {
       executedQty: string; status: string; type: string; side: string;
       stopPrice: string; time: number;
     }>>("/api/v3/openOrders");
-    setCache("openOrders", orders, 5_000);
+    setCache("openOrders", orders, 15_000);
     res.json(orders);
   } catch (err) {
     sendBinanceError(res, err);
@@ -346,14 +434,16 @@ router.get("/binance/allTrades", async (_req, res) => {
       signedGet<RawTrade[]>("/api/v3/myTrades", { symbol: `${asset}USDT`, limit: 500 })
     );
 
-    const results = await batchSettled(fns, 3, 400);
+    // History is intentionally low priority: never burst requests for every
+    // held asset, even when this card is opened alongside the dashboard.
+    const results = await batchSettled(fns, 2, 1_000);
 
     const allTrades = results
       .filter((r): r is PromiseFulfilledResult<RawTrade[]> => r.status === "fulfilled")
       .flatMap((r) => r.value)
       .sort((a, b) => b.time - a.time);
 
-    setCache("allTrades", allTrades, 3 * 60 * 1000);
+    setCache("allTrades", allTrades, 15 * 60 * 1000);
     res.json(allTrades);
   } catch (err) {
     sendBinanceError(res, err);
