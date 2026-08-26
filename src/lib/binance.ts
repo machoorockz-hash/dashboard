@@ -5,16 +5,23 @@ export class BinanceClientError extends Error {
   readonly status: number | null;
   readonly code: number | string | null;
   readonly endpoint: string;
+  readonly retryAfterMs: number | null;
 
   constructor(
     message: string,
-    details: { status?: number | null; code?: number | string | null; endpoint: string },
+    details: {
+      status?: number | null;
+      code?: number | string | null;
+      endpoint: string;
+      retryAfterMs?: number | null;
+    },
   ) {
     super(message);
     this.name = "BinanceClientError";
     this.status = details.status ?? null;
     this.code = details.code ?? null;
     this.endpoint = details.endpoint;
+    this.retryAfterMs = details.retryAfterMs ?? null;
   }
 }
 
@@ -45,10 +52,17 @@ async function fetchJson<T>(url: string, endpoint: string, init?: RequestInit): 
       const displayMessage = code !== null && code !== undefined
         ? `[${String(code)}] ${message}`
         : message;
+      const bodyRetryAfter = record.retryAfterMs;
+      const retryAfterMs = typeof bodyRetryAfter === "number"
+        ? bodyRetryAfter
+        : response.headers.get("retry-after")
+        ? Number(response.headers.get("retry-after")) * 1000
+        : null;
       throw new BinanceClientError(displayMessage, {
         status: response.status,
         code,
         endpoint,
+        retryAfterMs: Number.isFinite(retryAfterMs) ? retryAfterMs : null,
       });
     }
 
