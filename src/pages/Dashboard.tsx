@@ -6,7 +6,7 @@ import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
-import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
+import { BinanceClientError, getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -29,6 +29,17 @@ function fmtPrice(p: number) {
   if (p >= 1) return fmt(p, 4);
   if (p >= 0.01) return fmt(p, 5);
   return fmt(p, 6);
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return "Unable to reach Binance";
+}
+
+function isRateLimitError(error: unknown): boolean {
+  if (!(error instanceof BinanceClientError)) return false;
+  return error.code === -1003 || error.code === 418 || error.code === 429
+    || error.status === 418 || error.status === 429;
 }
 
 /** Format a unix-ms timestamp into UAE (Asia/Dubai, UTC+4) date & time strings */
@@ -436,7 +447,12 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     refetchOnMount: "always",
     // Safety-net polling so the card eventually corrects itself even if a
     // refetch trigger is missed (e.g. tab stays focused the whole time).
-    refetchInterval: querySymbol ? 10_000 : false,
+    refetchInterval: (query) => isRateLimitError(query.state.error)
+      ? 60_000
+      : querySymbol
+      ? 10_000
+      : false,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
 
   // Track transitions from "has an active order" -> "no active order". That
@@ -558,9 +574,24 @@ function useClock() {
 }
 
 export default function Dashboard() {
-  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const account = useQuery({
+    queryKey: ["account"],
+    queryFn: () => getAccount(),
+    refetchInterval: (query) => isRateLimitError(query.state.error) ? 60_000 : 15_000,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
+  });
+  const orders = useQuery({
+    queryKey: ["openOrders"],
+    queryFn: () => getOpenOrders(),
+    refetchInterval: (query) => isRateLimitError(query.state.error) ? 60_000 : 8_000,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
+  });
+  const prices = useQuery({
+    queryKey: ["prices"],
+    queryFn: () => getAllPrices(),
+    refetchInterval: 5_000,
+    retry: 1,
+  });
   const dcaData = useDcaData();
   const clockTime = useClock();
 
@@ -577,6 +608,7 @@ export default function Dashboard() {
     queryFn: () => getMyTrades({ data: { symbol: orderSymbol!, limit: 200 } }),
     enabled: !!orderSymbol,
     refetchInterval: 60_000,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
 
   // Last closed trade — shown when no active order
@@ -821,7 +853,7 @@ export default function Dashboard() {
                   >
                     {/* Gradient text via CSS class — NOT inline styles, avoids React serialisation bugs */}
                     <span className="bal-text text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums">
-                      {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
+                      {account.isLoading ? "…" : account.isError ? "—" : `$${fmt(animatedTotal)}`}
                     </span>
 
                     {/* Shimmer sweep */}
@@ -844,8 +876,18 @@ export default function Dashboard() {
                 className="mt-1.5 text-base md:text-lg font-bold tabular-nums"
                 style={{ color: "color-mix(in oklab, var(--muted-foreground) 75%, transparent)" }}
               >
-                {account.isLoading ? "…" : `≈ AED ${fmt(animatedTotal * AED_RATE)}`}
+                {account.isLoading ? "…" : account.isError ? "Connection failed" : `≈ AED ${fmt(animatedTotal * AED_RATE)}`}
               </div>
+              {account.isLoading && (
+                <div className="mt-2 text-xs font-semibold text-muted-foreground">
+                  Loading Binance balance…
+                </div>
+              )}
+              {account.isError && (
+                <div className="mt-2 rounded-lg border border-bear/30 bg-bear/10 px-3 py-2 text-xs font-semibold text-bear">
+                  Connection failed: {errorMessage(account.error)}
+                </div>
+              )}
             </div>
 
 
@@ -923,7 +965,17 @@ export default function Dashboard() {
               : "border-border"
           }`}
         >
-          {primary ? (
+          {orders.isLoading ? (
+            <TradeState
+              title="Loading active trades…"
+              message="Checking your open Binance orders."
+            />
+          ) : orders.isError ? (
+            <TradeState
+              title="Connection failed"
+              message={errorMessage(orders.error)}
+            />
+          ) : primary ? (
             <>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
               <div className="relative flex items-center justify-between gap-3 flex-wrap">
@@ -1113,6 +1165,16 @@ function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
           <span className="text-muted-foreground">{time} <span className="text-[10px] font-bold uppercase tracking-widest ml-0.5">UAE</span></span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TradeState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="py-10 text-center">
+      <Activity className="h-10 w-10 mx-auto text-muted-foreground/40" />
+      <h2 className="mt-3 text-xl font-black">{title}</h2>
+      <p className="text-sm text-muted-foreground mt-1">{message}</p>
     </div>
   );
 }
