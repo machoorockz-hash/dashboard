@@ -4,7 +4,15 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 0, retry: 2 } },
+  defaultOptions: {
+    queries: {
+      // Binance private endpoints are weight-limited. Do not create hidden
+      // retry bursts when a component has not supplied its own policy.
+      staleTime: 30_000,
+      retry: 0,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 function Router() {
