@@ -10,7 +10,9 @@ const PRIVATE_BASES = [
   "https://api.binance.com",
 ];
 const BINANCE_TIMEOUT_MS = 9_000;
-const RETRYABLE_STATUSES = new Set([403, 418, 429, 451, 500, 502, 503, 504]);
+// Do not retry rate-limit, WAF, or regional responses against every host.
+// Doing so multiplies request weight and can turn a 429 into an IP ban (418).
+const RETRYABLE_STATUSES = new Set([500, 502, 503, 504]);
 
 interface BinanceErrorBody {
   code?: number;
@@ -252,6 +254,16 @@ router.get("/coin-logo/:symbol", async (req, res) => {
 
 router.get("/binance/account", async (_req, res) => {
   try {
+    const cached = getCache<{
+      balances: Array<{ asset: string; free: number; locked: number }>;
+      canTrade: boolean;
+      accountType: string;
+    }>("account");
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
       canTrade: boolean;
@@ -260,7 +272,11 @@ router.get("/binance/account", async (_req, res) => {
     const balances = acc.balances
       .map((b) => ({ asset: b.asset, free: parseFloat(b.free), locked: parseFloat(b.locked) }))
       .filter((b) => b.free + b.locked > 0);
-    res.json({ balances, canTrade: acc.canTrade, accountType: acc.accountType });
+    const payload = { balances, canTrade: acc.canTrade, accountType: acc.accountType };
+    // One Binance account is configured for this service. A short cache keeps
+    // multiple browser tabs from multiplying signed request weight.
+    setCache("account", payload, 5_000);
+    res.json(payload);
   } catch (err) {
     sendBinanceError(res, err);
   }
@@ -268,11 +284,22 @@ router.get("/binance/account", async (_req, res) => {
 
 router.get("/binance/openOrders", async (_req, res) => {
   try {
+    const cached = getCache<Array<{
+      symbol: string; orderId: number; price: string; origQty: string;
+      executedQty: string; status: string; type: string; side: string;
+      stopPrice: string; time: number;
+    }>>("openOrders");
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const orders = await signedGet<Array<{
       symbol: string; orderId: number; price: string; origQty: string;
       executedQty: string; status: string; type: string; side: string;
       stopPrice: string; time: number;
     }>>("/api/v3/openOrders");
+    setCache("openOrders", orders, 5_000);
     res.json(orders);
   } catch (err) {
     sendBinanceError(res, err);
