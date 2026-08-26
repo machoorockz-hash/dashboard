@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+import { Router } from "express";
 
 const router = Router();
 
@@ -9,32 +9,6 @@ const PRIVATE_BASES = [
   "https://api3.binance.com",
   "https://api.binance.com",
 ];
-const BINANCE_TIMEOUT_MS = 9_000;
-// Do not retry rate-limit, WAF, or regional responses against every host.
-// Doing so multiplies request weight and can turn a 429 into an IP ban (418).
-const RETRYABLE_STATUSES = new Set([500, 502, 503, 504]);
-
-interface BinanceErrorBody {
-  code?: number;
-  msg?: string;
-}
-
-class BinanceRequestError extends Error {
-  readonly code: number | string | null;
-  readonly status: number | null;
-  readonly endpoint: string;
-
-  constructor(
-    message: string,
-    details: { code?: number | string | null; status?: number | null; endpoint: string },
-  ) {
-    super(message);
-    this.name = "BinanceRequestError";
-    this.code = details.code ?? null;
-    this.status = details.status ?? null;
-    this.endpoint = details.endpoint;
-  }
-}
 
 function getKeys() {
   const apiKey = process.env.BINANCE_API_KEY;
@@ -56,94 +30,23 @@ async function hmacSha256Hex(secret: string, msg: string): Promise<string> {
 
 async function signedGet<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const { apiKey, apiSecret } = getKeys();
-  let lastError: unknown = null;
-  const deadline = Date.now() + BINANCE_TIMEOUT_MS;
-
-  for (const base of PRIVATE_BASES) {
-    const remainingMs = deadline - Date.now();
-    if (remainingMs <= 0) break;
-
-    // Rebuild the signed query for each endpoint attempt. This keeps the
-    // timestamp fresh if a previous Binance host was slow or unavailable.
-    const q = new URLSearchParams({
-      ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
-      recvWindow: "10000",
-      timestamp: String(Date.now()),
-    });
-    q.append("signature", await hmacSha256Hex(apiSecret, q.toString()));
-
-    try {
-      const res = await fetch(`${base}${path}?${q.toString()}`, {
-        headers: { "X-MBX-APIKEY": apiKey },
-        signal: AbortSignal.timeout(remainingMs),
-      });
-      const text = await res.text();
-
-      let body: BinanceErrorBody | null = null;
-      try {
-        body = text ? JSON.parse(text) as BinanceErrorBody : null;
-      } catch {
-        // Keep the raw response below when Binance did not return JSON.
-      }
-
-      if (res.ok) {
-        if (!text) {
-          throw new BinanceRequestError("Binance returned an empty response", {
-            status: res.status,
-            endpoint: path,
-          });
-        }
-        try {
-          return JSON.parse(text) as T;
-        } catch {
-          throw new BinanceRequestError("Binance returned invalid JSON", {
-            status: res.status,
-            endpoint: path,
-          });
-        }
-      }
-
-      const message = body?.msg || text || `HTTP ${res.status}`;
-      const error = new BinanceRequestError(message, {
-        code: body?.code,
-        status: res.status,
-        endpoint: path,
-      });
-      lastError = error;
-      if (!RETRYABLE_STATUSES.has(res.status)) throw error;
-    } catch (err) {
-      lastError = err;
-      if (err instanceof BinanceRequestError && err.status !== null && !RETRYABLE_STATUSES.has(err.status)) {
-        throw err;
-      }
-    }
-  }
-
-  if (lastError instanceof BinanceRequestError) throw lastError;
-  const message = lastError instanceof Error ? lastError.message : String(lastError ?? "request failed");
-  throw new BinanceRequestError(
-    message.includes("aborted") || message.includes("timeout")
-      ? `Binance ${path} timed out after ${BINANCE_TIMEOUT_MS / 1000}s`
-      : `Binance ${path} network request failed: ${message}`,
-    { code: "NETWORK_ERROR", status: null, endpoint: path },
-  );
-}
-
-function sendBinanceError(res: Response, err: unknown) {
-  if (err instanceof BinanceRequestError) {
-    res.status(502).json({
-      error: err.message,
-      code: err.code,
-      upstreamStatus: err.status,
-      endpoint: err.endpoint,
-    });
-    return;
-  }
-
-  res.status(502).json({
-    error: err instanceof Error ? err.message : String(err),
-    code: "BINANCE_REQUEST_FAILED",
+  const q = new URLSearchParams({
+    ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
+    recvWindow: "10000",
+    timestamp: String(Date.now()),
   });
+  q.append("signature", await hmacSha256Hex(apiSecret, q.toString()));
+
+  let lastError = "";
+  for (const base of PRIVATE_BASES) {
+    const res = await fetch(`${base}${path}?${q.toString()}`, {
+      headers: { "X-MBX-APIKEY": apiKey },
+    });
+    if (res.ok) return res.json() as Promise<T>;
+    lastError = `${base} ${res.status}`;
+    if (![451, 403, 418, 429, 500, 502, 503, 504].includes(res.status)) break;
+  }
+  throw new Error(`Binance ${path} failed: ${lastError}`);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -254,16 +157,6 @@ router.get("/coin-logo/:symbol", async (req, res) => {
 
 router.get("/binance/account", async (_req, res) => {
   try {
-    const cached = getCache<{
-      balances: Array<{ asset: string; free: number; locked: number }>;
-      canTrade: boolean;
-      accountType: string;
-    }>("account");
-    if (cached) {
-      res.json(cached);
-      return;
-    }
-
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
       canTrade: boolean;
@@ -272,37 +165,22 @@ router.get("/binance/account", async (_req, res) => {
     const balances = acc.balances
       .map((b) => ({ asset: b.asset, free: parseFloat(b.free), locked: parseFloat(b.locked) }))
       .filter((b) => b.free + b.locked > 0);
-    const payload = { balances, canTrade: acc.canTrade, accountType: acc.accountType };
-    // One Binance account is configured for this service. A short cache keeps
-    // multiple browser tabs from multiplying signed request weight.
-    setCache("account", payload, 5_000);
-    res.json(payload);
+    res.json({ balances, canTrade: acc.canTrade, accountType: acc.accountType });
   } catch (err) {
-    sendBinanceError(res, err);
+    res.status(502).json({ error: String(err) });
   }
 });
 
 router.get("/binance/openOrders", async (_req, res) => {
   try {
-    const cached = getCache<Array<{
-      symbol: string; orderId: number; price: string; origQty: string;
-      executedQty: string; status: string; type: string; side: string;
-      stopPrice: string; time: number;
-    }>>("openOrders");
-    if (cached) {
-      res.json(cached);
-      return;
-    }
-
     const orders = await signedGet<Array<{
       symbol: string; orderId: number; price: string; origQty: string;
       executedQty: string; status: string; type: string; side: string;
       stopPrice: string; time: number;
     }>>("/api/v3/openOrders");
-    setCache("openOrders", orders, 5_000);
     res.json(orders);
   } catch (err) {
-    sendBinanceError(res, err);
+    res.status(502).json({ error: String(err) });
   }
 });
 
@@ -318,7 +196,7 @@ router.get("/binance/myTrades", async (req, res) => {
     }>>("/api/v3/myTrades", { symbol: symbol.toUpperCase(), limit });
     res.json(trades);
   } catch (err) {
-    sendBinanceError(res, err);
+    res.status(502).json({ error: String(err) });
   }
 });
 
@@ -356,7 +234,7 @@ router.get("/binance/allTrades", async (_req, res) => {
     setCache("allTrades", allTrades, 3 * 60 * 1000);
     res.json(allTrades);
   } catch (err) {
-    sendBinanceError(res, err);
+    res.status(502).json({ error: String(err) });
   }
 });
 
