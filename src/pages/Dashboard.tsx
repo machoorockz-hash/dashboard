@@ -42,6 +42,20 @@ function isRateLimitError(error: unknown): boolean {
     || error.status === 418 || error.status === 429;
 }
 
+function safePollInterval(
+  error: unknown,
+  normalInterval: number | false,
+): number | false {
+  if (!isRateLimitError(error)) return normalInterval;
+  const retryAfterMs = error instanceof BinanceClientError ? error.retryAfterMs : null;
+  // Honour Binance's ban window instead of probing once per minute while the
+  // IP is blocked. The small buffer avoids a request landing on the boundary.
+  return Math.min(
+    24 * 60 * 60 * 1000,
+    Math.max(60_000, (retryAfterMs ?? 5 * 60_000) + 2_000),
+  );
+}
+
 /** Format a unix-ms timestamp into UAE (Asia/Dubai, UTC+4) date & time strings */
 function fmtUAE(ts: number): { date: string; time: string } {
   const dtf_date = new Intl.DateTimeFormat("en-GB", {
@@ -440,18 +454,17 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
     enabled: !!querySymbol,
     staleTime: 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     // Always refetch fresh data on mount/symbol-change instead of trusting a
     // cached result — otherwise a coin that was traded before can keep
     // showing its previous closed-trade details.
     refetchOnMount: "always",
     // Safety-net polling so the card eventually corrects itself even if a
     // refetch trigger is missed (e.g. tab stays focused the whole time).
-    refetchInterval: (query) => isRateLimitError(query.state.error)
-      ? 60_000
-      : querySymbol
-      ? 10_000
-      : false,
+    refetchInterval: (query) => safePollInterval(
+      query.state.error,
+      querySymbol ? 60_000 : false,
+    ),
     retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
 
@@ -577,20 +590,20 @@ export default function Dashboard() {
   const account = useQuery({
     queryKey: ["account"],
     queryFn: () => getAccount(),
-    refetchInterval: (query) => isRateLimitError(query.state.error) ? 60_000 : 15_000,
+    refetchInterval: (query) => safePollInterval(query.state.error, 30_000),
     retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
   const orders = useQuery({
     queryKey: ["openOrders"],
     queryFn: () => getOpenOrders(),
-    refetchInterval: (query) => isRateLimitError(query.state.error) ? 60_000 : 8_000,
+    refetchInterval: (query) => safePollInterval(query.state.error, 15_000),
     retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
   const prices = useQuery({
     queryKey: ["prices"],
     queryFn: () => getAllPrices(),
-    refetchInterval: 5_000,
-    retry: 1,
+    refetchInterval: 15_000,
+    retry: 0,
   });
   const dcaData = useDcaData();
   const clockTime = useClock();
@@ -607,7 +620,7 @@ export default function Dashboard() {
     queryKey: ["trades", orderSymbol],
     queryFn: () => getMyTrades({ data: { symbol: orderSymbol!, limit: 200 } }),
     enabled: !!orderSymbol,
-    refetchInterval: 60_000,
+    refetchInterval: (query) => safePollInterval(query.state.error, 60_000),
     retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
 
