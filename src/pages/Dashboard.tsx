@@ -6,7 +6,7 @@ import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
-import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
+import { BinanceClientError, getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -34,6 +34,12 @@ function fmtPrice(p: number) {
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
   return "Unable to reach Binance";
+}
+
+function isRateLimitError(error: unknown): boolean {
+  if (!(error instanceof BinanceClientError)) return false;
+  return error.code === -1003 || error.code === 418 || error.code === 429
+    || error.status === 418 || error.status === 429;
 }
 
 /** Format a unix-ms timestamp into UAE (Asia/Dubai, UTC+4) date & time strings */
@@ -441,7 +447,12 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     refetchOnMount: "always",
     // Safety-net polling so the card eventually corrects itself even if a
     // refetch trigger is missed (e.g. tab stays focused the whole time).
-    refetchInterval: querySymbol ? 10_000 : false,
+    refetchInterval: (query) => isRateLimitError(query.state.error)
+      ? 60_000
+      : querySymbol
+      ? 10_000
+      : false,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
 
   // Track transitions from "has an active order" -> "no active order". That
@@ -563,9 +574,24 @@ function useClock() {
 }
 
 export default function Dashboard() {
-  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const account = useQuery({
+    queryKey: ["account"],
+    queryFn: () => getAccount(),
+    refetchInterval: (query) => isRateLimitError(query.state.error) ? 60_000 : 15_000,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
+  });
+  const orders = useQuery({
+    queryKey: ["openOrders"],
+    queryFn: () => getOpenOrders(),
+    refetchInterval: (query) => isRateLimitError(query.state.error) ? 60_000 : 8_000,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
+  });
+  const prices = useQuery({
+    queryKey: ["prices"],
+    queryFn: () => getAllPrices(),
+    refetchInterval: 5_000,
+    retry: 1,
+  });
   const dcaData = useDcaData();
   const clockTime = useClock();
 
@@ -582,6 +608,7 @@ export default function Dashboard() {
     queryFn: () => getMyTrades({ data: { symbol: orderSymbol!, limit: 200 } }),
     enabled: !!orderSymbol,
     refetchInterval: 60_000,
+    retry: (failureCount, error) => !isRateLimitError(error) && failureCount < 1,
   });
 
   // Last closed trade — shown when no active order
