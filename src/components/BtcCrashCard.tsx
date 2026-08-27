@@ -801,7 +801,7 @@ export function BtcCrashCard() {
         {/* ═══════════════ PRESSURE / DROP ═══════════════ */}
         <div style={{ position: "relative", zIndex: 2 }}>
           <div style={{
-            display: "grid", gridTemplateColumns: "36px 1fr 90px 68px",
+            display: "grid", gridTemplateColumns: "36px 1fr 90px auto",
             padding: "10px 20px 6px", gap: "8px",
           }}>
             {["", "PRESSURE", "PEAK", "DROP"].map((h, i) => (
@@ -821,7 +821,7 @@ export function BtcCrashCard() {
               <div
                 key={t}
                 style={{
-                  display: "grid", gridTemplateColumns: "36px 1fr 90px 68px",
+                  display: "grid", gridTemplateColumns: "36px 1fr 90px auto",
                   gap: "8px", alignItems: "center",
                   padding: "7px 20px",
                   borderTop: "1px solid rgba(255,255,255,0.038)",
