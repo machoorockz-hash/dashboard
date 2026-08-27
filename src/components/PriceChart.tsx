@@ -12,6 +12,75 @@ import { CoinIcon } from "./CoinIcon";
 type Interval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 export const INTERVALS: Interval[] = ["1m", "5m", "15m", "1h", "4h", "1d"];
 
+const DUBAI_TIME_ZONE = "Asia/Dubai";
+
+function getDubaiDateParts(time: unknown) {
+  let timestampSeconds: number;
+
+  if (typeof time === "number") {
+    timestampSeconds = time;
+  } else if (typeof time === "string") {
+    timestampSeconds = Date.parse(time) / 1000;
+  } else if (
+    time &&
+    typeof time === "object" &&
+    "year" in time &&
+    "month" in time &&
+    "day" in time
+  ) {
+    const businessDay = time as { year: number; month: number; day: number };
+    timestampSeconds = Date.UTC(
+      businessDay.year,
+      businessDay.month - 1,
+      businessDay.day,
+    ) / 1000;
+  } else {
+    return null;
+  }
+
+  const date = new Date(timestampSeconds * 1000);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: DUBAI_TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(date);
+
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return {
+    month: getPart("month"),
+    day: getPart("day"),
+    year: getPart("year"),
+    hour: getPart("hour"),
+    minute: getPart("minute"),
+    dayPeriod: getPart("dayPeriod"),
+  };
+}
+
+function formatDubaiTime(time: unknown): string {
+  const parts = getDubaiDateParts(time);
+  if (!parts) return "";
+  return `${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+}
+
+function formatDubaiTick(time: unknown, tickMarkType?: unknown): string {
+  const parts = getDubaiDateParts(time);
+  if (!parts) return "";
+
+  // lightweight-charts marks the first tick of a new calendar day with
+  // tickMarkType 2 (DayOfMonth). Show the date only at that boundary.
+  if (tickMarkType === 2) {
+    return `${parts.month.toUpperCase()} ${parts.day}`;
+  }
+
+  return `${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+}
+
 function ema(values: number[], period: number): (number | undefined)[] {
   const k = 2 / (period + 1);
   const out: (number | undefined)[] = new Array(values.length).fill(undefined);
@@ -57,6 +126,9 @@ interface ZZChannels {
   currentUpper: LineData[]; currentLower: LineData[];
   // Confirmed swing pivots, for swing-high/low price labels.
   pivots: ZZPivot[];
+  // Current trend direction derived from the last confirmed pivot type.
+  // "btm" pivot → price bounced up → uptrend; "top" pivot → downtrend.
+  trend: "up" | "down";
 }
 
 function computeZigZagChannels(
@@ -179,8 +251,8 @@ function computeZigZagChannels(
   // ── Project the current (still-forming) channel forward past the last
   // real candle, out to empty space on the right of the chart — matching
   // how TradingView keeps drawing an unfinished trend line/channel into the
-  // future until price actually breaks it. Same slope, same channel width
-  // (lastMaxUp/lastMaxDn), just continued for extensionBars more bars.
+  // future until price actually breaks it. Same slope, same channel width,
+  // just continued for extensionBars more bars.
   const segLen = (n - 1) - last.bar;
   if (segLen > 0) {
     const slope = (closes[n - 1] - last.price) / segLen; // price change per bar
@@ -199,7 +271,12 @@ function computeZigZagChannels(
 
   const pivotLabels: ZZPivot[] = pivots.map((p) => ({ time: times[p.bar], price: p.price, type: p.type }));
 
-  return { center, upper, lower, currentUpper, currentLower, pivots: pivotLabels };
+  // Last confirmed pivot type tells us the current trend:
+  // the ZZ just made a bottom → price is now heading up → uptrend,
+  // the ZZ just made a top   → price is now heading down → downtrend.
+  const trend: "up" | "down" = last.type === "btm" ? "up" : "down";
+
+  return { center, upper, lower, currentUpper, currentLower, pivots: pivotLabels, trend };
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -208,6 +285,7 @@ interface Props {
   symbol: string; interval?: Interval; height?: number;
   onIntervalChange?: (i: Interval) => void; onSymbolChange?: (s: string) => void;
   showIntervalControls?: boolean; searchable?: boolean; priceLines?: PriceLineSpec[];
+  signalTimestamp?: string | number | null;
 }
 
 interface OverlayLine {
@@ -220,15 +298,14 @@ interface OverlayLine {
 export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
-  showIntervalControls = true, searchable = false, priceLines,
+  showIntervalControls = true, searchable = false, priceLines, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
   const chartRef      = useRef<IChartApi | null>(null);
   const candleRef     = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const ema200Ref     = useRef<ISeriesApi<"Line"> | null>(null);
-  const ema21Ref      = useRef<ISeriesApi<"Line"> | null>(null);
-  const ema9Ref       = useRef<ISeriesApi<"Line"> | null>(null);
+  const ema50Ref      = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
   // Faded full-history upper/lower lines (every past + current channel, dim)
@@ -249,10 +326,12 @@ export function PriceChart({
   const entryLineRef   = useRef<HTMLDivElement>(null);
   const tpLineRef      = useRef<HTMLDivElement>(null);
   const slLineRef      = useRef<HTMLDivElement>(null);
+  const signalMarkerRef = useRef<HTMLDivElement>(null);
 
   // ── Price refs (used inside RAF without stale closure) ────────────────────
   const livePriceRef   = useRef<number | null>(null);
   const symbolRef      = useRef(symbol);
+  const signalTimestampRef = useRef<string | number | null>(null);
 
   const [iv, setIv]              = useState<Interval>(interval);
   const [search, setSearch]      = useState("");
@@ -263,6 +342,9 @@ export function PriceChart({
 
   useEffect(() => setIv(interval), [interval]);
   useEffect(() => { symbolRef.current = symbol; }, [symbol]);
+  useEffect(() => {
+    signalTimestampRef.current = signalTimestamp ?? null;
+  }, [signalTimestamp]);
 
   // ── Chart init ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -273,6 +355,9 @@ export function PriceChart({
         background: { color: "transparent" },
         textColor: "#a3b1c2",
         fontFamily: "ui-sans-serif,system-ui",
+      },
+      localization: {
+        timeFormatter: formatDubaiTime,
       },
       grid: {
         vertLines: { color: "rgba(255,255,255,0.04)" },
@@ -285,6 +370,7 @@ export function PriceChart({
       timeScale: {
         borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true, secondsVisible: false,
+        tickMarkFormatter: formatDubaiTick,
         // minBarSpacing capped how far fitContent() could compress bars to
         // fit everything into view — on a narrow mobile viewport, 1000
         // candles at 4px each need ~4000px, so it couldn't fit them all and
@@ -308,9 +394,8 @@ export function PriceChart({
       wickDownColor:      "#ff2d5f",
       lastPriceAnimation: LastPriceAnimationMode.Disabled,
     });
-    ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema21Ref.current  = chart.addSeries(LineSeries, { color: "#3b82f6",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema9Ref.current   = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current  = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
 
     // ── ZZ upper (current): bright dashed line, current segment only.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
@@ -339,14 +424,13 @@ export function PriceChart({
     // EMAs are hidden for BTCUSDT — the ZZ channel is the only overlay there.
     if (symbol === "BTCUSDT") {
       ema200Ref.current?.setData([]);
-      ema21Ref.current?.setData([]);
-      ema9Ref.current?.setData([]);
+      ema50Ref.current?.setData([]);
       return;
     }
     const closes = candlesRef.current.map((c) => c.close);
     const times  = candlesRef.current.map((c) => c.time as UTCTimestamp);
     for (const [s, period] of [
-      [ema200Ref.current, 200], [ema21Ref.current, 21], [ema9Ref.current, 9],
+      [ema200Ref.current, 200], [ema50Ref.current, 50],
     ] as [ISeriesApi<"Line"> | null, number][]) {
       if (!s) continue;
       const vals = ema(closes, period);
@@ -365,7 +449,14 @@ export function PriceChart({
       zzPivotsRef.current = [];
       return;
     }
-    const { currentUpper, currentLower, pivots } = computeZigZagChannels(candlesRef.current);
+    const { currentUpper, currentLower, pivots, trend } = computeZigZagChannels(candlesRef.current);
+
+    // Uptrend  → teal green bands; downtrend → red bands.
+    const upperColor = trend === "up" ? "#00d4a0" : "#ff2d2d";
+    const lowerColor = trend === "up" ? "#009e7a" : "#dc2626";
+    zzUpperCurrentRef.current?.applyOptions({ color: upperColor });
+    zzLowerCurrentRef.current?.applyOptions({ color: lowerColor });
+
     // Only the current (still-forming) segment's bands are drawn —
     // previous, already-confirmed channel bands and the center line are
     // no longer shown.
@@ -434,6 +525,7 @@ export function PriceChart({
     let alive = true, ws: WebSocket | null = null;
     setLivePrice(null);
     livePriceRef.current = null;
+    if (signalMarkerRef.current) signalMarkerRef.current.style.display = "none";
     (async () => {
       try {
         const data = await getKlines({ data: { symbol, interval: iv, limit: 1000 } });
@@ -524,6 +616,54 @@ export function PriceChart({
       return el;
     }
 
+    function positionSignalMarker() {
+      const el = signalMarkerRef.current;
+      const chart = chartRef.current;
+      const series = candleRef.current;
+      const timestamp = signalTimestampRef.current;
+      const candles = candlesRef.current;
+
+      if (!el || !chart || !series || timestamp == null || candles.length === 0) {
+        if (el) el.style.display = "none";
+        return;
+      }
+
+      const numericTimestamp = typeof timestamp === "number"
+        ? (timestamp > 1_000_000_000_000 ? timestamp / 1000 : timestamp)
+        : Date.parse(timestamp) / 1000;
+      if (!Number.isFinite(numericTimestamp)) {
+        el.style.display = "none";
+        return;
+      }
+
+      let candle: CandlestickData | undefined;
+      for (let i = 0; i < candles.length; i++) {
+        const start = candles[i].time as number;
+        const nextStart = i + 1 < candles.length ? candles[i + 1].time as number : Infinity;
+        if (numericTimestamp >= start && numericTimestamp < nextStart) {
+          candle = candles[i];
+          break;
+        }
+      }
+
+      if (!candle) {
+        el.style.display = "none";
+        return;
+      }
+
+      const rect = el.parentElement?.getBoundingClientRect();
+      const x = chart.timeScale().timeToCoordinate(candle.time);
+      const y = series.priceToCoordinate(candle.high);
+      if (x === null || y === null || !rect || x < 0 || x > rect.width || y < 0 || y > rect.height) {
+        el.style.display = "none";
+        return;
+      }
+
+      el.style.display = "flex";
+      el.style.left = `${Math.round(x)}px`;
+      el.style.top = `${Math.round(y)}px`;
+    }
+
     function positionSwingLabels() {
       const container = zzLabelsContainerRef.current;
       if (!container) return;
@@ -573,6 +713,10 @@ export function PriceChart({
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
 
+      // Pump signal marker — one orange S on the candle containing the
+      // latest signal timestamp for the currently selected symbol.
+      positionSignalMarker();
+
       // Swing high/low price labels — one per confirmed pivot, positioned
       // via the chart's own time/price coordinate mapping so they always
       // sit exactly on the real swing point.
@@ -599,6 +743,9 @@ export function PriceChart({
   return (
     <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
       <style>{`
+        /* ── Hide TradingView attribution logo ─────────────────────────────── */
+        .tv-lightweight-charts a { display:none !important; }
+
         /* ── Header price flash ────────────────────────────────────────────── */
         @keyframes hdr-up   { 0% { color:#00d4a0; text-shadow:0 0 14px rgba(0,212,160,.8); } 100% { color:inherit; text-shadow:none; } }
         @keyframes hdr-down { 0% { color:#ff2d5f; text-shadow:0 0 14px rgba(255,45,95,.8); }  100% { color:inherit; text-shadow:none; } }
@@ -611,11 +758,8 @@ export function PriceChart({
         .chart-line-tp    { animation: chart-line-pulse 2s ease-in-out .4s infinite; }
         .chart-line-sl    { animation: chart-line-pulse 2s ease-in-out .8s infinite; }
 
+
         /* ── Live price overlay ─────────────────────────────────────────────  */
-        @keyframes live-line-glow {
-          0%,100% { box-shadow:0 0 6px 1px rgba(94,234,212,.25); opacity:.85; }
-          50%     { box-shadow:0 0 18px 4px rgba(94,234,212,.55),0 0 40px 8px rgba(94,234,212,.18); opacity:1; }
-        }
         @keyframes scan-sweep {
           0%   { transform:translateX(-100%); }
           100% { transform:translateX(350%); }
@@ -624,7 +768,6 @@ export function PriceChart({
           position:absolute; left:0; right:68px; height:1.5px;
           transform:translateY(-50%);
           background:linear-gradient(90deg,transparent 0%,rgba(94,234,212,.15) 5%,rgba(94,234,212,.85) 40%,rgba(94,234,212,.85) 60%,rgba(94,234,212,.15) 95%,transparent 100%);
-          animation:live-line-glow 1.6s ease-in-out infinite;
           pointer-events:none;
         }
         .overlay-live-line::before {
@@ -644,11 +787,11 @@ export function PriceChart({
 
         /* ── Entry line ─────────────────────────────────────────────────────  */
         @keyframes entry-glow {
-          0%,100% { box-shadow:0 0 4px 0 rgba(163,177,194,.2); opacity:.6; }
-          50%     { box-shadow:0 0 12px 2px rgba(163,177,194,.4); opacity:1; }
+          0%,100% { opacity:.6; }
+          50%     { opacity:1; }
         }
         .overlay-entry-line {
-          position:absolute; left:0; right:68px; height:1px; transform:translateY(-50%);
+          position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
           background:repeating-linear-gradient(90deg,rgba(163,177,194,.8) 0 6px,transparent 6px 12px);
           animation:entry-glow 2s ease-in-out infinite; pointer-events:none;
         }
@@ -661,8 +804,8 @@ export function PriceChart({
 
         /* ── TP line ────────────────────────────────────────────────────────  */
         @keyframes tp-glow {
-          0%,100% { box-shadow:0 0 6px 0 rgba(0,208,160,.2); opacity:.7; }
-          50%     { box-shadow:0 0 18px 4px rgba(0,208,160,.5); opacity:1; }
+          0%,100% { opacity:.7; }
+          50%     { opacity:1; }
         }
         .overlay-tp-line {
           position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
@@ -676,16 +819,11 @@ export function PriceChart({
           font-size:9px; font-weight:900; color:#00d4a0; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(0,208,160,.5);
         }
-        @keyframes tp-badge-pulse {
-          0%,100% { box-shadow:0 0 0 0 rgba(0,208,160,.4); }
-          50%     { box-shadow:0 0 0 4px rgba(0,208,160,0); }
-        }
-        .overlay-tp-badge { animation:tp-badge-pulse 1.8s ease-in-out infinite; }
 
         /* ── SL line ────────────────────────────────────────────────────────  */
         @keyframes sl-glow {
-          0%,100% { box-shadow:0 0 6px 0 rgba(255,45,95,.2); opacity:.7; }
-          50%     { box-shadow:0 0 18px 4px rgba(255,45,95,.5); opacity:1; }
+          0%,100% { opacity:.7; }
+          50%     { opacity:1; }
         }
         .overlay-sl-line {
           position:absolute; left:0; right:68px; height:1.5px; transform:translateY(-50%);
@@ -699,13 +837,17 @@ export function PriceChart({
           font-size:9px; font-weight:900; color:#ff2d5f; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(255,45,95,.5);
         }
-        @keyframes sl-badge-pulse {
-          0%,100% { box-shadow:0 0 0 0 rgba(255,45,95,.4); }
-          50%     { box-shadow:0 0 0 4px rgba(255,45,95,0); }
-        }
-        .overlay-sl-badge { animation:sl-badge-pulse 1.8s ease-in-out .3s infinite; }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
+        .overlay-signal-marker {
+          position:absolute; display:none; align-items:center; justify-content:center;
+          transform:translate(-50%,-115%); pointer-events:none; z-index:4;
+          width:18px; height:18px; border-radius:5px;
+          background:#f97316; border:1px solid #fed7aa; color:#1c0a00;
+          box-shadow:0 0 10px rgba(249,115,22,.75), 0 2px 5px rgba(0,0,0,.45);
+          font-size:11px; font-weight:1000; line-height:1;
+        }
+
         .overlay-swing-label {
           position:absolute; display:none; align-items:center; gap:4px;
           transform:translate(-50%,-50%); pointer-events:none; z-index:3;
@@ -754,10 +896,7 @@ export function PriceChart({
                 <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-blue-500 rounded" />EMA 21
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 9
+                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 50
               </span>
             </>}
             {isBtc && <>
@@ -843,6 +982,9 @@ export function PriceChart({
             <div className="overlay-sl-line" />
             <div className="overlay-sl-badge">▼ STOP LOSS</div>
           </div>
+
+          {/* Latest pump signal marker (positioned on the matching candle) */}
+          <div ref={signalMarkerRef} className="overlay-signal-marker">S</div>
 
           {/* Swing high/low price labels (populated imperatively in RAF) */}
           <div ref={zzLabelsContainerRef} className="absolute inset-0" />
