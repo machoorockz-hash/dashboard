@@ -5,7 +5,7 @@ import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
-import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
+import PumpScannerCard from "../components/PumpScannerCard";
 import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -436,7 +436,7 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     refetchOnMount: "always",
     // Safety-net polling so the card eventually corrects itself even if a
     // refetch trigger is missed (e.g. tab stays focused the whole time).
-    refetchInterval: querySymbol ? 10_000 : false,
+    refetchInterval: querySymbol ? 60_000 : false,
   });
 
   // Track transitions from "has an active order" -> "no active order". That
@@ -558,9 +558,9 @@ function useClock() {
 }
 
 export default function Dashboard() {
-  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 40_000 });
+  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 30_000 });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 30_000 });
   const dcaData = useDcaData();
   const clockTime = useClock();
 
@@ -619,32 +619,10 @@ export default function Dashboard() {
   }, [flash]);
 
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
-  const [pumpSignalsBySymbol, setPumpSignalsBySymbol] = useState<Record<string, PumpSignal>>({});
-
   useEffect(() => {
     if (orderSymbol) setChartSymbol(orderSymbol);
     else setChartSymbol("BTCUSDT");
   }, [orderSymbol]);
-
-  const handleLatestPumpSignals = (signals: PumpSignal[]) => {
-    setPumpSignalsBySymbol((previous) => {
-      let changed = false;
-      const next = { ...previous };
-
-      for (const signal of signals) {
-        const key = signal.symbol.toUpperCase();
-        const existing = next[key];
-        if (!existing || Date.parse(signal.timestamp) >= Date.parse(existing.timestamp)) {
-          if (!existing || existing.timestamp !== signal.timestamp) {
-            next[key] = signal;
-            changed = true;
-          }
-        }
-      }
-
-      return changed ? next : previous;
-    });
-  };
 
   const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
@@ -1031,22 +1009,11 @@ export default function Dashboard() {
           )}
         </section>
 
-        <PumpScannerCard
-          onCoinSelect={(sym) => setChartSymbol(sym)}
-          onLatestSignalsChange={handleLatestPumpSignals}
-        />
-
-        <PriceChart
-          symbol={chartSymbol}
-          interval="1m"
-          height={500}
-          searchable
-          onSymbolChange={setChartSymbol}
-          priceLines={chartLines}
-          signalTimestamp={pumpSignalsBySymbol[chartSymbol.toUpperCase()]?.timestamp ?? null}
-        />
-
         <BtcCrashCard />
+
+        <PumpScannerCard />
+
+        <PriceChart symbol={chartSymbol} interval="1m" height={500} searchable onSymbolChange={setChartSymbol} priceLines={chartLines} />
       </div>
     </AppLayout>
   );
