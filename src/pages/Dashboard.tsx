@@ -436,7 +436,7 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     refetchOnMount: "always",
     // Safety-net polling so the card eventually corrects itself even if a
     // refetch trigger is missed (e.g. tab stays focused the whole time).
-    refetchInterval: querySymbol ? 10_000 : false,
+    refetchInterval: querySymbol ? 60_000 : false,
   });
 
   // Track transitions from "has an active order" -> "no active order". That
@@ -558,9 +558,9 @@ function useClock() {
 }
 
 export default function Dashboard() {
-  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
+  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 40_000 });
+  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 30_000 });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 30_000 });
   const dcaData = useDcaData();
   const clockTime = useClock();
 
