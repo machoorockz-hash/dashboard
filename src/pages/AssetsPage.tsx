@@ -10,8 +10,8 @@ function fmt(n: number, d = 2) {
 }
 
 export default function AssetsPage() {
-  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 60_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 30_000 });
+  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 60_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 30_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
 
   const symbols = useMemo(() => {
     return account.data?.balances.filter((b) => b.asset !== "USDT").map((b) => `${b.asset}USDT`) ?? [];
@@ -22,6 +22,9 @@ export default function AssetsPage() {
     queryFn: () => getTickers24h({ data: { symbols } }),
     enabled: symbols.length > 0,
     refetchInterval: 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const tickerMap = useMemo(() => {
