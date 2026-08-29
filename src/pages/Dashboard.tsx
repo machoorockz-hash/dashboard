@@ -429,7 +429,9 @@ function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
     queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
     enabled: !!querySymbol,
     staleTime: 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
     // Always refetch fresh data on mount/symbol-change instead of trusting a
     // cached result — otherwise a coin that was traded before can keep
     // showing its previous closed-trade details.
@@ -558,9 +560,9 @@ function useClock() {
 }
 
 export default function Dashboard() {
-  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 60_000 });
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 15_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 15_000 });
+  const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 60_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
+  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 15_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 15_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
   const dcaData = useDcaData();
   const clockTime = useClock();
 
@@ -577,6 +579,9 @@ export default function Dashboard() {
     queryFn: () => getMyTrades({ data: { symbol: orderSymbol!, limit: 200 } }),
     enabled: !!orderSymbol,
     refetchInterval: 120_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Last closed trade — shown when no active order
