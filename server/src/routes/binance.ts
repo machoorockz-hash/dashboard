@@ -17,6 +17,17 @@ function getKeys() {
   return { apiKey, apiSecret };
 }
 
+class BinanceHttpError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly retryAfter: string | null,
+    message: string,
+  ) {
+    super(message);
+    this.name = "BinanceHttpError";
+  }
+}
+
 async function hmacSha256Hex(secret: string, msg: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -44,9 +55,19 @@ async function signedGet<T>(path: string, params: Record<string, string | number
     });
     if (res.ok) return res.json() as Promise<T>;
     lastError = `${base} ${res.status}`;
-    if (![451, 403, 418, 429, 500, 502, 503, 504].includes(res.status)) break;
+    // Rate-limit, authentication, and geographic errors are not fixed by
+    // trying another Binance hostname. Retrying them multiplies API weight.
+    if ([429, 418, 403, 451].includes(res.status)) {
+      throw new BinanceHttpError(
+        res.status,
+        res.headers.get("retry-after"),
+        `Binance ${path} failed: ${lastError}`,
+      );
+    }
+    // Only transient upstream server errors may use the next fallback host.
+    if (![500, 502, 503, 504].includes(res.status)) break;
   }
-  throw new Error(`Binance ${path} failed: ${lastError}`);
+  throw new BinanceHttpError(502, null, `Binance ${path} failed: ${lastError}`);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -157,6 +178,13 @@ router.get("/coin-logo/:symbol", async (req, res) => {
 
 router.get("/binance/account", async (_req, res) => {
   try {
+    const cached = getCache<{
+      balances: Array<{ asset: string; free: number; locked: number }>;
+      canTrade: boolean;
+      accountType: string;
+    }>("account");
+    if (cached !== undefined) { res.json(cached); return; }
+
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
       canTrade: boolean;
@@ -165,22 +193,36 @@ router.get("/binance/account", async (_req, res) => {
     const balances = acc.balances
       .map((b) => ({ asset: b.asset, free: parseFloat(b.free), locked: parseFloat(b.locked) }))
       .filter((b) => b.free + b.locked > 0);
-    res.json({ balances, canTrade: acc.canTrade, accountType: acc.accountType });
+    const result = { balances, canTrade: acc.canTrade, accountType: acc.accountType };
+    setCache("account", result, 30_000);
+    res.json(result);
   } catch (err) {
-    res.status(502).json({ error: String(err) });
+    const status = err instanceof BinanceHttpError ? err.status : 502;
+    if (err instanceof BinanceHttpError && err.retryAfter) res.setHeader("Retry-After", err.retryAfter);
+    res.status(status).json({ error: String(err) });
   }
 });
 
 router.get("/binance/openOrders", async (_req, res) => {
   try {
+    const cached = getCache<Array<{
+      symbol: string; orderId: number; price: string; origQty: string;
+      executedQty: string; status: string; type: string; side: string;
+      stopPrice: string; time: number;
+    }>>("openOrders");
+    if (cached !== undefined) { res.json(cached); return; }
+
     const orders = await signedGet<Array<{
       symbol: string; orderId: number; price: string; origQty: string;
       executedQty: string; status: string; type: string; side: string;
       stopPrice: string; time: number;
     }>>("/api/v3/openOrders");
+    setCache("openOrders", orders, 15_000);
     res.json(orders);
   } catch (err) {
-    res.status(502).json({ error: String(err) });
+    const status = err instanceof BinanceHttpError ? err.status : 502;
+    if (err instanceof BinanceHttpError && err.retryAfter) res.setHeader("Retry-After", err.retryAfter);
+    res.status(status).json({ error: String(err) });
   }
 });
 
@@ -189,21 +231,28 @@ router.get("/binance/myTrades", async (req, res) => {
     const symbol = req.query["symbol"] as string;
     const limit = req.query["limit"] ? Number(req.query["limit"]) : 50;
     if (!symbol) { res.status(400).json({ error: "symbol required" }); return; }
+    const cacheKey = `myTrades:${symbol.toUpperCase()}:${limit}`;
+    const cached = getCache<unknown[]>(cacheKey);
+    if (cached !== undefined) { res.json(cached); return; }
+
     const trades = await signedGet<Array<{
       symbol: string; id: number; orderId: number; price: string; qty: string;
       quoteQty: string; commission: string; commissionAsset: string;
       time: number; isBuyer: boolean; isMaker: boolean;
     }>>("/api/v3/myTrades", { symbol: symbol.toUpperCase(), limit });
+    setCache(cacheKey, trades, 120_000);
     res.json(trades);
   } catch (err) {
-    res.status(502).json({ error: String(err) });
+    const status = err instanceof BinanceHttpError ? err.status : 502;
+    if (err instanceof BinanceHttpError && err.retryAfter) res.setHeader("Retry-After", err.retryAfter);
+    res.status(status).json({ error: String(err) });
   }
 });
 
 router.get("/binance/allTrades", async (_req, res) => {
   try {
     const cached = getCache<unknown[]>("allTrades");
-    if (cached) { res.json(cached); return; }
+    if (cached !== undefined) { res.json(cached); return; }
 
     const acc = await signedGet<{
       balances: Array<{ asset: string; free: string; locked: string }>;
@@ -234,7 +283,9 @@ router.get("/binance/allTrades", async (_req, res) => {
     setCache("allTrades", allTrades, 5 * 60 * 1000);
     res.json(allTrades);
   } catch (err) {
-    res.status(502).json({ error: String(err) });
+    const status = err instanceof BinanceHttpError ? err.status : 502;
+    if (err instanceof BinanceHttpError && err.retryAfter) res.setHeader("Retry-After", err.retryAfter);
+    res.status(status).json({ error: String(err) });
   }
 });
 
