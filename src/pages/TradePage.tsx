@@ -10,8 +10,8 @@ function fmt(n: number, d = 4) {
 }
 
 export default function TradePage() {
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 15_000 });
-  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 15_000 });
+  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 15_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
+  const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 15_000, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
 
   const [selected, setSelected] = useState<string | null>(null);
   useEffect(() => {
