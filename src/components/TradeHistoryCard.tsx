@@ -41,6 +41,9 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
     queryKey: ["allTrades"],
     queryFn: getAllTrades,
     refetchInterval: 300_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const { data: symbolTrades, isLoading: isLoadingSymbol } = useQuery({
@@ -48,6 +51,9 @@ export default function TradeHistoryCard({ defaultSymbol }: { defaultSymbol?: st
     queryFn: () => getMyTrades({ data: { symbol: filterSymbol.toUpperCase(), limit: 500 } }),
     enabled: filterSymbol.length > 0,
     refetchInterval: 300_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const trades    = filterSymbol ? symbolTrades : allTrades;
