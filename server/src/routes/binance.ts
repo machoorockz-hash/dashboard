@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Router } from "express";
 
 const router = Router();
 
@@ -153,22 +153,107 @@ router.get("/coin-logo/:symbol", async (req, res) => {
   }
 });
 
+// ── Bot-pushed account balance ──────────────────────────────────────────────
+
+interface PushedAccountSnapshot {
+  balances: Array<{ asset: string; free: number; locked: number }>;
+  canTrade: boolean;
+  accountType: string;
+  updatedAt: number;
+  receivedAt: number;
+}
+
+let latestPushedAccount: PushedAccountSnapshot | null = null;
+
+function getBalancePushToken() {
+  return process.env.DASHBOARD_PUSH_TOKEN ?? "";
+}
+
+function isAuthorizedBalancePush(req: Request) {
+  const token = getBalancePushToken();
+  if (!token) return false;
+  const authorization = req.get("authorization") ?? "";
+  return authorization === `Bearer ${token}`;
+}
+
+router.post("/binance/account/push", (req, res) => {
+  if (!isAuthorizedBalancePush(req)) {
+    res.status(401).json({ error: "Invalid or missing balance push token" });
+    return;
+  }
+
+  const body = req.body as {
+    balances?: unknown;
+    canTrade?: unknown;
+    accountType?: unknown;
+    updatedAt?: unknown;
+  };
+
+  if (!Array.isArray(body?.balances)) {
+    res.status(400).json({ error: "balances must be an array" });
+    return;
+  }
+
+  const balances: Array<{ asset: string; free: number; locked: number }> = [];
+  for (const item of body.balances) {
+    if (!item || typeof item !== "object") {
+      res.status(400).json({ error: "Invalid balance entry" });
+      return;
+    }
+
+    const balance = item as Record<string, unknown>;
+    const asset = typeof balance.asset === "string" ? balance.asset.toUpperCase() : "";
+    const free = balance.free;
+    const locked = balance.locked;
+
+    if (
+      !/^[A-Z0-9]{1,20}$/.test(asset) ||
+      typeof free !== "number" ||
+      !Number.isFinite(free) ||
+      free < 0 ||
+      typeof locked !== "number" ||
+      !Number.isFinite(locked) ||
+      locked < 0
+    ) {
+      res.status(400).json({ error: "Invalid balance entry values" });
+      return;
+    }
+
+    balances.push({ asset, free, locked });
+  }
+
+  const accountType =
+    typeof body.accountType === "string" && body.accountType.length <= 40
+      ? body.accountType
+      : "SPOT";
+  const updatedAt =
+    typeof body.updatedAt === "number" && Number.isFinite(body.updatedAt)
+      ? body.updatedAt
+      : Date.now();
+
+  latestPushedAccount = {
+    balances,
+    canTrade: body.canTrade === true,
+    accountType,
+    updatedAt,
+    receivedAt: Date.now(),
+  };
+
+  res.json({ ok: true, receivedAt: latestPushedAccount.receivedAt });
+});
+
 // ── Binance signed routes ──────────────────────────────────────────────────
 
 router.get("/binance/account", async (_req, res) => {
-  try {
-    const acc = await signedGet<{
-      balances: Array<{ asset: string; free: string; locked: string }>;
-      canTrade: boolean;
-      accountType: string;
-    }>("/api/v3/account");
-    const balances = acc.balances
-      .map((b) => ({ asset: b.asset, free: parseFloat(b.free), locked: parseFloat(b.locked) }))
-      .filter((b) => b.free + b.locked > 0);
-    res.json({ balances, canTrade: acc.canTrade, accountType: acc.accountType });
-  } catch (err) {
-    res.status(502).json({ error: String(err) });
-  }
+  res.json(
+    latestPushedAccount ?? {
+      balances: [],
+      canTrade: false,
+      accountType: "SPOT",
+      updatedAt: 0,
+      receivedAt: 0,
+    },
+  );
 });
 
 router.get("/binance/openOrders", async (_req, res) => {
