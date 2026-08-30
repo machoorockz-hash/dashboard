@@ -6,7 +6,7 @@ import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
-import { getAccount, getOpenOrders, getAllPrices, getMyTrades } from "../lib/binance";
+import { getAccount, getAllPrices } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -364,16 +364,45 @@ function StepSegments({
   );
 }
 
+interface LastTrade {
+  symbol: string;
+  base: string;
+  price: number;
+  qty: number;
+  quoteQty: number;
+  time: number; // unix ms
+}
+
 interface DcaData {
+  symbol?: string;
+  side?: string;
+  order_type?: string;
+  quantity?: number;
+  entry_price?: number;
+  avg_price?: number;
+  current_price?: number;
+  pnl_pct?: number;
+  pnl_usd?: number;
+  take_profit?: number;
+  stop_loss?: number;
+  target_pct?: number;
+  stop_pct?: number;
+  tp_progress?: number;
+  sl_progress?: number;
+  dist_to_tp_pct?: number;
+  dist_to_sl_pct?: number;
+  order_status?: string;
+  updated_at?: number;
   dca_step?: number;
   dca_total_steps?: number;
   status?: string;
   dca_step_amounts?: number[];      // USDT spent per step, e.g. [50, 100, 150]
   dca_step_timestamps?: number[];   // unix-ms per step
   dca_skipped_steps?: number[];     // step numbers jumped over on a fast drop, e.g. [3, 4]
+  last_closed_trade?: LastTrade | null;
 }
 
-function useDcaData() {
+function useTradeData() {
   const [data, setData] = useState<DcaData | null>(null);
   useEffect(() => {
     let alive = true;
@@ -392,85 +421,6 @@ function useDcaData() {
     return () => { alive = false; clearTimeout(timer); };
   }, []);
   return data;
-}
-
-/** Remembers the last active symbol in localStorage so we can fetch its
- *  trade history even after the order is no longer open. */
-const LAST_SYMBOL_KEY = "dashboard_last_order_symbol";
-
-interface LastTrade {
-  symbol: string;
-  base: string;
-  price: number;
-  qty: number;
-  quoteQty: number;
-  time: number; // unix ms
-}
-
-function useLastTrade(activeSymbol: string | undefined): LastTrade | null {
-  // Keep storedSymbol in state so React re-renders when it changes
-  const [storedSymbol, setStoredSymbol] = useState<string | undefined>(
-    () => localStorage.getItem(LAST_SYMBOL_KEY) ?? undefined,
-  );
-
-  // Persist the last seen active symbol — update both localStorage AND state
-  useEffect(() => {
-    if (activeSymbol) {
-      localStorage.setItem(LAST_SYMBOL_KEY, activeSymbol);
-      setStoredSymbol(activeSymbol);
-    }
-  }, [activeSymbol]);
-
-  // Only query when there is NO active trade
-  const querySymbol = activeSymbol ? undefined : storedSymbol;
-
-  const tradesQuery = useQuery({
-    queryKey: ["lastTrades", querySymbol],
-    queryFn: () => getMyTrades({ data: { symbol: querySymbol!, limit: 200 } }),
-    enabled: !!querySymbol,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    // Always refetch fresh data on mount/symbol-change instead of trusting a
-    // cached result — otherwise a coin that was traded before can keep
-    // showing its previous closed-trade details.
-    refetchOnMount: "always",
-    // Safety-net polling so the card eventually corrects itself even if a
-    // refetch trigger is missed (e.g. tab stays focused the whole time).
-    refetchInterval: querySymbol ? 10_000 : false,
-  });
-
-  // Track transitions from "has an active order" -> "no active order". That
-  // transition means a trade just closed. If the newly-closed trade is on
-  // the SAME symbol as a previous closed trade, react-query would otherwise
-  // keep serving the old cached result for that query key (queryKey doesn't
-  // change), so the card can silently show stale coin details. Force a
-  // fresh fetch whenever this happens.
-  const prevActiveSymbolRef = useRef<string | undefined>(activeSymbol);
-  useEffect(() => {
-    const wasActive = !!prevActiveSymbolRef.current;
-    prevActiveSymbolRef.current = activeSymbol;
-    if (wasActive && !activeSymbol && querySymbol) {
-      tradesQuery.refetch();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSymbol, querySymbol]);
-
-  return useMemo(() => {
-    if (!tradesQuery.data || tradesQuery.data.length === 0 || !querySymbol) return null;
-    // Find the most recent SELL trade (trade where isBuyer === false means we sold)
-    const sells = tradesQuery.data.filter((t) => !t.isBuyer);
-    if (sells.length === 0) return null;
-    const latest = sells.reduce((a, b) => (b.time > a.time ? b : a));
-    const base = querySymbol.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "");
-    return {
-      symbol: querySymbol,
-      base,
-      price: parseFloat(latest.price),
-      qty: parseFloat(latest.qty),
-      quoteQty: parseFloat(latest.quoteQty ?? "0"),
-      time: latest.time,
-    };
-  }, [tradesQuery.data, querySymbol]);
 }
 
 function useAnimatedBalance(target: number) {
@@ -559,64 +509,23 @@ function useClock() {
 
 export default function Dashboard() {
   const account = useQuery({ queryKey: ["account"], queryFn: () => getAccount(), refetchInterval: 15_000 });
-  const orders = useQuery({ queryKey: ["openOrders"], queryFn: () => getOpenOrders(), refetchInterval: 8_000 });
   const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
-  const dcaData = useDcaData();
+  const tradeData = useTradeData();
   const clockTime = useClock();
 
-  const allOrders = orders.data ?? [];
-  const primary = allOrders[0];
-  const sameSymbol = allOrders.filter((o) => o.symbol === primary?.symbol);
-  const tpOrder = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") === 0) ?? primary;
-  const slOrder = sameSymbol.find((o) => parseFloat(o.stopPrice || "0") > 0);
-  const orderSymbol = primary?.symbol;
-  const orderBase = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
-
-  const trades = useQuery({
-    queryKey: ["trades", orderSymbol],
-    queryFn: () => getMyTrades({ data: { symbol: orderSymbol!, limit: 200 } }),
-    enabled: !!orderSymbol,
-    refetchInterval: 60_000,
-  });
-
-  // Last closed trade — shown when no active order
-  const lastTrade = useLastTrade(orderSymbol);
-
-  const avgEntry = useMemo(() => {
-    if (!trades.data || trades.data.length === 0) return 0;
-    let cost = 0, qty = 0;
-    for (const t of trades.data) {
-      const p = parseFloat(t.price), q = parseFloat(t.qty);
-      if (t.isBuyer) { cost += p * q; qty += q; }
-      else if (qty > 0) {
-        const ratio = Math.min(q, qty) / qty;
-        cost = cost * (1 - ratio);
-        qty -= Math.min(q, qty);
+  const activeTrade = tradeData?.status === "ACTIVE" && tradeData.symbol
+    ? tradeData
+    : null;
+  const primary = activeTrade
+    ? {
+        symbol: activeTrade.symbol!,
+        type: activeTrade.order_type ?? "OCO",
+        side: activeTrade.side ?? "SELL",
       }
-    }
-    return qty > 0 ? cost / qty : 0;
-  }, [trades.data]);
-
-  const [livePrice, setLivePrice] = useState<number | undefined>();
-  const [flash, setFlash] = useState<"up" | "down" | null>(null);
-  useEffect(() => {
-    setLivePrice(undefined);
-    if (!orderSymbol) return;
-    const ws = new WebSocket(`wss://data-stream.binance.vision/ws/${orderSymbol.toLowerCase()}@trade`);
-    ws.onmessage = (e) => {
-      try {
-        const d = JSON.parse(e.data);
-        const p = parseFloat(d.p);
-        setLivePrice((prev) => { if (prev !== undefined && p !== prev) setFlash(p > prev ? "up" : "down"); return p; });
-      } catch {}
-    };
-    return () => ws.close();
-  }, [orderSymbol]);
-  useEffect(() => {
-    if (!flash) return;
-    const t = setTimeout(() => setFlash(null), 500);
-    return () => clearTimeout(t);
-  }, [flash]);
+    : undefined;
+  const orderSymbol = activeTrade?.symbol;
+  const orderBase = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
+  const lastTrade = tradeData?.last_closed_trade ?? null;
 
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
   const [pumpSignalsBySymbol, setPumpSignalsBySymbol] = useState<Record<string, PumpSignal>>({});
@@ -663,39 +572,26 @@ export default function Dashboard() {
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
   const { display: animatedTotal, direction: balanceDir, delta: balanceDelta, changeKey: balanceKey } = useAnimatedBalance(totalUsdt);
 
-  const tpPrice = tpOrder ? parseFloat(tpOrder.price) : 0;
-  const slPrice = slOrder ? (parseFloat(slOrder.stopPrice) || parseFloat(slOrder.price)) : 0;
-  const orderQty = primary ? parseFloat(primary.origQty) : 0;
-  const entry = avgEntry > 0 ? avgEntry : (primary ? parseFloat(primary.price) : 0);
-  const side = primary?.side ?? "";
-  const dirMult = side === "SELL" ? 1 : 1;
-  const cur = livePrice ?? (orderSymbol ? prices.data?.[orderSymbol] : undefined);
+  const tpPrice = activeTrade?.take_profit ?? 0;
+  const slPrice = activeTrade?.stop_loss ?? 0;
+  const orderQty = activeTrade?.quantity ?? 0;
+  const entry = activeTrade?.avg_price ?? activeTrade?.entry_price ?? 0;
+  const cur = activeTrade?.current_price ?? 0;
+  const pnlPct = activeTrade?.pnl_pct ?? 0;
+  const pnlUsd = activeTrade?.pnl_usd ?? 0;
+  const targetPct = activeTrade?.target_pct ?? 0;
+  const stopPct = activeTrade?.stop_pct ?? 0;
+  const distToTpPct = activeTrade?.dist_to_tp_pct ?? 0;
+  const distToSlPct = activeTrade?.dist_to_sl_pct ?? 0;
+  const tpProgress = activeTrade?.tp_progress ?? 0;
+  const slProgress = activeTrade?.sl_progress ?? 0;
 
-  const pnlPct = cur && entry ? ((cur - entry) / entry) * 100 * dirMult : 0;
-  const pnlUsd = cur && entry ? (cur - entry) * orderQty * dirMult : 0;
-  const targetPct = tpPrice && entry ? ((tpPrice - entry) / entry) * 100 : 0;
-  const stopPct = slPrice && entry ? ((slPrice - entry) / entry) * 100 : 0;
-  const distToTpPct = cur && tpPrice ? ((tpPrice - cur) / cur) * 100 : 0;
-  const distToSlPct = cur && slPrice ? ((cur - slPrice) / cur) * 100 : 0;
-
-  // ── FIXED BAR CALCULATIONS ──────────────────────────────────────────────────
-  const tpProgress =
-    cur && tpPrice && entry && tpPrice !== entry
-      ? Math.max(0, Math.min(1, (cur - entry) / (tpPrice - entry)))
-      : 0;
-
-  const slProgress =
-    cur && slPrice && entry && entry !== slPrice
-      ? Math.max(0, Math.min(1, (entry - cur) / (entry - slPrice)))
-      : 0;
-  // ───────────────────────────────────────────────────────────────────────────
-
-  const dcaStep       = dcaData?.dca_step ?? 0;
-  const dcaTotal      = dcaData?.dca_total_steps ?? 6;
-  const dcaAmounts    = dcaData?.dca_step_amounts;
-  const dcaTimestamps = dcaData?.dca_step_timestamps;
-  const dcaSkipped    = dcaData?.dca_skipped_steps;
-  const showDca = !!primary && dcaStep > 0 && dcaData?.status !== "COMPLETED";
+  const dcaStep       = activeTrade?.dca_step ?? 0;
+  const dcaTotal      = activeTrade?.dca_total_steps ?? 6;
+  const dcaAmounts    = activeTrade?.dca_step_amounts;
+  const dcaTimestamps = activeTrade?.dca_step_timestamps;
+  const dcaSkipped    = activeTrade?.dca_skipped_steps;
+  const showDca = !!primary && dcaStep > 0;
 
   const chartLines = useMemo(() => {
     const out: Array<{ price: number; label: string; color: string }> = [];
@@ -939,6 +835,11 @@ export default function Dashboard() {
                     <div className="mt-1 flex items-center gap-1.5">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider">{primary.type}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${primary.side === "SELL" ? "bg-bear/15 text-bear" : "bg-bull/15 text-bull"}`}>{primary.side}</span>
+                      {activeTrade.order_status && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground uppercase tracking-wider">
+                          {activeTrade.order_status}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -952,11 +853,11 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className={`relative mt-5 rounded-xl border bg-transparent px-4 py-3 flex items-center justify-between transition-all duration-300 ${flash === "up" ? "border-bull/60" : flash === "down" ? "border-bear/60" : "border-border"}`}>
+              <div className="relative mt-5 rounded-xl border border-border bg-transparent px-4 py-3 flex items-center justify-between transition-all duration-300">
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
-                <span className={`text-[1.95rem] md:text-[2.4375rem] font-black tabular-nums transition-colors ${flash === "up" ? "text-bull" : flash === "down" ? "text-bear" : ""}`}>
+                <span className="text-[1.95rem] md:text-[2.4375rem] font-black tabular-nums">
                   ${cur ? fmtPrice(cur) : "…"}
                 </span>
               </div>
