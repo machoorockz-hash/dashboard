@@ -243,8 +243,9 @@ export default function SoldCoinsCard() {
                     profitable ? "border-bull/20 hover:border-bull/40" : "border-bear/20 hover:border-bear/40"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div className="overflow-x-auto">
+                    <div className="flex min-w-[760px] items-center gap-3">
+                    <div className="flex flex-1 items-center gap-3 min-w-[220px]">
                       <div className={`shrink-0 rounded-full p-[2px] ${profitable ? "bg-bull/20" : "bg-bear/20"}`}>
                         <CoinIcon symbol={trade.base} size={34} />
                       </div>
@@ -259,19 +260,9 @@ export default function SoldCoinsCard() {
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="font-black text-sm tabular-nums text-primary">
-                        {trade.quoteQty.toFixed(2)} <span className="text-[10px]">USDT</span>
-                      </div>
-                      <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                        {fmtAmount(trade.qty)} {trade.base}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <MiniMetric label="Sell price" value={`$${fmtPrice(trade.price)}`} />
-                    <MiniMetric label="Sold value" value={`${trade.quoteQty.toFixed(2)} USDT`} />
+                    <InlineMetric label="Quantity" value={`${fmtAmount(trade.qty)} ${trade.base}`} />
+                    <InlineMetric label="Sell price" value={`$${fmtPrice(trade.price)}`} />
+                    <InlineMetric label="Sold value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
                     <MiniMetric
                       label="Profit / loss"
                       value={hasPnl && trade.pnlUsd != null ? `${trade.pnlUsd >= 0 ? "+" : ""}${trade.pnlUsd.toFixed(2)} USDT` : "—"}
@@ -283,6 +274,7 @@ export default function SoldCoinsCard() {
                       tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
                       icon={hasPnl ? (profitable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />) : undefined}
                     />
+                    </div>
                   </div>
                 </div>
               );
@@ -306,7 +298,7 @@ function MiniMetric({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-lg border px-2.5 py-2 bg-transparent ${tone === "bull" ? "border-bull/20" : tone === "bear" ? "border-bear/20" : "border-border/60"}`}>
+    <div className={`min-w-[124px] rounded-lg border px-2.5 py-2 bg-transparent ${tone === "bull" ? "border-bull/20" : tone === "bear" ? "border-bear/20" : "border-border/60"}`}>
       <div className="flex items-center gap-1 text-[8px] uppercase tracking-widest font-bold text-muted-foreground">
         {icon}
         {label}
@@ -314,6 +306,23 @@ function MiniMetric({
       <div className={`mt-1 text-[10px] font-black tabular-nums truncate ${tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : ""}`}>
         {value}
       </div>
+    </div>
+  );
+}
+
+function InlineMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "primary";
+}) {
+  return (
+    <div className={`min-w-[112px] shrink-0 rounded-lg border px-2.5 py-2 bg-transparent ${tone === "primary" ? "border-primary/20" : "border-border/60"}`}>
+      <div className="text-[8px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
+      <div className={`mt-1 text-[10px] font-black tabular-nums truncate ${tone === "primary" ? "text-primary" : ""}`}>{value}</div>
     </div>
   );
 }
