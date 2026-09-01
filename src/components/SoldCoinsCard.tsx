@@ -258,7 +258,9 @@ export default function SoldCoinsCard() {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-black text-sm truncate">{coinName(trade.base)}</span>
+                           <span className={`font-black text-sm truncate ${hasPnl ? (profitable ? "text-bull" : "text-bear") : ""}`}>
+                             {coinName(trade.base)}
+                           </span>
                         </div>
                         <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                           Sold {date} · {time}
