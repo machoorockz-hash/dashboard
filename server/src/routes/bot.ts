@@ -42,24 +42,77 @@ function captureSoldTrade(
       `${symbol}:${time}:${price}:${qty}`,
   )}`;
   const history = soldHistory.get(key) ?? [];
-  if (history.some((item) => String(item.__history_id) === id)) return;
+  const existingIndex = history.findIndex((item) => String(item.__history_id) === id);
 
   const entryPrice = firstNumber(
     trade.entry_price,
     trade.avg_price,
+    trade.average_entry,
+    trade.average_entry_price,
+    trade.buy_price,
+    trade.cost_price,
+    trade.dca_avg_price,
     data.avg_price,
     data.entry_price,
+    data.average_entry,
+    data.average_entry_price,
+    data.buy_price,
+    data.cost_price,
+    data.dca_avg_price,
     previousData?.avg_price,
     previousData?.entry_price,
+    previousData?.average_entry,
+    previousData?.average_entry_price,
+    previousData?.buy_price,
+    previousData?.cost_price,
+    previousData?.dca_avg_price,
   );
-  const pnlUsd = firstNumber(trade.pnl_usd, trade.profit_usdt, data.pnl_usd)
+  const pnlUsd = firstNumber(
+    trade.pnl_usd,
+    trade.profit_usdt,
+    trade.profit_loss_usdt,
+    trade.realized_pnl_usdt,
+    trade.realised_pnl_usdt,
+    trade.dca_pnl_usd,
+    data.pnl_usd,
+    data.profit_usdt,
+    data.profit_loss_usdt,
+    data.realized_pnl_usdt,
+    data.realised_pnl_usdt,
+    data.dca_pnl_usd,
+    previousData?.pnl_usd,
+    previousData?.profit_usdt,
+    previousData?.profit_loss_usdt,
+    previousData?.realized_pnl_usdt,
+    previousData?.realised_pnl_usdt,
+    previousData?.dca_pnl_usd,
+  )
     ?? (entryPrice != null && price > 0 && qty > 0 ? (price - entryPrice) * qty : undefined);
-  const pnlPct = firstNumber(trade.pnl_pct, trade.profit_pct, data.pnl_pct)
+  const pnlPct = firstNumber(
+    trade.pnl_pct,
+    trade.profit_pct,
+    trade.profit_loss_pct,
+    trade.realized_pnl_pct,
+    trade.realised_pnl_pct,
+    trade.dca_pnl_pct,
+    data.pnl_pct,
+    data.profit_pct,
+    data.profit_loss_pct,
+    data.realized_pnl_pct,
+    data.realised_pnl_pct,
+    data.dca_pnl_pct,
+    previousData?.pnl_pct,
+    previousData?.profit_pct,
+    previousData?.profit_loss_pct,
+    previousData?.realized_pnl_pct,
+    previousData?.realised_pnl_pct,
+    previousData?.dca_pnl_pct,
+  )
     ?? (pnlUsd != null && entryPrice != null && entryPrice > 0 && qty > 0
       ? (pnlUsd / (entryPrice * qty)) * 100
       : undefined);
 
-  history.unshift({
+  const normalizedTrade = {
     ...trade,
     symbol,
     __history_id: id,
@@ -68,7 +121,13 @@ function captureSoldTrade(
     entry_price: entryPrice ?? undefined,
     pnl_pct: pnlPct,
     pnl_usd: pnlUsd,
-  });
+  };
+
+  if (existingIndex >= 0) {
+    history[existingIndex] = { ...history[existingIndex], ...normalizedTrade };
+  } else {
+    history.unshift(normalizedTrade);
+  }
   soldHistory.set(key, history.slice(0, MAX_SOLD_HISTORY));
 }
 
