@@ -77,25 +77,35 @@ function normalizeTrade(raw: Record<string, unknown>): SoldTrade | null {
     pnlPct = (pnlUsd / (entryPrice * qty)) * 100;
   }
 
-  const orderId = String(raw.orderId ?? raw.order_id ?? "");
-  const id = `${symbol}:${String(raw.id ?? orderId ?? `${time}:${price}:${qty}`)}`;
+  const rawId = raw.id ?? raw.orderId ?? raw.order_id;
+  const identity = rawId != null && String(rawId).trim()
+    ? String(rawId)
+    : `${time}:${price}:${qty}:${quoteQty}`;
+  const id = `${symbol}:${identity}`;
 
   return { id, symbol, base, price, qty, quoteQty, time, entryPrice, pnlPct, pnlUsd };
 }
 
+function tradeFingerprint(trade: SoldTrade) {
+  return `${trade.symbol}:${trade.time}:${trade.price}:${trade.qty}:${trade.quoteQty}`;
+}
+
 function mergeTrades(current: SoldTrade[], incoming: SoldTrade[]) {
-  const byId = new Map<string, SoldTrade>();
-  for (const trade of [...current, ...incoming]) byId.set(trade.id, trade);
-  return [...byId.values()].sort((a, b) => b.time - a.time).slice(0, MAX_RECORDS);
+  const byFingerprint = new Map<string, SoldTrade>();
+  for (const trade of [...current, ...incoming]) {
+    byFingerprint.set(tradeFingerprint(trade), trade);
+  }
+  return [...byFingerprint.values()].sort((a, b) => b.time - a.time).slice(0, MAX_RECORDS);
 }
 
 function readStoredTrades(): SoldTrade[] {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
     if (!Array.isArray(saved)) return [];
-    return saved
+    const normalized = saved
       .map((item) => normalizeTrade(item as Record<string, unknown>))
       .filter((item): item is SoldTrade => item !== null);
+    return mergeTrades([], normalized);
   } catch {
     return [];
   }
