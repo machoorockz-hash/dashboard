@@ -263,21 +263,29 @@ export default function SoldCoinsCard() {
                            </span>
                         </div>
                         <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                          Sold {date} · {time}
+                           {date} · {time}
                         </div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
-                      <InlineMetric label="Sell price" value={`$${fmtPrice(trade.price)}`} />
-                      <InlineMetric label="Sold value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
+                      <InlineMetric
+                        label="Avg Buy Price"
+                        value={trade.entryPrice != null ? `$${fmtPrice(trade.entryPrice)}` : "—"}
+                      />
+                      <InlineMetric label="Sell Price" value={`$${fmtPrice(trade.price)}`} />
+                      <InlineMetric
+                        label="Sold Qty"
+                        value={`${trade.qty.toLocaleString(undefined, { maximumFractionDigits: 8 })} ${trade.base}`}
+                      />
+                      <InlineMetric label="Sold Value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
                       <MiniMetric
-                        label="Profit / loss USDT"
+                        label="Profit / Loss USDT"
                         value={hasPnl && trade.pnlUsd != null ? `${trade.pnlUsd >= 0 ? "+" : ""}${trade.pnlUsd.toFixed(2)} USDT` : "—"}
                         tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
                       />
                       <MiniMetric
-                        label="Profit / loss %"
+                        label="Profit / Loss %"
                         value={hasPnl && trade.pnlPct != null ? `${trade.pnlPct >= 0 ? "+" : ""}${trade.pnlPct.toFixed(2)}%` : "—"}
                         tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
                         icon={hasPnl ? (profitable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />) : undefined}
