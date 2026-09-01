@@ -280,15 +280,15 @@ export default function SoldCoinsCard() {
                       />
                       <InlineMetric label="Sold Value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
                       <MiniMetric
-                        label="Profit / Loss USDT"
-                        value={hasPnl && trade.pnlUsd != null ? `${trade.pnlUsd >= 0 ? "+" : ""}${trade.pnlUsd.toFixed(2)} USDT` : "—"}
-                        tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
-                      />
-                      <MiniMetric
                         label="Profit / Loss %"
                         value={hasPnl && trade.pnlPct != null ? `${trade.pnlPct >= 0 ? "+" : ""}${trade.pnlPct.toFixed(2)}%` : "—"}
                         tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
                         icon={hasPnl ? (profitable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />) : undefined}
+                      />
+                      <MiniMetric
+                        label="Profit / Loss USDT"
+                        value={hasPnl && trade.pnlUsd != null ? `${trade.pnlUsd >= 0 ? "+" : ""}${trade.pnlUsd.toFixed(2)} USDT` : "—"}
+                        tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
                       />
                     </div>
                 </div>
@@ -319,7 +319,7 @@ function MiniMetric({
         {icon}
         {label}
       </div>
-      <div className={`mt-1 text-[10px] font-black tabular-nums truncate ${tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : ""}`}>
+      <div className={`mt-1 text-[12px] font-black tabular-nums truncate ${tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : ""}`}>
         {value}
       </div>
     </div>
