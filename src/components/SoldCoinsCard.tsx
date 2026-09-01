@@ -193,13 +193,25 @@ export default function SoldCoinsCard() {
               <History className="relative h-4 w-4 text-primary" strokeWidth={2.5} />
             </div>
             <div>
-              <div className="font-black text-sm tracking-wide uppercase">Sold Coins</div>
+              <div
+                style={{
+                  fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+                  fontSize: "13.2px",
+                  fontWeight: 900,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Sold Coins
+              </div>
               <div className="text-[10px] text-muted-foreground mt-0.5">
                 {trades.length ? `${trades.length} recorded sale${trades.length === 1 ? "" : "s"}` : "Realised trade ledger"}
               </div>
             </div>
           </div>
-          <CircleDollarSign className="h-5 w-5 text-primary/60" />
         </div>
 
         {isLoading && trades.length === 0 && (
