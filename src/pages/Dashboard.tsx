@@ -938,8 +938,6 @@ export default function Dashboard() {
           onLatestSignalsChange={handleLatestPumpSignals}
         />
 
-        <SoldCoinsCard />
-
         <PriceChart
           symbol={chartSymbol}
           interval="1m"
@@ -949,6 +947,8 @@ export default function Dashboard() {
           priceLines={chartLines}
           signalTimestamp={pumpSignalsBySymbol[chartSymbol.toUpperCase()]?.timestamp ?? null}
         />
+
+        <SoldCoinsCard />
 
         <BtcCrashCard />
       </div>
