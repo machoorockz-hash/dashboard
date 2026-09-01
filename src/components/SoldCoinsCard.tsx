@@ -93,10 +93,6 @@ function fmtPrice(value: number) {
   return value.toFixed(8);
 }
 
-function fmtAmount(value: number) {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 8 });
-}
-
 function fmtTime(timestamp: number) {
   const date = new Date(timestamp);
   return {
@@ -243,16 +239,14 @@ export default function SoldCoinsCard() {
                     profitable ? "border-bull/20 hover:border-bull/40" : "border-bear/20 hover:border-bear/40"
                   }`}
                 >
-                  <div className="overflow-x-auto">
-                    <div className="flex min-w-[760px] items-center gap-3">
-                    <div className="flex flex-1 items-center gap-3 min-w-[220px]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="flex flex-1 items-center gap-3 min-w-0">
                       <div className={`shrink-0 rounded-full p-[2px] ${profitable ? "bg-bull/20" : "bg-bear/20"}`}>
                         <CoinIcon symbol={trade.base} size={34} />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="font-black text-sm truncate">{coinName(trade.base)}</span>
-                          <span className="text-muted-foreground text-[10px] shrink-0">{trade.base}/USDT</span>
                         </div>
                         <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                           Sold {date} · {time}
@@ -260,22 +254,16 @@ export default function SoldCoinsCard() {
                       </div>
                     </div>
 
-                    <InlineMetric label="Quantity" value={`${fmtAmount(trade.qty)} ${trade.base}`} />
-                    <InlineMetric label="Sell price" value={`$${fmtPrice(trade.price)}`} />
-                    <InlineMetric label="Sold value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
-                    <MiniMetric
-                      label="Profit / loss"
-                      value={hasPnl && trade.pnlUsd != null ? `${trade.pnlUsd >= 0 ? "+" : ""}${trade.pnlUsd.toFixed(2)} USDT` : "—"}
-                      tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
-                    />
-                    <MiniMetric
-                      label="Return"
-                      value={hasPnl && trade.pnlPct != null ? `${trade.pnlPct >= 0 ? "+" : ""}${trade.pnlPct.toFixed(2)}%` : "—"}
-                      tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
-                      icon={hasPnl ? (profitable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />) : undefined}
-                    />
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
+                      <InlineMetric label="Sell price" value={`$${fmtPrice(trade.price)}`} />
+                      <InlineMetric label="Sold value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
+                      <MiniMetric
+                        label="Profit / loss"
+                        value={hasPnl && trade.pnlPct != null ? `${trade.pnlPct >= 0 ? "+" : ""}${trade.pnlPct.toFixed(2)}%` : "—"}
+                        tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
+                        icon={hasPnl ? (profitable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />) : undefined}
+                      />
                     </div>
-                  </div>
                 </div>
               );
             })}
