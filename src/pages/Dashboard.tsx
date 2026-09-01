@@ -6,6 +6,7 @@ import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
+import SoldCoinsCard from "../components/SoldCoinsCard";
 import { getAccount, getAllPrices } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -936,6 +937,8 @@ export default function Dashboard() {
           onCoinSelect={(sym) => setChartSymbol(sym)}
           onLatestSignalsChange={handleLatestPumpSignals}
         />
+
+        <SoldCoinsCard />
 
         <PriceChart
           symbol={chartSymbol}
