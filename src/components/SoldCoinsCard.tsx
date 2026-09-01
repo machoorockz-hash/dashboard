@@ -258,7 +258,12 @@ export default function SoldCoinsCard() {
                       <InlineMetric label="Sell price" value={`$${fmtPrice(trade.price)}`} />
                       <InlineMetric label="Sold value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
                       <MiniMetric
-                        label="Profit / loss"
+                        label="Profit / loss USDT"
+                        value={hasPnl && trade.pnlUsd != null ? `${trade.pnlUsd >= 0 ? "+" : ""}${trade.pnlUsd.toFixed(2)} USDT` : "—"}
+                        tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
+                      />
+                      <MiniMetric
+                        label="Profit / loss %"
                         value={hasPnl && trade.pnlPct != null ? `${trade.pnlPct >= 0 ? "+" : ""}${trade.pnlPct.toFixed(2)}%` : "—"}
                         tone={hasPnl ? (profitable ? "bull" : "bear") : undefined}
                         icon={hasPnl ? (profitable ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />) : undefined}
