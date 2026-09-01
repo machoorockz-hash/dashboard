@@ -265,6 +265,7 @@ export default function SoldCoinsCard() {
                       />
                     </div>
                 </div>
+                </div>
               );
             })}
           </div>
