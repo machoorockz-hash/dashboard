@@ -48,11 +48,27 @@ function normalizeTrade(raw: Record<string, unknown>): SoldTrade | null {
     raw.entry_price,
     raw.avg_price,
     raw.average_entry,
+    raw.average_entry_price,
     raw.buy_price,
     raw.cost_price,
+    raw.dca_avg_price,
   );
-  let pnlUsd = numberValue(raw.pnl_usd, raw.profit_usdt, raw.profit_loss_usdt);
-  let pnlPct = numberValue(raw.pnl_pct, raw.profit_pct, raw.profit_loss_pct);
+  let pnlUsd = numberValue(
+    raw.pnl_usd,
+    raw.profit_usdt,
+    raw.profit_loss_usdt,
+    raw.realized_pnl_usdt,
+    raw.realised_pnl_usdt,
+    raw.dca_pnl_usd,
+  );
+  let pnlPct = numberValue(
+    raw.pnl_pct,
+    raw.profit_pct,
+    raw.profit_loss_pct,
+    raw.realized_pnl_pct,
+    raw.realised_pnl_pct,
+    raw.dca_pnl_pct,
+  );
 
   if (pnlUsd == null && entryPrice != null) {
     pnlUsd = (price - entryPrice) * qty;
