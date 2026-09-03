@@ -363,14 +363,12 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
           }}>Pump Scanner</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${
-            scannerPaused
-              ? "border-yellow-400/35 bg-yellow-400/10 text-yellow-300"
-              : "border-teal-300/30 bg-teal-300/10 text-teal-300"
-          }`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${scannerPaused ? "bg-yellow-300" : "bg-teal-300"}`} />
-            {scannerPaused ? "Pause" : "Safe"}
-          </div>
+          {scannerPaused && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest border-yellow-400/35 bg-yellow-400/10 text-yellow-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-yellow-300" />
+              Pause
+            </div>
+          )}
           <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
             active
               ? "bg-emerald-500/10 text-emerald-400"
