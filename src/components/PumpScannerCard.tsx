@@ -200,7 +200,11 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
   const scannerPaused = data?.paused === true || responseStatus === "RISK" || responseStatus === "PAUSED";
 
   return (
-    <section className="rounded-2xl border border-border bg-transparent p-4 shadow-sm flex flex-col gap-3">
+    <section className={`rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-500 ${
+      scannerPaused
+        ? "border-yellow-400/50 bg-yellow-400/[0.06] shadow-[0_0_24px_rgba(250,204,21,0.14)]"
+        : "border-border bg-transparent shadow-sm"
+    }`}>
       <style>{`
         @keyframes pump-slide-in {
           from { opacity: 0; transform: translateX(22px) scale(0.97); }
@@ -468,7 +472,14 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
       )}
 
       {/* ── RADAR SWEEP FOOTER ── */}
-      <div className="flex flex-col items-center gap-1.5 pt-1" style={{ borderTop: "1px solid rgba(0,255,180,0.07)" }}>
+      <div
+        className="flex flex-col items-center gap-1.5 pt-1"
+        style={{
+          borderTop: scannerPaused
+            ? "1px solid rgba(250,204,21,0.18)"
+            : "1px solid rgba(0,255,180,0.07)",
+        }}
+      >
         {/* Radar orb */}
         <div style={{ position: "relative", width: 44, height: 44 }}>
           <svg width="44" height="44" viewBox="0 0 44 44" style={{ position: "absolute", inset: 0 }}>
