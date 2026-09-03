@@ -12,6 +12,7 @@ interface PumpSignal {
 interface PumpStore {
   signals: PumpSignal[];
   lastHeartbeat: string | null;
+  newsStatus: "SAFE" | "RISK";
 }
 
 const store = new Map<string, PumpStore>();
@@ -26,14 +27,25 @@ router.post("/pump/push", (req, res) => {
     return;
   }
 
-  const body = req.body as { symbol?: string; price?: number; score?: number; timestamp?: string; heartbeat?: boolean };
+  const body = req.body as {
+    symbol?: string;
+    price?: number;
+    score?: number;
+    timestamp?: string;
+    heartbeat?: boolean;
+    newsStatus?: string;
+  };
   const now = new Date().toISOString();
 
   if (!store.has(key)) {
-    store.set(key, { signals: [], lastHeartbeat: null });
+    store.set(key, { signals: [], lastHeartbeat: null, newsStatus: "SAFE" });
   }
   const entry = store.get(key)!;
   entry.lastHeartbeat = now;
+
+  if (body.newsStatus === "SAFE" || body.newsStatus === "RISK") {
+    entry.newsStatus = body.newsStatus;
+  }
 
   if (!body.heartbeat) {
     if (typeof body.symbol !== "string" || typeof body.price !== "number") {
@@ -66,6 +78,7 @@ router.get("/pump/data", (req, res) => {
     key,
     active,
     lastHeartbeat: entry?.lastHeartbeat ?? null,
+    newsStatus: entry?.newsStatus ?? "SAFE",
     signals: entry?.signals ?? [],
   });
 });
