@@ -16,6 +16,9 @@ interface PumpData {
   active: boolean;
   lastHeartbeat: string | null;
   signals: PumpSignal[];
+  paused?: boolean;
+  newsStatus?: string;
+  status?: string;
 }
 
 function toUAE(iso: string) {
@@ -193,6 +196,8 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
   }, []);
 
   const active = !stale && data?.active;
+  const responseStatus = String(data?.newsStatus ?? data?.status ?? "").toUpperCase();
+  const scannerPaused = data?.paused === true || responseStatus === "RISK" || responseStatus === "PAUSED";
 
   return (
     <section className="rounded-2xl border border-border bg-transparent p-4 shadow-sm flex flex-col gap-3">
@@ -353,13 +358,23 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
             WebkitTextFillColor: "transparent",
           }}>Pump Scanner</span>
         </div>
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
-          active
-            ? "bg-emerald-500/10 text-emerald-400"
-            : "bg-red-500/10 text-red-400"
-        }`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-          {active ? "Live" : "Offline"}
+        <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${
+            scannerPaused
+              ? "border-yellow-400/35 bg-yellow-400/10 text-yellow-300"
+              : "border-teal-300/30 bg-teal-300/10 text-teal-300"
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${scannerPaused ? "bg-yellow-300" : "bg-teal-300"}`} />
+            {scannerPaused ? "Pause" : "Safe"}
+          </div>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
+            active
+              ? "bg-emerald-500/10 text-emerald-400"
+              : "bg-red-500/10 text-red-400"
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+            {active ? "Live" : "Offline"}
+          </div>
         </div>
       </div>
 
