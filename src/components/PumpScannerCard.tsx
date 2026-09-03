@@ -364,8 +364,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
         </div>
         <div className="flex items-center gap-2">
           {scannerPaused && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest border-yellow-400/35 bg-yellow-400/10 text-yellow-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-yellow-300" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-yellow-400/10 text-yellow-300">
               Pause
             </div>
           )}
