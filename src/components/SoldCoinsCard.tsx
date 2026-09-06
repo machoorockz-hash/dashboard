@@ -336,7 +336,7 @@ export default function SoldCoinsCard() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
-                      <InlineMetric label="Sell Price" value={`$${fmtPrice(trade.price)}`} />
+                       <InlineMetric label="Sell Price" value={`$${fmtPrice(trade.price)}`} tone="danger" />
                       <InlineMetric label="Sold Value" value={`${trade.quoteQty.toFixed(2)} USDT`} tone="primary" />
                     </div>
                 </div>
@@ -357,12 +357,12 @@ function InlineMetric({
 }: {
   label: string;
   value: string;
-  tone?: "primary";
+  tone?: "primary" | "danger";
 }) {
   return (
     <div className="shrink-0 bg-transparent">
       <div className="text-[8px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-[10px] font-black tabular-nums truncate ${tone === "primary" ? "text-primary" : ""}`}>{value}</div>
+      <div className={`mt-1 text-[10px] font-black tabular-nums truncate ${tone === "primary" ? "text-primary" : tone === "danger" ? "text-[#EE1120]" : ""}`}>{value}</div>
     </div>
   );
 }
