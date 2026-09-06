@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CircleDollarSign, History } from "lucide-react";
+import { CircleDollarSign } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 import { coinName } from "../lib/coinMeta";
 
@@ -112,7 +112,7 @@ function readStoredTrades(): SoldTrade[] {
 }
 
 function fmtPrice(value: number) {
-  if (!Number.isFinite(value)) return "—";
+  if (!Number.isFinite(value)) return "â€”";
   if (value >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
   if (value >= 1) return value.toFixed(4);
   if (value >= 0.01) return value.toFixed(5);
@@ -214,9 +214,17 @@ export default function SoldCoinsCard() {
       <div className="relative p-5 md:p-6">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="relative flex items-center justify-center h-8 w-8 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/25 via-primary/10 to-transparent">
-              <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--primary)_30%,transparent),transparent_70%)]" />
-              <History className="relative h-4 w-4 text-primary" strokeWidth={2.5} />
+            <div
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-200/60 shadow-[inset_0_1px_2px_rgba(255,255,255,0.45),inset_0_-3px_5px_rgba(0,0,0,0.35),0_0_14px_rgba(16,185,129,0.25)]"
+              style={{
+                background: "radial-gradient(circle at 30% 24%, #52f2aa 0%, #0fc978 30%, #07844d 64%, #03442d 100%)",
+              }}
+            >
+              <div className="absolute inset-[3px] rounded-full border border-emerald-950/70 shadow-[inset_0_0_0_1px_rgba(167,243,208,0.3),inset_0_2px_4px_rgba(0,0,0,0.35)]" />
+              <div className="absolute left-[6px] top-[5px] h-2 w-3 rounded-full bg-white/30 blur-[2px]" />
+              <span className="relative z-10 -mt-0.5 font-serif text-[25px] font-black leading-none text-[#f5f0e8] drop-shadow-[0_2px_1px_rgba(0,0,0,0.5)]">
+                S
+              </span>
             </div>
             <div>
               <div
