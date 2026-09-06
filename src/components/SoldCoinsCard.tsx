@@ -222,15 +222,15 @@ export default function SoldCoinsCard() {
             >
               <defs>
                 <radialGradient id="soldCoinFace" cx="31%" cy="24%" r="82%">
-                  <stop offset="0%" stopColor="#8b3a3e" />
-                  <stop offset="42%" stopColor="#642229" />
-                  <stop offset="78%" stopColor="#3c121a" />
-                  <stop offset="100%" stopColor="#18070d" />
+                  <stop offset="0%" stopColor="#E61C2B" />
+                  <stop offset="42%" stopColor="#C41526" />
+                  <stop offset="78%" stopColor="#8D0E1B" />
+                  <stop offset="100%" stopColor="#42060D" />
                 </radialGradient>
                 <linearGradient id="soldCoinEdge" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#6f242d" />
-                  <stop offset="45%" stopColor="#21070e" />
-                  <stop offset="100%" stopColor="#48121c" />
+                  <stop offset="0%" stopColor="#B91524" />
+                  <stop offset="45%" stopColor="#24040A" />
+                  <stop offset="100%" stopColor="#6C0A15" />
                 </linearGradient>
                 <linearGradient id="soldCoinDollar" x1="12%" y1="0%" x2="82%" y2="100%">
                   <stop offset="0%" stopColor="#fffef7" />
@@ -239,7 +239,7 @@ export default function SoldCoinsCard() {
                 </linearGradient>
                 <filter id="soldCoinShadow" x="-30%" y="-30%" width="160%" height="180%">
                   <feDropShadow dx="0" dy="2.2" stdDeviation="2.1" floodColor="#000000" floodOpacity="0.72" />
-                  <feDropShadow dx="0" dy="-0.2" stdDeviation="1.2" floodColor="#ff5364" floodOpacity="0.25" />
+                  <feDropShadow dx="0" dy="-0.2" stdDeviation="1.2" floodColor="#E61C2B" floodOpacity="0.28" />
                 </filter>
                 <filter id="soldCoinSymbol" x="-35%" y="-25%" width="170%" height="160%">
                   <feDropShadow dx="0" dy="1.4" stdDeviation="1.2" floodColor="#000000" floodOpacity="0.82" />
@@ -248,7 +248,7 @@ export default function SoldCoinsCard() {
               </defs>
               <g filter="url(#soldCoinShadow)">
                 <ellipse cx="25" cy="27.4" rx="18" ry="14.8" fill="url(#soldCoinEdge)" />
-                <circle cx="24" cy="22" r="18.25" fill="url(#soldCoinFace)" stroke="#c95662" strokeOpacity="0.66" strokeWidth="0.9" />
+                <circle cx="24" cy="22" r="18.25" fill="url(#soldCoinFace)" stroke="#E61C2B" strokeOpacity="0.7" strokeWidth="0.9" />
                 <circle cx="24" cy="22" r="17.25" fill="none" stroke="#e37a82" strokeOpacity="0.28" strokeWidth="0.7" />
                 <path d="M10.4 15.8c3.4-6.2 9.1-9.4 16.2-9.5" fill="none" stroke="#ff8890" strokeLinecap="round" strokeOpacity="0.62" strokeWidth="0.9" />
                 <path d="M12 12.4c2.9-2.9 6.3-4.7 10.6-5.4" fill="none" stroke="#ffc0c4" strokeLinecap="round" strokeOpacity="0.24" strokeWidth="0.7" />
@@ -266,7 +266,7 @@ export default function SoldCoinsCard() {
                   fontWeight: 900,
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                    background: "linear-gradient(90deg, #ff7b83, #d73549)",
+                    background: "#E61C2B",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
