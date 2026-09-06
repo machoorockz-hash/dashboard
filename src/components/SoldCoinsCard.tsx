@@ -328,7 +328,7 @@ export default function SoldCoinsCard() {
                              {coinName(trade.base)}
                            </span>
                         </div>
-                         <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                         <div className="text-[10px] text-primary tabular-nums mt-0.5">
                             <span>{date}</span>
                             <span className="block">{time}</span>
                         </div>
