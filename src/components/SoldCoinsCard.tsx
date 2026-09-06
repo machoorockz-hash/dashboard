@@ -266,7 +266,7 @@ export default function SoldCoinsCard() {
                   fontWeight: 900,
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                    background: "#E61C2B",
+                    background: "#EE1120",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
