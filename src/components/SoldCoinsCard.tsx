@@ -239,9 +239,9 @@ export default function SoldCoinsCard() {
                   <stop offset="100%" stopColor="#c6ff68" stopOpacity="0.82" />
                 </linearGradient>
                 <linearGradient id="soldCoinDollar" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#efff9a" />
-                  <stop offset="45%" stopColor="#9bf34e" />
-                  <stop offset="100%" stopColor="#45bd42" />
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="45%" stopColor="#f8fff9" />
+                  <stop offset="100%" stopColor="#d7eee0" />
                 </linearGradient>
                 <filter id="soldCoinShadow" x="-30%" y="-30%" width="160%" height="180%">
                   <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#00e890" floodOpacity="0.28" />
