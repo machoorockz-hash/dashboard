@@ -216,7 +216,7 @@ export default function SoldCoinsCard() {
           <div className="flex items-center gap-2.5">
             <svg
               viewBox="0 0 48 48"
-              className="h-9 w-9 shrink-0"
+              className="h-10 w-10 shrink-0"
               role="img"
               aria-label="Sold coins"
             >
@@ -237,14 +237,6 @@ export default function SoldCoinsCard() {
                   <stop offset="48%" stopColor="#f7f2e7" />
                   <stop offset="100%" stopColor="#d9d4c7" />
                 </linearGradient>
-                <filter id="soldCoinTexture" x="-15%" y="-15%" width="130%" height="130%">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2" seed="8" result="noise" />
-                  <feColorMatrix in="noise" type="saturate" values="0" result="monoNoise" />
-                  <feComponentTransfer in="monoNoise" result="softNoise">
-                    <feFuncA type="table" tableValues="0 0.2" />
-                  </feComponentTransfer>
-                  <feBlend in="SourceGraphic" in2="softNoise" mode="soft-light" />
-                </filter>
                 <filter id="soldCoinShadow" x="-30%" y="-30%" width="160%" height="180%">
                   <feDropShadow dx="0" dy="2.2" stdDeviation="2.1" floodColor="#000000" floodOpacity="0.72" />
                   <feDropShadow dx="0" dy="-0.2" stdDeviation="1.2" floodColor="#48d8ae" floodOpacity="0.22" />
@@ -256,7 +248,7 @@ export default function SoldCoinsCard() {
               </defs>
               <g filter="url(#soldCoinShadow)">
                 <ellipse cx="25" cy="27.4" rx="18" ry="14.8" fill="url(#soldCoinEdge)" />
-                <circle cx="24" cy="22" r="18.25" fill="url(#soldCoinFace)" stroke="#2b9e79" strokeOpacity="0.62" strokeWidth="0.9" filter="url(#soldCoinTexture)" />
+                <circle cx="24" cy="22" r="18.25" fill="url(#soldCoinFace)" stroke="#2b9e79" strokeOpacity="0.62" strokeWidth="0.9" />
                 <circle cx="24" cy="22" r="17.25" fill="none" stroke="#6ed7ad" strokeOpacity="0.26" strokeWidth="0.7" />
                 <path d="M10.4 15.8c3.4-6.2 9.1-9.4 16.2-9.5" fill="none" stroke="#77dfb5" strokeLinecap="round" strokeOpacity="0.58" strokeWidth="0.9" />
                 <path d="M12 12.4c2.9-2.9 6.3-4.7 10.6-5.4" fill="none" stroke="#b2f1d1" strokeLinecap="round" strokeOpacity="0.22" strokeWidth="0.7" />
