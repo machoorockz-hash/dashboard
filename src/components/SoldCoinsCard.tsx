@@ -214,18 +214,50 @@ export default function SoldCoinsCard() {
       <div className="relative p-5 md:p-6">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <div
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-200/60 shadow-[inset_0_1px_2px_rgba(255,255,255,0.45),inset_0_-3px_5px_rgba(0,0,0,0.35),0_0_14px_rgba(16,185,129,0.25)]"
-              style={{
-                background: "radial-gradient(circle at 30% 24%, #52f2aa 0%, #0fc978 30%, #07844d 64%, #03442d 100%)",
-              }}
+            <svg
+              viewBox="0 0 48 48"
+              className="h-9 w-9 shrink-0"
+              role="img"
+              aria-label="Sold coins"
             >
-              <div className="absolute inset-[3px] rounded-full border border-emerald-950/70 shadow-[inset_0_0_0_1px_rgba(167,243,208,0.3),inset_0_2px_4px_rgba(0,0,0,0.35)]" />
-              <div className="absolute left-[6px] top-[5px] h-2 w-3 rounded-full bg-white/30 blur-[2px]" />
-              <span className="relative z-10 -mt-0.5 font-serif text-[25px] font-black leading-none text-[#f5f0e8] drop-shadow-[0_2px_1px_rgba(0,0,0,0.5)]">
-                $
-              </span>
-            </div>
+              <defs>
+                <radialGradient id="soldCoinFace" cx="28%" cy="22%" r="78%">
+                  <stop offset="0%" stopColor="#72ffd1" />
+                  <stop offset="28%" stopColor="#1ee08e" />
+                  <stop offset="68%" stopColor="#07985b" />
+                  <stop offset="100%" stopColor="#03432f" />
+                </radialGradient>
+                <linearGradient id="soldCoinEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0b6d47" />
+                  <stop offset="45%" stopColor="#022f22" />
+                  <stop offset="100%" stopColor="#0fa86a" />
+                </linearGradient>
+                <linearGradient id="soldCoinRim" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#d6ffed" stopOpacity="0.9" />
+                  <stop offset="22%" stopColor="#25dc98" />
+                  <stop offset="58%" stopColor="#043c2b" />
+                  <stop offset="100%" stopColor="#7bffd0" stopOpacity="0.72" />
+                </linearGradient>
+                <filter id="soldCoinShadow" x="-30%" y="-30%" width="160%" height="180%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#00e890" floodOpacity="0.28" />
+                </filter>
+              </defs>
+              <g filter="url(#soldCoinShadow)">
+                <ellipse cx="25" cy="27" rx="18" ry="15" fill="url(#soldCoinEdge)" />
+                <circle cx="24" cy="22" r="18.55" fill="none" stroke="#011f17" strokeOpacity="0.9" strokeWidth="1.2" />
+                <circle cx="24" cy="22" r="18.15" fill="none" stroke="url(#soldCoinRim)" strokeWidth="1.15" />
+                <circle cx="24" cy="22" r="18" fill="url(#soldCoinFace)" stroke="#8affd1" strokeOpacity="0.7" strokeWidth="0.8" />
+                <circle cx="24" cy="22" r="17.15" fill="none" stroke="#b7ffe4" strokeOpacity="0.2" strokeWidth="0.6" strokeDasharray="0.7 1.4" />
+                <circle cx="24" cy="22" r="15.4" fill="none" stroke="#012f23" strokeOpacity="0.72" strokeWidth="1.2" />
+                <circle cx="24" cy="22" r="14.2" fill="none" stroke="#7affcc" strokeOpacity="0.34" strokeWidth="0.7" />
+                <path d="M11.5 15.5c3.3-5.2 8.4-7.6 14.4-7.3" fill="none" stroke="#d2ffed" strokeLinecap="round" strokeOpacity="0.7" strokeWidth="1.1" />
+                <path d="M13 12.7l1.2-2.5M16.2 10.2l.7-2.1" stroke="#effff8" strokeLinecap="round" strokeOpacity="0.55" strokeWidth="0.8" />
+                <path d="M11.2 29.5c4.7 5 12.2 7.1 19 4.3" fill="none" stroke="#00281d" strokeLinecap="round" strokeOpacity="0.5" strokeWidth="0.9" />
+                <text x="24" y="29.4" textAnchor="middle" fontFamily="Georgia, serif" fontSize="24" fontWeight="700" fill="#fffaf0" stroke="#d9d3c6" strokeOpacity="0.55" strokeWidth="0.35">
+                  $
+                </text>
+              </g>
+            </svg>
             <div>
               <div
                 style={{
