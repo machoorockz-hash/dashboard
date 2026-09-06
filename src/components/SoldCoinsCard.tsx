@@ -223,7 +223,7 @@ export default function SoldCoinsCard() {
               <div className="absolute inset-[3px] rounded-full border border-emerald-950/70 shadow-[inset_0_0_0_1px_rgba(167,243,208,0.3),inset_0_2px_4px_rgba(0,0,0,0.35)]" />
               <div className="absolute left-[6px] top-[5px] h-2 w-3 rounded-full bg-white/30 blur-[2px]" />
               <span className="relative z-10 -mt-0.5 font-serif text-[25px] font-black leading-none text-[#f5f0e8] drop-shadow-[0_2px_1px_rgba(0,0,0,0.5)]">
-                S
+                $
               </span>
             </div>
             <div>
@@ -234,7 +234,7 @@ export default function SoldCoinsCard() {
                   fontWeight: 900,
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                  background: "linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.5))",
+                   background: "linear-gradient(90deg, #52f2aa, #0fc978)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
