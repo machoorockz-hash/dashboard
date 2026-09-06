@@ -222,10 +222,10 @@ export default function SoldCoinsCard() {
             >
               <defs>
                 <radialGradient id="soldCoinFace" cx="28%" cy="22%" r="78%">
-                  <stop offset="0%" stopColor="#72ffd1" />
-                  <stop offset="28%" stopColor="#1ee08e" />
-                  <stop offset="68%" stopColor="#07985b" />
-                  <stop offset="100%" stopColor="#03432f" />
+                  <stop offset="0%" stopColor="#d7ff73" />
+                  <stop offset="28%" stopColor="#84f34c" />
+                  <stop offset="68%" stopColor="#25b94b" />
+                  <stop offset="100%" stopColor="#075e38" />
                 </radialGradient>
                 <linearGradient id="soldCoinEdge" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#0b6d47" />
@@ -233,10 +233,15 @@ export default function SoldCoinsCard() {
                   <stop offset="100%" stopColor="#0fa86a" />
                 </linearGradient>
                 <linearGradient id="soldCoinRim" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#d6ffed" stopOpacity="0.9" />
-                  <stop offset="22%" stopColor="#25dc98" />
-                  <stop offset="58%" stopColor="#043c2b" />
-                  <stop offset="100%" stopColor="#7bffd0" stopOpacity="0.72" />
+                  <stop offset="0%" stopColor="#efffa1" stopOpacity="0.95" />
+                  <stop offset="22%" stopColor="#87f34c" />
+                  <stop offset="58%" stopColor="#126c39" />
+                  <stop offset="100%" stopColor="#c6ff68" stopOpacity="0.82" />
+                </linearGradient>
+                <linearGradient id="soldCoinDollar" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#efff9a" />
+                  <stop offset="45%" stopColor="#9bf34e" />
+                  <stop offset="100%" stopColor="#45bd42" />
                 </linearGradient>
                 <filter id="soldCoinShadow" x="-30%" y="-30%" width="160%" height="180%">
                   <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#00e890" floodOpacity="0.28" />
@@ -246,14 +251,25 @@ export default function SoldCoinsCard() {
                 <ellipse cx="25" cy="27" rx="18" ry="15" fill="url(#soldCoinEdge)" />
                 <circle cx="24" cy="22" r="18.55" fill="none" stroke="#011f17" strokeOpacity="0.9" strokeWidth="1.2" />
                 <circle cx="24" cy="22" r="18.15" fill="none" stroke="url(#soldCoinRim)" strokeWidth="1.15" />
-                <circle cx="24" cy="22" r="18" fill="url(#soldCoinFace)" stroke="#8affd1" strokeOpacity="0.7" strokeWidth="0.8" />
-                <circle cx="24" cy="22" r="17.15" fill="none" stroke="#b7ffe4" strokeOpacity="0.2" strokeWidth="0.6" strokeDasharray="0.7 1.4" />
-                <circle cx="24" cy="22" r="15.4" fill="none" stroke="#012f23" strokeOpacity="0.72" strokeWidth="1.2" />
-                <circle cx="24" cy="22" r="14.2" fill="none" stroke="#7affcc" strokeOpacity="0.34" strokeWidth="0.7" />
-                <path d="M11.5 15.5c3.3-5.2 8.4-7.6 14.4-7.3" fill="none" stroke="#d2ffed" strokeLinecap="round" strokeOpacity="0.7" strokeWidth="1.1" />
-                <path d="M13 12.7l1.2-2.5M16.2 10.2l.7-2.1" stroke="#effff8" strokeLinecap="round" strokeOpacity="0.55" strokeWidth="0.8" />
-                <path d="M11.2 29.5c4.7 5 12.2 7.1 19 4.3" fill="none" stroke="#00281d" strokeLinecap="round" strokeOpacity="0.5" strokeWidth="0.9" />
-                <text x="24" y="29.4" textAnchor="middle" fontFamily="Georgia, serif" fontSize="24" fontWeight="700" fill="#fffaf0" stroke="#d9d3c6" strokeOpacity="0.55" strokeWidth="0.35">
+                <circle cx="24" cy="22" r="18" fill="url(#soldCoinFace)" stroke="#d2ff70" strokeOpacity="0.78" strokeWidth="0.8" />
+                <circle cx="24" cy="22" r="17.15" fill="none" stroke="#d2ff70" strokeOpacity="0.52" strokeWidth="1.45" strokeDasharray="0.65 1.15" />
+                <circle cx="24" cy="22" r="15.8" fill="none" stroke="#063c28" strokeOpacity="0.74" strokeWidth="1.1" />
+                <circle cx="24" cy="22" r="14.35" fill="none" stroke="#b8ff5d" strokeOpacity="0.55" strokeWidth="0.72" />
+                <g fill="none" stroke="#c2ff61" strokeLinecap="square" strokeOpacity="0.62" strokeWidth="0.78">
+                  <path d="M15.2 11.5h4.2l1.4 3.7M32.8 11.5h-4.2l-1.4 3.7" />
+                  <path d="M10.8 19.2l3.5 1.4M37.2 19.2l-3.5 1.4" />
+                  <path d="M15.2 32.5h4.2l1.4-3.7M32.8 32.5h-4.2l-1.4-3.7" />
+                </g>
+                <g fill="#d4ff6b" stroke="#23833b" strokeWidth="0.35">
+                  <path d="M11.5 12.7l.9 1.8 2 .2-1.5 1.3.4 2-1.8-1-1.8 1 .4-2-1.5-1.3 2-.2z" />
+                  <path d="M36.5 12.7l.9 1.8 2 .2-1.5 1.3.4 2-1.8-1-1.8 1 .4-2-1.5-1.3 2-.2z" />
+                  <path d="M11.5 28.3l.9 1.8 2 .2-1.5 1.3.4 2-1.8-1-1.8 1 .4-2-1.5-1.3 2-.2z" />
+                  <path d="M36.5 28.3l.9 1.8 2 .2-1.5 1.3.4 2-1.8-1-1.8 1 .4-2-1.5-1.3 2-.2z" />
+                </g>
+                <path d="M11.5 15.5c3.3-5.2 8.4-7.6 14.4-7.3" fill="none" stroke="#efffa4" strokeLinecap="round" strokeOpacity="0.78" strokeWidth="1.1" />
+                <path d="M13 12.7l1.2-2.5M16.2 10.2l.7-2.1" stroke="#f5ffc7" strokeLinecap="round" strokeOpacity="0.6" strokeWidth="0.8" />
+                <path d="M11.2 29.5c4.7 5 12.2 7.1 19 4.3" fill="none" stroke="#04311f" strokeLinecap="round" strokeOpacity="0.55" strokeWidth="0.9" />
+                <text x="24" y="29.4" textAnchor="middle" fontFamily="Arial Black, Arial, sans-serif" fontSize="24" fontWeight="900" fill="url(#soldCoinDollar)" stroke="#14592f" strokeOpacity="0.9" strokeWidth="1.05" paintOrder="stroke">
                   $
                 </text>
               </g>
