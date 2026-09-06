@@ -202,14 +202,14 @@ export default function SoldCoinsCard() {
     <section
       className="rounded-2xl relative overflow-hidden"
       style={{
-        background: "transparent",
-        border: "1px solid color-mix(in oklab, var(--primary) 24%, transparent)",
+        background: "linear-gradient(135deg, rgba(238,17,32,0.24) 0%, rgba(112,4,16,0.24) 48%, rgba(9,2,6,0.58) 100%)",
+        border: "1px solid color-mix(in oklab, #EE1120 30%, transparent)",
         backdropFilter: "blur(8px) saturate(150%)",
         WebkitBackdropFilter: "blur(8px) saturate(150%)",
-        boxShadow: "0 0 45px -25px color-mix(in oklab, var(--primary) 55%, transparent)",
+        boxShadow: "0 0 45px -25px color-mix(in oklab, #EE1120 55%, transparent)",
       }}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#EE1120]/70 to-transparent" />
 
       <div className="relative p-5 md:p-6">
         <div className="flex items-center justify-between gap-3 mb-4">
@@ -328,7 +328,7 @@ export default function SoldCoinsCard() {
                              {coinName(trade.base)}
                            </span>
                         </div>
-                        <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                         <div className="text-[10px] text-[#EE1120] tabular-nums mt-0.5">
                             <span>{date}</span>
                             <span className="block">{time}</span>
                         </div>
