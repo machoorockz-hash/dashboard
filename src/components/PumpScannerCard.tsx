@@ -18,7 +18,16 @@ interface PumpData {
   signals: PumpSignal[];
   paused?: boolean;
   newsStatus?: string;
+  newsReason?: string;
+  whaleStatus?: string;
+  whaleReason?: string;
+  pauseReason?: string;
+  reason?: string;
   status?: string;
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function toUAE(iso: string) {
@@ -197,7 +206,24 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
 
   const active = !stale && data?.active;
   const responseStatus = String(data?.newsStatus ?? data?.status ?? "").toUpperCase();
-  const scannerPaused = data?.paused === true || responseStatus === "RISK" || responseStatus === "PAUSED";
+  const newsStatus = String(data?.newsStatus ?? "").toUpperCase();
+  const whaleStatus = String(data?.whaleStatus ?? "").toUpperCase();
+  const scannerPaused =
+    data?.paused === true ||
+    responseStatus === "RISK" ||
+    responseStatus === "PAUSED" ||
+    newsStatus === "RISK" ||
+    whaleStatus === "HOLD";
+
+  const pauseReasons = [
+    newsStatus === "RISK" ? textValue(data?.newsReason) : "",
+    whaleStatus === "HOLD" ? textValue(data?.whaleReason) : "",
+  ].filter(Boolean);
+
+  if (pauseReasons.length === 0) {
+    const generalReason = textValue(data?.pauseReason ?? data?.reason);
+    if (generalReason) pauseReasons.push(generalReason);
+  }
 
   return (
     <section className={`rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-500 ${
@@ -385,6 +411,20 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
           <span className="text-xs font-black tracking-widest uppercase text-red-400">
             BOT IS NOT ACTIVE
           </span>
+        </div>
+      )}
+
+      {/* ── PAUSE REASON ── */}
+      {scannerPaused && pauseReasons.length > 0 && (
+        <div className="rounded-xl border border-yellow-400/25 bg-yellow-400/[0.07] px-3 py-3">
+          {pauseReasons.map((reason, index) => (
+            <p
+              key={`${reason}-${index}`}
+              className="whitespace-pre-line text-xs leading-relaxed text-yellow-100/80"
+            >
+              {reason}
+            </p>
+          ))}
         </div>
       )}
 
