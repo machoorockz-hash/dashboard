@@ -13,6 +13,9 @@ interface PumpStore {
   signals: PumpSignal[];
   lastHeartbeat: string | null;
   newsStatus: "SAFE" | "RISK";
+  newsReason: string;
+  whaleStatus: "NORMAL" | "HOLD";
+  whaleReason: string;
 }
 
 const store = new Map<string, PumpStore>();
@@ -34,17 +37,36 @@ router.post("/pump/push", (req, res) => {
     timestamp?: string;
     heartbeat?: boolean;
     newsStatus?: string;
+    newsReason?: string;
+    whaleStatus?: string;
+    whaleReason?: string;
   };
   const now = new Date().toISOString();
 
   if (!store.has(key)) {
-    store.set(key, { signals: [], lastHeartbeat: null, newsStatus: "SAFE" });
+    store.set(key, {
+      signals: [],
+      lastHeartbeat: null,
+      newsStatus: "SAFE",
+      newsReason: "",
+      whaleStatus: "NORMAL",
+      whaleReason: "",
+    });
   }
   const entry = store.get(key)!;
   entry.lastHeartbeat = now;
 
   if (body.newsStatus === "SAFE" || body.newsStatus === "RISK") {
     entry.newsStatus = body.newsStatus;
+  }
+  if (typeof body.newsReason === "string") {
+    entry.newsReason = body.newsReason;
+  }
+  if (body.whaleStatus === "NORMAL" || body.whaleStatus === "HOLD") {
+    entry.whaleStatus = body.whaleStatus;
+  }
+  if (typeof body.whaleReason === "string") {
+    entry.whaleReason = body.whaleReason;
   }
 
   if (!body.heartbeat) {
@@ -79,6 +101,9 @@ router.get("/pump/data", (req, res) => {
     active,
     lastHeartbeat: entry?.lastHeartbeat ?? null,
     newsStatus: entry?.newsStatus ?? "SAFE",
+    newsReason: entry?.newsReason ?? "",
+    whaleStatus: entry?.whaleStatus ?? "NORMAL",
+    whaleReason: entry?.whaleReason ?? "",
     signals: entry?.signals ?? [],
   });
 });
