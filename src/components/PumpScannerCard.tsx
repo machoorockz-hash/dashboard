@@ -416,11 +416,11 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
 
       {/* ── PAUSE REASON ── */}
       {scannerPaused && pauseReasons.length > 0 && (
-        <div className="rounded-xl border border-yellow-400/25 bg-yellow-400/[0.07] px-3 py-3">
+        <div className="rounded-xl bg-yellow-400/[0.07] px-3 py-3">
           {pauseReasons.map((reason, index) => (
             <p
               key={`${reason}-${index}`}
-              className="whitespace-pre-line text-xs leading-relaxed text-yellow-100/80"
+              className="whitespace-pre-line text-xs leading-relaxed text-yellow-300"
             >
               {reason}
             </p>
