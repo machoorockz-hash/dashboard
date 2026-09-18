@@ -297,10 +297,18 @@ export function BitcoinCalendar() {
                   justifyContent: "center",
                   gap: "4px",
                   borderRadius: "11px",
-                  border: "1px solid transparent",
-                  color: hasEvent ? "#ff6a72" : "rgba(255,255,255,0.72)",
+                  border: isToday
+                    ? "1px solid #0dd9aa"
+                    : hasEvent
+                    ? "1px solid rgba(255,92,103,0.95)"
+                    : "1px solid transparent",
+                  color: isToday ? "#0dd9aa" : hasEvent ? "#ff6a72" : "rgba(255,255,255,0.72)",
                   background: "transparent",
-                  boxShadow: "none",
+                  boxShadow: isToday
+                    ? "0 0 18px -6px rgba(13,217,170,0.95)"
+                    : hasEvent
+                    ? "0 0 18px -6px rgba(239,68,68,0.95)"
+                    : "none",
                   cursor: "pointer",
                   transition: "all 0.18s ease",
                 }}
@@ -310,7 +318,7 @@ export function BitcoinCalendar() {
                 </span>
                 {hasEvent && (
                   <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "transparent", boxShadow: "none" }} />
+                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: isToday ? "#0dd9aa" : "#ff4d5a", boxShadow: isToday ? "0 0 7px #0dd9aa" : "0 0 7px #ef4444" }} />
                     {dayEvents.length > 1 && <span style={{ fontSize: "8px", fontWeight: 900 }}>{dayEvents.length}</span>}
                   </span>
                 )}
@@ -322,7 +330,7 @@ export function BitcoinCalendar() {
         <div style={{ marginTop: "16px", paddingTop: "13px", borderTop: "1px solid transparent" }}>
           {selectedDay && selectedDate ? (
             <>
-              <div style={{ marginBottom: "9px", color: "rgba(255,255,255,0.43)", fontSize: "9px", fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase" }}>
+              <div style={{ marginBottom: "9px", color: "#ff6a72", fontSize: "9px", fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase" }}>
                 {DUBAI_FULL_DATE.format(selectedDate)}
               </div>
               {selectedEvents.length ? selectedEvents.map((event) => (
@@ -337,23 +345,23 @@ export function BitcoinCalendar() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-                    <div style={{ color: "#fff", fontSize: "13px", fontWeight: 850, lineHeight: 1.35 }}>{event.name}</div>
+                    <div style={{ color: "#ff6a72", fontSize: "13px", fontWeight: 850, lineHeight: 1.35 }}>{event.name}</div>
                     <span style={{ color: "#ff6a72", fontSize: "8px", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                       {event.impact ?? "HIGH"}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", color: "#ff8890", fontSize: "11px", fontWeight: 750, fontVariantNumeric: "tabular-nums" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", color: "#ff6a72", fontSize: "11px", fontWeight: 750, fontVariantNumeric: "tabular-nums" }}>
                     <Clock3 size={13} />
                     {eventDateLabel(event)}
                   </div>
                   {event.source && (
-                    <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.29)", fontSize: "9px" }}>
+                    <div style={{ marginTop: "6px", color: "#ff6a72", fontSize: "9px" }}>
                       Source: {event.source}
                     </div>
                   )}
                 </div>
               )) : (
-                <div style={{ color: "rgba(255,255,255,0.32)", fontSize: "11px" }}>No BTC-related event was detected for this date.</div>
+                <div style={{ color: "#ff6a72", fontSize: "11px" }}>No BTC-related event was detected for this date.</div>
               )}
             </>
           ) : (
