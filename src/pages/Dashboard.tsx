@@ -5,6 +5,7 @@ import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
+import { BitcoinCalendar } from "../components/BitcoinCalendar";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
 import SoldCoinsCard from "../components/SoldCoinsCard";
 import { getAccount, getAllPrices } from "../lib/binance";
@@ -951,6 +952,9 @@ export default function Dashboard() {
         <SoldCoinsCard />
 
         <BtcCrashCard />
+
+        {/* ── BTC EVENT CALENDAR — always last on the dashboard ── */}
+        <BitcoinCalendar />
       </div>
     </AppLayout>
   );
