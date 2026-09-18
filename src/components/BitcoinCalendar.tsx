@@ -181,8 +181,8 @@ export function BitcoinCalendar() {
         overflow: "hidden",
         borderRadius: "22px",
         background: "transparent",
-        border: "1px solid rgba(239,68,68,0.28)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 60px -34px rgba(239,68,68,0.55)",
+        border: "1px solid rgba(13,217,170,0.28)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 60px -34px rgba(13,217,170,0.55)",
         fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
       }}
     >
@@ -194,7 +194,7 @@ export function BitcoinCalendar() {
           left: "12%",
           right: "12%",
           height: "1px",
-          background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.9), transparent)",
+          background: "linear-gradient(90deg, transparent, rgba(13,217,170,0.9), transparent)",
         }}
       />
 
@@ -208,10 +208,10 @@ export function BitcoinCalendar() {
                 display: "grid",
                 placeItems: "center",
                 borderRadius: "12px",
-                color: "#ff5c67",
-                background: "rgba(239,68,68,0.12)",
-                border: "1px solid rgba(239,68,68,0.3)",
-                boxShadow: "0 0 24px -8px rgba(239,68,68,0.9)",
+                color: "#0dd9aa",
+                background: "rgba(13,217,170,0.12)",
+                border: "1px solid rgba(13,217,170,0.3)",
+                boxShadow: "0 0 24px -8px rgba(13,217,170,0.9)",
               }}
             >
               <CalendarDays size={19} />
@@ -232,8 +232,8 @@ export function BitcoinCalendar() {
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                background: snapshot ? "#ef4444" : "#f5c542",
-                boxShadow: `0 0 10px ${snapshot ? "#ef4444" : "#f5c542"}`,
+                background: snapshot ? "#0dd9aa" : "#f5c542",
+                boxShadow: `0 0 10px ${snapshot ? "#0dd9aa" : "#f5c542"}`,
               }}
             />
             <span style={{ color: "rgba(255,255,255,0.33)", fontSize: "8px", fontWeight: 800, letterSpacing: "0.12em" }}>
@@ -367,7 +367,7 @@ export function BitcoinCalendar() {
           ) : (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", color: "rgba(255,255,255,0.31)", fontSize: "10px" }}>
               <span>Select a highlighted date to view event details.</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "rgba(255,92,103,0.8)", fontWeight: 800, whiteSpace: "nowrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "rgba(13,217,170,0.82)", fontWeight: 800, whiteSpace: "nowrap" }}>
                 <Radio size={12} /> {visibleEvents.length} this month
               </span>
             </div>
@@ -394,9 +394,9 @@ const navButtonStyle: React.CSSProperties = {
 const todayButtonStyle: React.CSSProperties = {
   padding: "4px 7px",
   borderRadius: "6px",
-  border: "1px solid rgba(239,68,68,0.32)",
-  background: "rgba(239,68,68,0.08)",
-  color: "#ff6a72",
+  border: "1px solid rgba(13,217,170,0.32)",
+  background: "rgba(13,217,170,0.08)",
+  color: "#0dd9aa",
   fontSize: "8px",
   fontWeight: 900,
   letterSpacing: "0.08em",
