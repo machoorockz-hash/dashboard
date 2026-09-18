@@ -181,8 +181,8 @@ export function BitcoinCalendar() {
         overflow: "hidden",
         borderRadius: "22px",
         background: "transparent",
-        border: "1px solid rgba(13,217,170,0.28)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 18px 60px -34px rgba(13,217,170,0.55)",
+        border: "1px solid transparent",
+        boxShadow: "none",
         fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
       }}
     >
@@ -194,11 +194,11 @@ export function BitcoinCalendar() {
           left: "12%",
           right: "12%",
           height: "1px",
-          background: "linear-gradient(90deg, transparent, rgba(13,217,170,0.9), transparent)",
+          background: "transparent",
         }}
       />
 
-      <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid rgba(255,255,255,0.055)" }}>
+      <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid transparent" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
             <div
@@ -209,9 +209,9 @@ export function BitcoinCalendar() {
                 placeItems: "center",
                 borderRadius: "12px",
                 color: "#0dd9aa",
-                background: "rgba(13,217,170,0.12)",
-                border: "1px solid rgba(13,217,170,0.3)",
-                boxShadow: "0 0 24px -8px rgba(13,217,170,0.9)",
+                background: "transparent",
+                border: "1px solid transparent",
+                boxShadow: "none",
               }}
             >
               <CalendarDays size={19} />
@@ -232,8 +232,8 @@ export function BitcoinCalendar() {
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                background: snapshot ? "#0dd9aa" : "#f5c542",
-                boxShadow: `0 0 10px ${snapshot ? "#0dd9aa" : "#f5c542"}`,
+                background: "transparent",
+                boxShadow: "none",
               }}
             />
             <span style={{ color: "rgba(255,255,255,0.33)", fontSize: "8px", fontWeight: 800, letterSpacing: "0.12em" }}>
@@ -297,18 +297,10 @@ export function BitcoinCalendar() {
                   justifyContent: "center",
                   gap: "4px",
                   borderRadius: "11px",
-                  border: isSelected
-                    ? "1px solid rgba(255,92,103,0.95)"
-                    : isToday
-                    ? "1px solid rgba(255,255,255,0.28)"
-                    : "1px solid transparent",
+                  border: "1px solid transparent",
                   color: hasEvent ? "#ff6a72" : "rgba(255,255,255,0.72)",
-                  background: isSelected
-                    ? "rgba(239,68,68,0.24)"
-                    : hasEvent
-                    ? "rgba(239,68,68,0.10)"
-                    : "transparent",
-                  boxShadow: isSelected ? "0 0 18px -6px rgba(239,68,68,0.95)" : "none",
+                  background: "transparent",
+                  boxShadow: "none",
                   cursor: "pointer",
                   transition: "all 0.18s ease",
                 }}
@@ -318,7 +310,7 @@ export function BitcoinCalendar() {
                 </span>
                 {hasEvent && (
                   <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#ff4d5a", boxShadow: "0 0 7px #ef4444" }} />
+                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "transparent", boxShadow: "none" }} />
                     {dayEvents.length > 1 && <span style={{ fontSize: "8px", fontWeight: 900 }}>{dayEvents.length}</span>}
                   </span>
                 )}
@@ -327,7 +319,7 @@ export function BitcoinCalendar() {
           })}
         </div>
 
-        <div style={{ marginTop: "16px", paddingTop: "13px", borderTop: "1px solid rgba(255,255,255,0.055)" }}>
+        <div style={{ marginTop: "16px", paddingTop: "13px", borderTop: "1px solid transparent" }}>
           {selectedDay && selectedDate ? (
             <>
               <div style={{ marginBottom: "9px", color: "rgba(255,255,255,0.43)", fontSize: "9px", fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase" }}>
@@ -339,8 +331,8 @@ export function BitcoinCalendar() {
                   style={{
                     padding: "12px 13px",
                     borderRadius: "13px",
-                    border: "1px solid rgba(239,68,68,0.32)",
-                    background: "rgba(239,68,68,0.08)",
+                    border: "1px solid transparent",
+                    background: "transparent",
                     marginTop: "7px",
                   }}
                 >
@@ -385,7 +377,7 @@ const navButtonStyle: React.CSSProperties = {
   placeItems: "center",
   flexShrink: 0,
   borderRadius: "9px",
-  border: "1px solid rgba(255,255,255,0.12)",
+  border: "1px solid transparent",
   background: "transparent",
   color: "rgba(255,255,255,0.65)",
   cursor: "pointer",
@@ -394,8 +386,8 @@ const navButtonStyle: React.CSSProperties = {
 const todayButtonStyle: React.CSSProperties = {
   padding: "4px 7px",
   borderRadius: "6px",
-  border: "1px solid rgba(13,217,170,0.32)",
-  background: "rgba(13,217,170,0.08)",
+  border: "1px solid transparent",
+  background: "transparent",
   color: "#0dd9aa",
   fontSize: "8px",
   fontWeight: 900,
