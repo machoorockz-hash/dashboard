@@ -134,8 +134,11 @@ function useCalendarSnapshot() {
 
 export function BitcoinCalendar() {
   const snapshot = useCalendarSnapshot();
-  const events = useMemo(() => normalizedEvents(snapshot), [snapshot]);
   const todayKey = dateKey(new Date());
+  const events = useMemo(
+    () => normalizedEvents(snapshot).filter((event) => dateKey(new Date(event.starts_at)) >= todayKey),
+    [snapshot, todayKey],
+  );
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date();
     return monthKey(Number(partsToRecord(now).year), Number(partsToRecord(now).month) - 1);
@@ -216,13 +219,8 @@ export function BitcoinCalendar() {
             >
               <CalendarDays size={19} />
             </div>
-            <div>
-              <div style={{ fontSize: "12px", fontWeight: 900, letterSpacing: "0.13em", textTransform: "uppercase" }}>
-                BTC Event Calendar
-              </div>
-              <div style={{ marginTop: "3px", color: "rgba(255,255,255,0.34)", fontSize: "10px", fontWeight: 600 }}>
-                Upcoming market events · Dubai time
-              </div>
+            <div style={{ fontSize: "12px", fontWeight: 900, letterSpacing: "0.13em", textTransform: "uppercase" }}>
+              BTC Event Calendar
             </div>
           </div>
 
@@ -232,12 +230,17 @@ export function BitcoinCalendar() {
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                background: "transparent",
-                boxShadow: "none",
+                background: snapshot ? "#0dd9aa" : "#ff6a72",
+                boxShadow: snapshot ? "0 0 8px rgba(13,217,170,0.55)" : "none",
               }}
             />
-            <span style={{ color: "rgba(255,255,255,0.33)", fontSize: "8px", fontWeight: 800, letterSpacing: "0.12em" }}>
-              {snapshot ? "LIVE SCANNER" : "WAITING FOR BOT"}
+            <span style={{
+              color: snapshot ? "#0dd9aa" : "#ff6a72",
+              fontSize: "8px",
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+            }}>
+              {snapshot ? "LIVE" : "OFFLINE"}
             </span>
           </div>
         </div>
@@ -271,7 +274,7 @@ export function BitcoinCalendar() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "5px" }}>
           {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
-            <div key={day} style={{ padding: "2px 0 7px", color: "rgba(255,255,255,0.24)", fontSize: "8px", fontWeight: 800, letterSpacing: "0.1em", textAlign: "center" }}>
+            <div key={day} style={{ padding: "2px 0 7px", color: "#fff", fontSize: "8px", fontWeight: 800, letterSpacing: "0.1em", textAlign: "center" }}>
               {day}
             </div>
           ))}
@@ -387,7 +390,7 @@ const navButtonStyle: React.CSSProperties = {
   borderRadius: "9px",
   border: "1px solid transparent",
   background: "transparent",
-  color: "rgba(255,255,255,0.65)",
+  color: "#0dd9aa",
   cursor: "pointer",
 };
 
