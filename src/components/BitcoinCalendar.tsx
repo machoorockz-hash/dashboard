@@ -90,8 +90,8 @@ function makeCalendarCells(month: Date) {
   const monthIndex = month.getUTCMonth();
   const firstDay = new Date(Date.UTC(year, monthIndex, 1, 12));
   const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0, 12)).getUTCDate();
-  // Monday-first: Sunday is moved to the end.
-  const leadingEmpty = (firstDay.getUTCDay() + 6) % 7;
+  // Sunday-first.
+  const leadingEmpty = firstDay.getUTCDay();
   const cells: Array<number | null> = Array.from({ length: leadingEmpty }, () => null);
   for (let day = 1; day <= daysInMonth; day += 1) cells.push(day);
   while (cells.length % 7 !== 0) cells.push(null);
@@ -167,13 +167,6 @@ export function BitcoinCalendar() {
     const next = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + delta, 1, 12));
     setVisibleMonth(monthKey(next.getUTCFullYear(), next.getUTCMonth()));
     setSelectedDay(null);
-  }
-
-  function goToday() {
-    const nowParts = partsToRecord(new Date());
-    const key = monthKey(Number(nowParts.year), Number(nowParts.month) - 1);
-    setVisibleMonth(key);
-    setSelectedDay(todayKey);
   }
 
   return (
@@ -256,12 +249,9 @@ export function BitcoinCalendar() {
           >
             <ChevronLeft size={16} />
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
-            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 900, letterSpacing: "-0.03em", textAlign: "center" }}>
-              {formatMonth(visibleMonth)}
-            </h2>
-            <button type="button" onClick={goToday} style={todayButtonStyle}>TODAY</button>
-          </div>
+          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 900, letterSpacing: "-0.03em", textAlign: "center", minWidth: 0 }}>
+            {formatMonth(visibleMonth)}
+          </h2>
           <button
             type="button"
             onClick={() => moveMonth(1)}
@@ -273,7 +263,7 @@ export function BitcoinCalendar() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "5px" }}>
-          {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((day) => (
+          {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
             <div key={day} style={{ padding: "2px 0 7px", color: "#fff", fontSize: "8px", fontWeight: 800, letterSpacing: "0.1em", textAlign: "center" }}>
               {day}
             </div>
@@ -333,7 +323,7 @@ export function BitcoinCalendar() {
         <div style={{ marginTop: "16px", paddingTop: "13px", borderTop: "1px solid transparent" }}>
           {selectedDay && selectedDate ? (
             <>
-              <div style={{ marginBottom: "9px", color: "#ff6a72", fontSize: "9px", fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase" }}>
+              <div style={{ marginBottom: "9px", color: "#0dd9aa", fontSize: "9px", fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase" }}>
                 {DUBAI_FULL_DATE.format(selectedDate)}
               </div>
               {selectedEvents.length ? selectedEvents.map((event) => (
@@ -391,17 +381,5 @@ const navButtonStyle: React.CSSProperties = {
   border: "1px solid transparent",
   background: "transparent",
   color: "#0dd9aa",
-  cursor: "pointer",
-};
-
-const todayButtonStyle: React.CSSProperties = {
-  padding: "4px 7px",
-  borderRadius: "6px",
-  border: "1px solid transparent",
-  background: "transparent",
-  color: "#0dd9aa",
-  fontSize: "8px",
-  fontWeight: 900,
-  letterSpacing: "0.08em",
   cursor: "pointer",
 };
