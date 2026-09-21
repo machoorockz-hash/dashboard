@@ -264,7 +264,7 @@ export function BitcoinCalendar() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "5px" }}>
           {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
-            <div key={day} style={{ padding: "2px 0 7px", color: "#fff", fontSize: "8px", fontWeight: 800, letterSpacing: "0.1em", textAlign: "center" }}>
+            <div key={day} style={{ padding: "2px 0 7px", color: day === "SUN" ? "#FF6F30" : "#fff", fontSize: "8px", fontWeight: 800, letterSpacing: "0.1em", textAlign: "center" }}>
               {day}
             </div>
           ))}
@@ -274,6 +274,7 @@ export function BitcoinCalendar() {
             const dayEvents = eventsByDay.get(dayKey) ?? [];
             const isSelected = selectedDay === dayKey;
             const isToday = dayKey === todayKey;
+            const isSunday = index % 7 === 0;
             const isPast = visibleMonth === todayKey.slice(0, 7) && dayKey < todayKey;
             const isHighlighted = isSelected || (!selectedDay && isToday);
             const hasEvent = dayEvents.length > 0;
@@ -297,7 +298,7 @@ export function BitcoinCalendar() {
                     : hasEvent
                     ? "1px solid rgba(255,92,103,0.95)"
                     : "1px solid transparent",
-                  color: isHighlighted ? "#0dd9aa" : hasEvent ? "#ff6a72" : isPast ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.72)",
+                  color: isSunday ? "#FF6F30" : isHighlighted ? "#0dd9aa" : hasEvent ? "#ff6a72" : isPast ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.72)",
                   background: "transparent",
                   opacity: isPast && !isHighlighted ? 0.45 : 1,
                   boxShadow: isHighlighted
