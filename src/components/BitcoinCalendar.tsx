@@ -274,6 +274,7 @@ export function BitcoinCalendar() {
             const dayEvents = eventsByDay.get(dayKey) ?? [];
             const isSelected = selectedDay === dayKey;
             const isToday = dayKey === todayKey;
+            const isPast = dayKey < todayKey;
             const isHighlighted = isSelected || (!selectedDay && isToday);
             const hasEvent = dayEvents.length > 0;
             return (
@@ -296,8 +297,9 @@ export function BitcoinCalendar() {
                     : hasEvent
                     ? "1px solid rgba(255,92,103,0.95)"
                     : "1px solid transparent",
-                  color: isHighlighted ? "#0dd9aa" : hasEvent ? "#ff6a72" : "rgba(255,255,255,0.72)",
+                  color: isHighlighted ? "#0dd9aa" : hasEvent ? "#ff6a72" : isPast ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.72)",
                   background: "transparent",
+                  opacity: isPast && !isHighlighted ? 0.45 : 1,
                   boxShadow: isHighlighted
                     ? "0 0 18px -6px rgba(13,217,170,0.95)"
                     : hasEvent
