@@ -348,7 +348,7 @@ export function BitcoinCalendar() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-                    <div style={{ color: "#ff6a72", fontSize: "13px", fontWeight: 850, lineHeight: 1.35 }}>{event.name}</div>
+                    <div style={{ color: "#fff", fontSize: "13px", fontWeight: 850, lineHeight: 1.35 }}>{event.name}</div>
                     <span style={{ color: "#ff6a72", fontSize: "8px", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                       {event.impact ?? "HIGH"}
                     </span>
