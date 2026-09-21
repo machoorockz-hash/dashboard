@@ -274,7 +274,7 @@ export function BitcoinCalendar() {
             const dayEvents = eventsByDay.get(dayKey) ?? [];
             const isSelected = selectedDay === dayKey;
             const isToday = dayKey === todayKey;
-            const isPast = dayKey < todayKey;
+            const isPast = visibleMonth === todayKey.slice(0, 7) && dayKey < todayKey;
             const isHighlighted = isSelected || (!selectedDay && isToday);
             const hasEvent = dayEvents.length > 0;
             return (
