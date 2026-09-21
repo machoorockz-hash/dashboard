@@ -855,7 +855,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative mt-5 rounded-xl border border-border bg-transparent px-4 py-3 flex items-center justify-between transition-all duration-300">
+              <div className="relative mt-5 rounded-xl bg-transparent px-4 py-3 flex items-center justify-between transition-all duration-300">
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
@@ -870,7 +870,6 @@ export default function Dashboard() {
                   className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
                   style={{
                     background: "transparent",
-                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
                   }}
                 >
                   <div className="relative flex items-center justify-between mb-3">
@@ -1027,7 +1026,7 @@ function NoActiveTrade({ lastTrade }: { lastTrade: LastTrade | null }) {
 
 function Cell({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className={`rounded-lg border bg-transparent px-3 py-2 ${danger ? "border-bear/30" : accent ? "border-bull/30" : "border-border"}`}>
+    <div className="rounded-lg bg-transparent px-3 py-2">
       <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">{label}</div>
       <div className={`text-sm font-black mt-0.5 truncate tabular-nums ${danger ? "text-bear" : accent ? "text-bull" : ""}`}>{value}</div>
     </div>
@@ -1089,7 +1088,7 @@ function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint,
   }, [w]);
 
   return (
-    <div className="rounded-xl border border-border bg-transparent p-3 relative overflow-hidden">
+    <div className="rounded-xl bg-transparent p-3 relative overflow-hidden">
       <style>{`
         @keyframes progress-glow-bull {
           0%, 100% {
