@@ -274,6 +274,7 @@ export function BitcoinCalendar() {
             const dayEvents = eventsByDay.get(dayKey) ?? [];
             const isSelected = selectedDay === dayKey;
             const isToday = dayKey === todayKey;
+            const isHighlighted = isSelected || (!selectedDay && isToday);
             const hasEvent = dayEvents.length > 0;
             return (
               <button
@@ -290,14 +291,14 @@ export function BitcoinCalendar() {
                   justifyContent: "center",
                   gap: "4px",
                   borderRadius: "11px",
-                  border: isToday
+                  border: isHighlighted
                     ? "1px solid #0dd9aa"
                     : hasEvent
                     ? "1px solid rgba(255,92,103,0.95)"
                     : "1px solid transparent",
-                  color: isToday ? "#0dd9aa" : hasEvent ? "#ff6a72" : "rgba(255,255,255,0.72)",
+                  color: isHighlighted ? "#0dd9aa" : hasEvent ? "#ff6a72" : "rgba(255,255,255,0.72)",
                   background: "transparent",
-                  boxShadow: isToday
+                  boxShadow: isHighlighted
                     ? "0 0 18px -6px rgba(13,217,170,0.95)"
                     : hasEvent
                     ? "0 0 18px -6px rgba(239,68,68,0.95)"
@@ -306,12 +307,12 @@ export function BitcoinCalendar() {
                   transition: "all 0.18s ease",
                 }}
               >
-                <span style={{ fontSize: "13px", fontWeight: hasEvent || isToday ? 900 : 600, fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ fontSize: "13px", fontWeight: hasEvent || isHighlighted ? 900 : 600, fontVariantNumeric: "tabular-nums" }}>
                   {day}
                 </span>
                 {hasEvent && (
                   <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: isToday ? "#0dd9aa" : "#ff4d5a", boxShadow: isToday ? "0 0 7px #0dd9aa" : "0 0 7px #ef4444" }} />
+                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: isHighlighted ? "#0dd9aa" : "#ff4d5a", boxShadow: isHighlighted ? "0 0 7px #0dd9aa" : "0 0 7px #ef4444" }} />
                     {dayEvents.length > 1 && <span style={{ fontSize: "8px", fontWeight: 900 }}>{dayEvents.length}</span>}
                   </span>
                 )}
