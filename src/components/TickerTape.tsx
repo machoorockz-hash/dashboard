@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CoinIcon } from "./CoinIcon";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const PUMP_KEY = import.meta.env.VITE_PUMP_KEY ?? "pump";
 const POLL_MS = 5_000;
 const STALE_MS = 12_000;
 
@@ -24,6 +25,27 @@ interface BotSnapshot {
   key: string;
   updatedAt: string | null;
   data: { trade_mode?: string } | null;
+}
+
+interface PumpSnapshot {
+  paused?: boolean;
+  newsStatus?: string;
+  whaleStatus?: string;
+  status?: string;
+}
+
+function isScannerPaused(data: PumpSnapshot | null): boolean {
+  if (!data) return false;
+  const responseStatus = String(data.newsStatus ?? data.status ?? "").toUpperCase();
+  const newsStatus = String(data.newsStatus ?? "").toUpperCase();
+  const whaleStatus = String(data.whaleStatus ?? "").toUpperCase();
+  return (
+    data.paused === true ||
+    responseStatus === "RISK" ||
+    responseStatus === "PAUSED" ||
+    newsStatus === "RISK" ||
+    whaleStatus === "HOLD"
+  );
 }
 
 /**
@@ -88,15 +110,16 @@ function isUpcoming(item: DelistSymbol): boolean {
   return true; // unparseable → show it
 }
 
-// Pause banner — scrolling ticker with a repeated "TRADE IS PAUSED" message
-function PauseBanner() {
+// Pause banner — scrolling ticker with repeated pause messages
+function PauseBanner({ messages }: { messages: string[] }) {
+  const items = messages.length > 0 ? messages : ["PAUSED"];
   const label = (
     <div className="flex items-center gap-6 px-8 py-1.5 shrink-0">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-center gap-2.5 whitespace-nowrap">
           <span className="text-sm">⏸</span>
           <span className="font-black text-xs tracking-widest text-yellow-400 uppercase">
-            TRADE IS PAUSED
+            {items[i % items.length]}
           </span>
           <span className="text-muted-foreground/30 text-xs">·</span>
         </div>
@@ -120,6 +143,7 @@ export function TickerTape() {
 
   // Trade-mode state from /api/bot/data?key=btc
   const [tradeMode, setTradeMode] = useState<string | null>(null);
+  const [scannerPaused, setScannerPaused] = useState(false);
 
   // Poll delist data
   useEffect(() => {
@@ -179,9 +203,39 @@ export function TickerTape() {
     };
   }, []);
 
-  // Show pause banner when the bot reports trade_mode === "Pause"
-  if (tradeMode === "Pause") {
-    return <PauseBanner />;
+  // Poll pump scanner pause state (same rules as PumpScannerCard)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    let mounted = true;
+
+    async function fetchPumpStatus() {
+      try {
+        const r = await fetch(`${API_BASE}/api/pump/data?key=${PUMP_KEY}`);
+        const json: PumpSnapshot = await r.json();
+        if (mounted) setScannerPaused(isScannerPaused(json));
+      } catch {
+        // keep last known value on error
+      } finally {
+        if (mounted) timer = setTimeout(fetchPumpStatus, POLL_MS);
+      }
+    }
+
+    void fetchPumpStatus();
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const tradePaused = tradeMode === "Pause";
+  const pauseMessages = [
+    ...(tradePaused ? ["TRADE IS PAUSED"] : []),
+    ...(scannerPaused ? ["SCANNER PAUSED"] : []),
+  ];
+
+  // Show pause banner when trade and/or pump scanner is paused
+  if (pauseMessages.length > 0) {
+    return <PauseBanner messages={pauseMessages} />;
   }
 
   const isActive = !stale && data?.active === true;
