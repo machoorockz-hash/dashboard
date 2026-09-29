@@ -30,8 +30,16 @@ interface BotSnapshot {
 interface PumpSnapshot {
   paused?: boolean;
   newsStatus?: string;
+  newsReason?: string;
   whaleStatus?: string;
+  whaleReason?: string;
+  pauseReason?: string;
+  reason?: string;
   status?: string;
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function isScannerPaused(data: PumpSnapshot | null): boolean {
@@ -39,6 +47,7 @@ function isScannerPaused(data: PumpSnapshot | null): boolean {
   const responseStatus = String(data.newsStatus ?? data.status ?? "").toUpperCase();
   const newsStatus = String(data.newsStatus ?? "").toUpperCase();
   const whaleStatus = String(data.whaleStatus ?? "").toUpperCase();
+
   return (
     data.paused === true ||
     responseStatus === "RISK" ||
@@ -46,6 +55,31 @@ function isScannerPaused(data: PumpSnapshot | null): boolean {
     newsStatus === "RISK" ||
     whaleStatus === "HOLD"
   );
+}
+
+function getPauseReasons(data: PumpSnapshot | null): string[] {
+  if (!data) return [];
+
+  const newsStatus = String(data.newsStatus ?? "").toUpperCase();
+  const whaleStatus = String(data.whaleStatus ?? "").toUpperCase();
+
+  const reasons = [
+    newsStatus === "RISK" ? textValue(data.newsReason) : "",
+    whaleStatus === "HOLD" ? textValue(data.whaleReason) : "",
+  ].filter(Boolean);
+
+  if (reasons.length === 0) {
+    const generalReason = textValue(data.pauseReason ?? data.reason);
+    if (generalReason) reasons.push(generalReason);
+  }
+
+  return reasons;
+}
+
+function isSessionOnlyPause(data: PumpSnapshot | null): boolean {
+  const reasons = getPauseReasons(data);
+
+  return reasons.length === 1 && /\bsession\b/i.test(reasons[0]);
 }
 
 /**
@@ -61,22 +95,28 @@ function isUpcoming(item: DelistSymbol): boolean {
   function parseTime(t: string): [number, number] | null {
     const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
     if (!m) return null;
+
     let h = Number(m[1]);
     const min = Number(m[2]);
     const mer = m[3].toLowerCase();
+
     if (mer === "pm" && h !== 12) h += 12;
     if (mer === "am" && h === 12) h = 0;
+
     return [h, min];
   }
 
   // Try DD/MM/YYYY (the format used throughout this project)
   const parts = item.date.split("/");
+
   if (parts.length === 3) {
     const [dd, mm, yyyy] = parts;
     const delistDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+
     if (!isNaN(delistDate.getTime())) {
       if (item.time) {
         const parsed = parseTime(item.time);
+
         if (parsed) {
           delistDate.setHours(parsed[0], parsed[1], 0, 0);
         } else {
@@ -87,15 +127,18 @@ function isUpcoming(item: DelistSymbol): boolean {
         // No time provided → keep until end of day
         delistDate.setHours(23, 59, 59, 999);
       }
+
       return delistDate >= new Date();
     }
   }
 
   // Fallback: try native Date parsing (YYYY-MM-DD, ISO, etc.)
   const d = new Date(item.date);
+
   if (!isNaN(d.getTime())) {
     if (item.time) {
       const parsed = parseTime(item.time);
+
       if (parsed) {
         d.setHours(parsed[0], parsed[1], 0, 0);
       } else {
@@ -104,6 +147,7 @@ function isUpcoming(item: DelistSymbol): boolean {
     } else {
       d.setHours(23, 59, 59, 999);
     }
+
     return d >= new Date();
   }
 
@@ -111,16 +155,32 @@ function isUpcoming(item: DelistSymbol): boolean {
 }
 
 // Pause banner — scrolling ticker with repeated pause messages
-function PauseBanner({ messages }: { messages: string[] }) {
+function PauseBanner({
+  messages,
+  scannerSessionPause,
+}: {
+  messages: string[];
+  scannerSessionPause: boolean;
+}) {
   const items = messages.length > 0 ? messages : ["PAUSED"];
+
   const label = (
     <div className="flex items-center gap-6 px-8 py-1.5 shrink-0">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-center gap-2.5 whitespace-nowrap">
           <span className="text-sm">⏸</span>
-          <span className="font-black text-xs tracking-widest text-yellow-400 uppercase">
+
+          <span
+            className={`font-black text-xs tracking-widest uppercase ${
+              items[i % items.length] === "SCANNER PAUSED" &&
+              scannerSessionPause
+                ? "text-purple-400"
+                : "text-yellow-400"
+            }`}
+          >
             {items[i % items.length]}
           </span>
+
           <span className="text-muted-foreground/30 text-xs">·</span>
         </div>
       ))}
@@ -130,7 +190,8 @@ function PauseBanner({ messages }: { messages: string[] }) {
   return (
     <div className="border-b border-yellow-500/40 bg-yellow-500/10 overflow-hidden">
       <div className="flex ticker-scroll w-max">
-        {label}{label}
+        {label}
+        {label}
       </div>
     </div>
   );
@@ -144,6 +205,7 @@ export function TickerTape() {
   // Trade-mode state from /api/bot/data?key=btc
   const [tradeMode, setTradeMode] = useState<string | null>(null);
   const [scannerPaused, setScannerPaused] = useState(false);
+  const [scannerSessionPause, setScannerSessionPause] = useState(false);
 
   // Poll delist data
   useEffect(() => {
@@ -154,6 +216,7 @@ export function TickerTape() {
       try {
         const r = await fetch(`${API_BASE}/api/delist/data`);
         const json: DelistData = await r.json();
+
         if (mounted) {
           lastFetchRef.current = Date.now();
           setStale(false);
@@ -169,13 +232,14 @@ export function TickerTape() {
     }
 
     void fetchData();
+
     return () => {
       mounted = false;
       clearTimeout(timer);
     };
   }, []);
 
-  // Poll trade_mode from the bot endpoint (same cadence as delist poll)
+  // Poll trade_mode from the bot endpoint
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -183,27 +247,30 @@ export function TickerTape() {
     async function fetchTradeMode() {
       try {
         const r = await fetch(`${API_BASE}/api/bot/data?key=btc`);
-        // ✅ FIX: API returns { key, updatedAt, data: { trade_mode, ... } }
-        //         trade_mode lives inside .data, not at the root level.
+
+        // API returns:
+        // { key, updatedAt, data: { trade_mode, ... } }
         const json: BotSnapshot = await r.json();
+
         if (mounted && typeof json?.data?.trade_mode === "string") {
           setTradeMode(json.data.trade_mode);
         }
       } catch {
-        // keep last known value on error
+        // Keep last known value on error
       } finally {
         if (mounted) timer = setTimeout(fetchTradeMode, POLL_MS);
       }
     }
 
     void fetchTradeMode();
+
     return () => {
       mounted = false;
       clearTimeout(timer);
     };
   }, []);
 
-  // Poll pump scanner pause state (same rules as PumpScannerCard)
+  // Poll pump scanner pause state and pause reasons
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -212,15 +279,20 @@ export function TickerTape() {
       try {
         const r = await fetch(`${API_BASE}/api/pump/data?key=${PUMP_KEY}`);
         const json: PumpSnapshot = await r.json();
-        if (mounted) setScannerPaused(isScannerPaused(json));
+
+        if (mounted) {
+          setScannerPaused(isScannerPaused(json));
+          setScannerSessionPause(isSessionOnlyPause(json));
+        }
       } catch {
-        // keep last known value on error
+        // Keep last known value on error
       } finally {
         if (mounted) timer = setTimeout(fetchPumpStatus, POLL_MS);
       }
     }
 
     void fetchPumpStatus();
+
     return () => {
       mounted = false;
       clearTimeout(timer);
@@ -228,6 +300,7 @@ export function TickerTape() {
   }, []);
 
   const tradePaused = tradeMode === "Pause";
+
   const pauseMessages = [
     ...(tradePaused ? ["TRADE IS PAUSED"] : []),
     ...(scannerPaused ? ["SCANNER PAUSED"] : []),
@@ -235,30 +308,50 @@ export function TickerTape() {
 
   // Show pause banner when trade and/or pump scanner is paused
   if (pauseMessages.length > 0) {
-    return <PauseBanner messages={pauseMessages} />;
+    return (
+      <PauseBanner
+        messages={pauseMessages}
+        scannerSessionPause={scannerSessionPause}
+      />
+    );
   }
 
   const isActive = !stale && data?.active === true;
 
   // Only show coins whose delist date hasn't passed yet
-  const upcomingSymbols = isActive ? (data?.symbols ?? []).filter(isUpcoming) : [];
+  const upcomingSymbols = isActive
+    ? (data?.symbols ?? []).filter(isUpcoming)
+    : [];
 
   if (upcomingSymbols.length === 0) return null;
 
   const row = (
     <div className="flex items-center gap-8 px-6 py-1.5 shrink-0">
       {upcomingSymbols.map((item) => (
-        <div key={item.symbol} className="flex items-center gap-2.5 text-xs whitespace-nowrap">
+        <div
+          key={item.symbol}
+          className="flex items-center gap-2.5 text-xs whitespace-nowrap"
+        >
           <CoinIcon symbol={item.symbol} size={18} />
-          <span className="font-bold text-foreground">{item.symbol}/USDT</span>
-          <span className="font-black text-bear text-[11px]">▼ DELIST</span>
+
+          <span className="font-bold text-foreground">
+            {item.symbol}/USDT
+          </span>
+
+          <span className="font-black text-bear text-[11px]">
+            ▼ DELIST
+          </span>
+
           {(item.date || item.time) && (
             <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/70 tabular-nums border-l border-border/50 pl-2.5">
               <span className="text-muted-foreground/50">📅</span>
+
               {item.date}
+
               {item.date && item.time && (
                 <span className="text-muted-foreground/40 mx-0.5">·</span>
               )}
+
               {item.time}
             </span>
           )}
@@ -270,7 +363,8 @@ export function TickerTape() {
   return (
     <div className="border-b border-border bg-card/40 overflow-hidden">
       <div className="flex ticker-scroll w-max">
-        {row}{row}
+        {row}
+        {row}
       </div>
     </div>
   );
