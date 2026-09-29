@@ -44,7 +44,11 @@ function textValue(value: unknown) {
 
 function isScannerPaused(data: PumpSnapshot | null): boolean {
   if (!data) return false;
-  const responseStatus = String(data.newsStatus ?? data.status ?? "").toUpperCase();
+
+  const responseStatus = String(
+    data.newsStatus ?? data.status ?? "",
+  ).toUpperCase();
+
   const newsStatus = String(data.newsStatus ?? "").toUpperCase();
   const whaleStatus = String(data.whaleStatus ?? "").toUpperCase();
 
@@ -70,7 +74,10 @@ function getPauseReasons(data: PumpSnapshot | null): string[] {
 
   if (reasons.length === 0) {
     const generalReason = textValue(data.pauseReason ?? data.reason);
-    if (generalReason) reasons.push(generalReason);
+
+    if (generalReason) {
+      reasons.push(generalReason);
+    }
   }
 
   return reasons;
@@ -93,6 +100,7 @@ function isUpcoming(item: DelistSymbol): boolean {
 
   function parseTime(t: string): [number, number] | null {
     const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+
     if (!m) return null;
 
     let h = Number(m[1]);
@@ -109,7 +117,11 @@ function isUpcoming(item: DelistSymbol): boolean {
 
   if (parts.length === 3) {
     const [dd, mm, yyyy] = parts;
-    const delistDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    const delistDate = new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+    );
 
     if (!isNaN(delistDate.getTime())) {
       if (item.time) {
@@ -149,6 +161,7 @@ function isUpcoming(item: DelistSymbol): boolean {
   return true;
 }
 
+// Pause banner — scrolling ticker with repeated pause messages
 function PauseBanner({
   messages,
   scannerSessionPause,
@@ -161,12 +174,15 @@ function PauseBanner({
   const label = (
     <div className="flex items-center gap-6 px-8 py-1.5 shrink-0">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-2.5 whitespace-nowrap">
+        <div
+          key={i}
+          className="flex items-center gap-2.5 whitespace-nowrap"
+        >
           <span className="text-sm">⏸</span>
 
           <span
             className={`font-black text-xs tracking-widest uppercase ${
-              items[i % items.length] === "SCANNER PAUSED" &&
+              items[i % items.length] === "MARKET SESSION" &&
               scannerSessionPause
                 ? "text-purple-400"
                 : "text-yellow-400"
@@ -200,6 +216,7 @@ export function TickerTape() {
   const [scannerPaused, setScannerPaused] = useState(false);
   const [scannerSessionPause, setScannerSessionPause] = useState(false);
 
+  // Poll delist data
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -219,7 +236,9 @@ export function TickerTape() {
           setStale(true);
         }
       } finally {
-        if (mounted) timer = setTimeout(fetchData, POLL_MS);
+        if (mounted) {
+          timer = setTimeout(fetchData, POLL_MS);
+        }
       }
     }
 
@@ -231,6 +250,7 @@ export function TickerTape() {
     };
   }, []);
 
+  // Poll trade_mode from the bot endpoint
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -246,7 +266,9 @@ export function TickerTape() {
       } catch {
         // Keep last known value on error
       } finally {
-        if (mounted) timer = setTimeout(fetchTradeMode, POLL_MS);
+        if (mounted) {
+          timer = setTimeout(fetchTradeMode, POLL_MS);
+        }
       }
     }
 
@@ -258,6 +280,7 @@ export function TickerTape() {
     };
   }, []);
 
+  // Poll pump scanner pause state
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -274,7 +297,9 @@ export function TickerTape() {
       } catch {
         // Keep last known value on error
       } finally {
-        if (mounted) timer = setTimeout(fetchPumpStatus, POLL_MS);
+        if (mounted) {
+          timer = setTimeout(fetchPumpStatus, POLL_MS);
+        }
       }
     }
 
@@ -290,9 +315,12 @@ export function TickerTape() {
 
   const pauseMessages = [
     ...(tradePaused ? ["TRADE IS PAUSED"] : []),
-    ...(scannerPaused ? ["SCANNER PAUSED"] : []),
+    ...(scannerPaused
+      ? [scannerSessionPause ? "MARKET SESSION" : "SCANNER PAUSED"]
+      : []),
   ];
 
+  // Show pause banner when trade and/or pump scanner is paused
   if (pauseMessages.length > 0) {
     return (
       <PauseBanner
