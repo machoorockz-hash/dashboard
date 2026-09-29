@@ -79,7 +79,7 @@ function getPauseReasons(data: PumpSnapshot | null): string[] {
 function isSessionOnlyPause(data: PumpSnapshot | null): boolean {
   const reasons = getPauseReasons(data);
 
-  return reasons.length === 1 && /\bsession\b/i.test(reasons[0]);
+  return reasons.length === 1 && /\b(session|weekly)\b/i.test(reasons[0]);
 }
 
 /**
@@ -91,7 +91,6 @@ function isSessionOnlyPause(data: PumpSnapshot | null): boolean {
 function isUpcoming(item: DelistSymbol): boolean {
   if (!item.date) return true;
 
-  // Helper: parse "1:00 pm" / "12:30 AM" → [hours24, minutes] or null
   function parseTime(t: string): [number, number] | null {
     const m = t.trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
     if (!m) return null;
@@ -106,7 +105,6 @@ function isUpcoming(item: DelistSymbol): boolean {
     return [h, min];
   }
 
-  // Try DD/MM/YYYY (the format used throughout this project)
   const parts = item.date.split("/");
 
   if (parts.length === 3) {
@@ -120,11 +118,9 @@ function isUpcoming(item: DelistSymbol): boolean {
         if (parsed) {
           delistDate.setHours(parsed[0], parsed[1], 0, 0);
         } else {
-          // Unrecognised time format → keep until end of day
           delistDate.setHours(23, 59, 59, 999);
         }
       } else {
-        // No time provided → keep until end of day
         delistDate.setHours(23, 59, 59, 999);
       }
 
@@ -132,7 +128,6 @@ function isUpcoming(item: DelistSymbol): boolean {
     }
   }
 
-  // Fallback: try native Date parsing (YYYY-MM-DD, ISO, etc.)
   const d = new Date(item.date);
 
   if (!isNaN(d.getTime())) {
@@ -151,10 +146,9 @@ function isUpcoming(item: DelistSymbol): boolean {
     return d >= new Date();
   }
 
-  return true; // unparseable → show it
+  return true;
 }
 
-// Pause banner — scrolling ticker with repeated pause messages
 function PauseBanner({
   messages,
   scannerSessionPause,
@@ -202,12 +196,10 @@ export function TickerTape() {
   const [stale, setStale] = useState(false);
   const lastFetchRef = useRef<number>(0);
 
-  // Trade-mode state from /api/bot/data?key=btc
   const [tradeMode, setTradeMode] = useState<string | null>(null);
   const [scannerPaused, setScannerPaused] = useState(false);
   const [scannerSessionPause, setScannerSessionPause] = useState(false);
 
-  // Poll delist data
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -239,7 +231,6 @@ export function TickerTape() {
     };
   }, []);
 
-  // Poll trade_mode from the bot endpoint
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -247,9 +238,6 @@ export function TickerTape() {
     async function fetchTradeMode() {
       try {
         const r = await fetch(`${API_BASE}/api/bot/data?key=btc`);
-
-        // API returns:
-        // { key, updatedAt, data: { trade_mode, ... } }
         const json: BotSnapshot = await r.json();
 
         if (mounted && typeof json?.data?.trade_mode === "string") {
@@ -270,7 +258,6 @@ export function TickerTape() {
     };
   }, []);
 
-  // Poll pump scanner pause state and pause reasons
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let mounted = true;
@@ -306,7 +293,6 @@ export function TickerTape() {
     ...(scannerPaused ? ["SCANNER PAUSED"] : []),
   ];
 
-  // Show pause banner when trade and/or pump scanner is paused
   if (pauseMessages.length > 0) {
     return (
       <PauseBanner
@@ -318,7 +304,6 @@ export function TickerTape() {
 
   const isActive = !stale && data?.active === true;
 
-  // Only show coins whose delist date hasn't passed yet
   const upcomingSymbols = isActive
     ? (data?.symbols ?? []).filter(isUpcoming)
     : [];
