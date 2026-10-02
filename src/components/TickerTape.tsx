@@ -89,6 +89,12 @@ function isSessionOnlyPause(data: PumpSnapshot | null): boolean {
   return reasons.length === 1 && /\b(session|weekly)\b/i.test(reasons[0]);
 }
 
+function isEventGuardPause(data: PumpSnapshot | null): boolean {
+  const reasons = getPauseReasons(data);
+
+  return reasons.length === 1 && /\bevent guard\b\s*:?/i.test(reasons[0]);
+}
+
 /**
  * Returns true if the delist datetime (date + time) is now or in the future.
  * Accepts DD/MM/YYYY date and "h:mm am/pm" time. If the date is missing or
@@ -165,9 +171,11 @@ function isUpcoming(item: DelistSymbol): boolean {
 function PauseBanner({
   messages,
   scannerSessionPause,
+  scannerEventGuardPause,
 }: {
   messages: string[];
   scannerSessionPause: boolean;
+  scannerEventGuardPause: boolean;
 }) {
   const items = messages.length > 0 ? messages : ["PAUSED"];
 
@@ -182,7 +190,10 @@ function PauseBanner({
 
           <span
             className={`font-black text-xs tracking-widest uppercase ${
-              items[i % items.length] === "MARKET SESSION" &&
+              items[i % items.length] === "EVENT GUARD" &&
+              scannerEventGuardPause
+                ? "text-[#0047AB]"
+                : items[i % items.length] === "MARKET SESSION" &&
               scannerSessionPause
                 ? "text-purple-400"
                 : "text-yellow-400"
@@ -215,6 +226,7 @@ export function TickerTape() {
   const [tradeMode, setTradeMode] = useState<string | null>(null);
   const [scannerPaused, setScannerPaused] = useState(false);
   const [scannerSessionPause, setScannerSessionPause] = useState(false);
+  const [scannerEventGuardPause, setScannerEventGuardPause] = useState(false);
 
   // Poll delist data
   useEffect(() => {
@@ -293,6 +305,7 @@ export function TickerTape() {
         if (mounted) {
           setScannerPaused(isScannerPaused(json));
           setScannerSessionPause(isSessionOnlyPause(json));
+          setScannerEventGuardPause(isEventGuardPause(json));
         }
       } catch {
         // Keep last known value on error
@@ -316,7 +329,13 @@ export function TickerTape() {
   const pauseMessages = [
     ...(tradePaused ? ["TRADE IS PAUSED"] : []),
     ...(scannerPaused
-      ? [scannerSessionPause ? "MARKET SESSION" : "SCANNER PAUSED"]
+      ? [
+          scannerEventGuardPause
+            ? "EVENT GUARD"
+            : scannerSessionPause
+              ? "MARKET SESSION"
+              : "SCANNER PAUSED",
+        ]
       : []),
   ];
 
@@ -326,6 +345,7 @@ export function TickerTape() {
       <PauseBanner
         messages={pauseMessages}
         scannerSessionPause={scannerSessionPause}
+        scannerEventGuardPause={scannerEventGuardPause}
       />
     );
   }
