@@ -190,7 +190,9 @@ function PauseBanner({
 
           <span
             className={`font-black text-xs tracking-widest uppercase ${
-              items[i % items.length] === "EVENT GUARD" &&
+              items[i % items.length] === "TRADE PAUSED"
+                ? "text-[#FF3333]"
+                : items[i % items.length] === "EVENT GUARD" &&
               scannerEventGuardPause
                 ? "text-[#0047AB]"
                 : items[i % items.length] === "MARKET SESSION" &&
@@ -327,7 +329,7 @@ export function TickerTape() {
   const tradePaused = tradeMode === "Pause";
 
   const pauseMessages = [
-    ...(tradePaused ? ["TRADE IS PAUSED"] : []),
+    ...(tradePaused ? ["TRADE PAUSED"] : []),
     ...(scannerPaused
       ? [
           scannerEventGuardPause
