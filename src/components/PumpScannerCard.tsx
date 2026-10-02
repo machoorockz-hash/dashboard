@@ -225,12 +225,26 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
     if (generalReason) pauseReasons.push(generalReason);
   }
 
+  const pauseAccentColor = pauseReasons.length === 1
+    ? /\bevent guard\b:?/i.test(pauseReasons[0])
+      ? "#0047AB"
+      : /\b(session|weekly)\b/i.test(pauseReasons[0])
+        ? "#C084FC"
+        : null
+    : null;
+
   return (
     <section className={`rounded-2xl border p-4 flex flex-col gap-3 transition-all duration-500 ${
       scannerPaused
-        ? "border-yellow-400/50 bg-yellow-400/[0.06] shadow-[0_0_24px_rgba(250,204,21,0.14)]"
+        ? pauseAccentColor
+          ? ""
+          : "border-yellow-400/50 bg-yellow-400/[0.06] shadow-[0_0_24px_rgba(250,204,21,0.14)]"
         : "border-border bg-transparent shadow-sm"
-    }`}>
+    }`} style={scannerPaused && pauseAccentColor ? {
+      borderColor: `${pauseAccentColor}80`,
+      backgroundColor: `${pauseAccentColor}0F`,
+      boxShadow: `0 0 24px ${pauseAccentColor}24`,
+    } : undefined}>
       <style>{`
         @keyframes pump-slide-in {
           from { opacity: 0; transform: translateX(22px) scale(0.97); }
@@ -421,6 +435,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
             <p
               key={`${reason}-${index}`}
               className="whitespace-pre-line text-xs leading-relaxed text-yellow-300"
+              style={pauseAccentColor ? { color: pauseAccentColor } : undefined}
             >
               {reason}
             </p>
