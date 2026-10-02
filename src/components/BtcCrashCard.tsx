@@ -98,7 +98,7 @@ function PressureBars({ pct, inactive }: { pct: number; inactive: boolean }) {
   }, [pct, inactive]);
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+    <div className="btc-card-pressure-bars" style={{ display: "flex", alignItems: "center", gap: "3px" }}>
       {Array.from({ length: TOTAL }).map((_, i) => {
         const filled = i < animLit;
         const isTip  = filled && i === animLit - 1;
@@ -148,7 +148,7 @@ function SigCard({
   sub?: string; lvlColor: string; level?: string; danger?: boolean;
 }) {
   return (
-    <div style={{
+    <div className="btc-card-signal" style={{
       position: "relative", overflow: "hidden",
       borderRadius: "14px",
       border: "1px solid rgba(255,255,255,0.07)",
@@ -168,7 +168,7 @@ function SigCard({
         display: "flex", alignItems: "flex-start",
         justifyContent: "space-between", gap: "6px", flexWrap: "wrap",
       }}>
-        <span style={{
+        <span className="btc-card-signal-title" style={{
           fontSize: "9px", fontWeight: 800, letterSpacing: "0.1em",
           color: "rgba(255,255,255,0.28)", textTransform: "uppercase",
           lineHeight: 1.3, flexShrink: 1, minWidth: 0,
@@ -177,7 +177,7 @@ function SigCard({
         </span>
         {level && <LvlBadge level={level} />}
       </div>
-      <div style={{
+      <div className="btc-card-signal-value" style={{
         fontSize: "18px", fontWeight: 900, lineHeight: 1,
         fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em",
         color: lvlColor, wordBreak: "break-all",
@@ -259,7 +259,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
     (Date.now() - new Date(cycle.updatedAt).getTime()) > 10 * 60 * 1000; // 10 min
 
   return (
-    <div style={{
+    <div className="btc-card-cycle" style={{
       position: "relative", zIndex: 2,
       margin: "12px 14px 14px",
       borderRadius: "18px",
@@ -268,7 +268,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
       overflow: "hidden",
     }}>
       {/* accent line */}
-      <div style={{
+      <div className="btc-card-cycle-header" style={{
         position: "absolute", top: 0, left: "10%", right: "10%", height: "1px",
         background: `linear-gradient(90deg, transparent, ${phaseColor}55 40%, ${phaseColor}80 50%, ${phaseColor}55 60%, transparent)`,
         animation: "_bc_epulse 3s ease-in-out infinite",
@@ -307,17 +307,17 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
         </div>
       </div>
 
-      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div className="btc-card-cycle-content" style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
 
         {/* ── Phase + Progress ── */}
-        <div style={{
+        <div className="btc-card-cycle-phase" style={{
           borderRadius: "14px",
           border: `1px solid ${phaseColor}28`,
           background: "transparent",
           padding: "14px 16px",
           display: "flex", flexDirection: "column", gap: "10px",
         }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="btc-card-cycle-phase-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <div style={{
                 fontSize: "8px", fontWeight: 800, letterSpacing: "0.16em",
@@ -376,11 +376,11 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
         </div>
 
         {/* ── Last Event + Next Target ── */}
-        <div style={{
+        <div className="btc-card-cycle-events" style={{
           display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px",
         }}>
           {/* Last Event */}
-          <div style={{
+          <div className="btc-card-cycle-event" style={{
             borderRadius: "14px",
             border: `1px solid ${eventColor}28`,
             background: "transparent",
@@ -430,7 +430,7 @@ function CycleSection({ cycle }: { cycle: CycleSnapshot | null }) {
           </div>
 
           {/* Next Target */}
-          <div style={{
+          <div className="btc-card-cycle-event" style={{
             borderRadius: "14px",
             border: `1px solid ${nextColor}28`,
             background: "transparent",
@@ -622,9 +622,89 @@ export function BtcCrashCard() {
         @keyframes _bc_flash_dn  { 0%{text-shadow:0 0 8px #ef444480} 100%{text-shadow:none} }
         @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
         @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+        .btc-card-root {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+        .btc-card-root *,
+        .btc-card-root *::before,
+        .btc-card-root *::after {
+          box-sizing: border-box;
+        }
+
+        @media (max-width: 640px) {
+          .btc-card-root { border-radius: 16px !important; }
+          .btc-card-header { padding: 14px !important; gap: 8px !important; }
+          .btc-card-brand { gap: 9px !important; min-width: 0; }
+          .btc-card-coin svg { width: 36px !important; height: 36px !important; }
+          .btc-card-status { min-width: 0 !important; padding: 7px 10px !important; }
+          .btc-card-price-hero { padding: 15px 14px 14px !important; }
+          .btc-card-price-row { gap: 9px !important; }
+          .btc-card-price { font-size: clamp(28px, 9vw, 36px) !important; }
+          .btc-card-paused { margin-bottom: 10px !important; }
+          .btc-card-stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .btc-card-stat-cell { min-width: 0; padding: 9px !important; border-left: none !important; }
+          .btc-card-stat-cell:nth-child(even) { border-left: 1px solid rgba(255,255,255,0.05) !important; }
+          .btc-card-stat-cell:nth-child(n+3) { border-top: 1px solid rgba(255,255,255,0.05) !important; }
+          .btc-card-stat-label { font-size: 7px !important; letter-spacing: 0.1em !important; }
+          .btc-card-pressure-header,
+          .btc-card-pressure-row {
+            grid-template-columns: 30px minmax(0, 1fr) 68px 54px !important;
+            gap: 5px !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+          .btc-card-pressure-header { padding-top: 8px !important; padding-bottom: 5px !important; }
+          .btc-card-pressure-row { padding-top: 7px !important; padding-bottom: 7px !important; }
+          .btc-card-pressure-bars { gap: 2px !important; }
+          .btc-card-pressure-bars > div { width: 5px !important; height: 16px !important; }
+          .btc-card-signal-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 7px !important;
+            padding: 12px 10px 0 !important;
+          }
+          .btc-card-signal { min-width: 0; padding: 11px 9px !important; }
+          .btc-card-signal-value { font-size: 16px !important; }
+          .btc-card-net-flow,
+          .btc-card-net-windows,
+          .btc-card-trend {
+            margin-left: 10px !important;
+            margin-right: 10px !important;
+            padding: 12px !important;
+          }
+          .btc-card-net-flow { flex-direction: column !important; align-items: stretch !important; }
+          .btc-card-net-flow > div { width: 100%; justify-content: space-between; }
+          .btc-card-net-total { font-size: 22px !important; }
+          .btc-card-cycle { margin: 10px !important; border-radius: 14px !important; }
+          .btc-card-cycle-header { padding: 12px !important; }
+          .btc-card-cycle-content { padding: 10px !important; }
+          .btc-card-cycle-phase { padding: 12px !important; }
+          .btc-card-cycle-events { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 7px !important; }
+          .btc-card-cycle-event { min-width: 0; padding: 11px 10px !important; }
+        }
+
+        @media (max-width: 380px) {
+          .btc-card-header { padding: 12px !important; }
+          .btc-card-price-hero { padding: 13px 12px !important; }
+          .btc-card-price { font-size: clamp(26px, 9vw, 32px) !important; }
+          .btc-card-stat-cell { padding: 8px !important; }
+          .btc-card-pressure-header,
+          .btc-card-pressure-row {
+            grid-template-columns: 27px minmax(0, 1fr) 60px 49px !important;
+            gap: 4px !important;
+            padding-left: 9px !important;
+            padding-right: 9px !important;
+          }
+          .btc-card-pressure-peak { font-size: 10px !important; }
+          .btc-card-pressure-drop { font-size: 12px !important; }
+          .btc-card-cycle-events { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
-      <section style={{
+      <section className="btc-card-root" style={{
         position: "relative",
         fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
         borderRadius: "22px",
@@ -646,15 +726,15 @@ export function BtcCrashCard() {
 
 
         {/* ═══════════════ HEADER ═══════════════ */}
-        <div style={{
+        <div className="btc-card-header" style={{
           position: "relative", zIndex: 2,
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "18px 20px 14px",
           flexWrap: "wrap", gap: "12px",
           borderBottom: "1px solid rgba(255,255,255,0.055)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
-            <div style={{ position: "relative", flexShrink: 0 }}>
+          <div className="btc-card-brand" style={{ display: "flex", alignItems: "center", gap: "13px" }}>
+            <div className="btc-card-coin" style={{ position: "relative", flexShrink: 0 }}>
               <CoinIcon symbol="BTC" size={42} />
             </div>
             <div>
@@ -678,7 +758,7 @@ export function BtcCrashCard() {
           </div>
 
           {/* status badge */}
-          <div style={{
+          <div className="btc-card-status" style={{
             padding: "9px 18px", borderRadius: "12px",
             background: `linear-gradient(135deg, ${displayCfg.color}18, ${displayCfg.color}07)`,
             boxShadow: `inset 0 1px 0 ${displayCfg.color}15`,
@@ -710,14 +790,15 @@ export function BtcCrashCard() {
         </div>
 
         {/* ═══════════════ PRICE HERO ═══════════════ */}
-        <div style={{
+        <div className="btc-card-price-hero" style={{
           position: "relative", zIndex: 2,
           padding: "20px 20px 18px",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
           background: "transparent",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "18px" }}>
+          <div className="btc-card-price-row" style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: isPaused ? "6px" : "18px" }}>
             <span
+              className="btc-card-price"
               key={String(flash)}
               style={{
                 fontSize: "40px", fontWeight: 900, lineHeight: 1,
@@ -746,8 +827,30 @@ export function BtcCrashCard() {
             </div>
           </div>
 
+          {/* PAUSED MESSAGE — directly beneath the live BTC price */}
+          {isPaused && (
+            <div className="btc-card-paused" style={{
+              marginBottom: "12px",
+              display: "flex", flexDirection: "column", gap: "2px",
+              animation: "_bc_slide_in 0.35s ease both",
+            }}>
+              <span style={{
+                fontSize: "11px", fontWeight: 900, color: "#FF3333",
+                letterSpacing: "0.08em",
+              }}>
+                PAUSED
+              </span>
+              <span style={{
+                fontSize: "11px", lineHeight: 1.4,
+                color: "#FF3333", wordBreak: "break-word",
+              }}>
+                Reason: {pauseReason}
+              </span>
+            </div>
+          )}
+
           {/* Stat strip */}
-          <div style={{
+          <div className="btc-card-stat-strip" style={{
             display: "grid", gridTemplateColumns: "repeat(4,1fr)",
             borderRadius: "12px", overflow: "hidden",
             border: "1px solid rgba(255,255,255,0.06)",
@@ -776,11 +879,11 @@ export function BtcCrashCard() {
                 color: !d ? "rgba(255,255,255,0.16)" : volSpike ? "#ef4444" : "#0dd9aa",
               },
             ].map(({ label, value, unit, color }, i) => (
-              <div key={label} style={{
+              <div key={label} className="btc-card-stat-cell" style={{
                 padding: "10px 12px",
                 borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.05)" : "none",
               }}>
-                <div style={{
+                <div className="btc-card-stat-label" style={{
                   fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.14em",
                   textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: "4px",
                 }}>{label}</div>
@@ -800,7 +903,7 @@ export function BtcCrashCard() {
 
         {/* ═══════════════ PRESSURE / DROP ═══════════════ */}
         <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{
+          <div className="btc-card-pressure-header" style={{
             display: "grid", gridTemplateColumns: "36px 1fr 90px auto",
             padding: "10px 20px 6px", gap: "8px",
           }}>
@@ -820,6 +923,7 @@ export function BtcCrashCard() {
             return (
               <div
                 key={t}
+                className="btc-card-pressure-row"
                 style={{
                   display: "grid", gridTemplateColumns: "36px 1fr 90px auto",
                   gap: "8px", alignItems: "center",
@@ -830,14 +934,14 @@ export function BtcCrashCard() {
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.022)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
-                <span style={{
+                <span className="btc-card-pressure-peak" style={{
                   fontSize: "11px", fontWeight: 800,
                   color: "rgba(255,255,255,0.32)", fontVariantNumeric: "tabular-nums",
                 }}>{t}</span>
 
                 <PressureBars pct={pct} inactive={!d} />
 
-                <span style={{
+                <span className="btc-card-pressure-drop" style={{
                   fontSize: "11px", fontWeight: 500, fontVariantNumeric: "tabular-nums",
                   color: d ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.09)", textAlign: "right",
                 }}>
@@ -857,7 +961,7 @@ export function BtcCrashCard() {
         </div>
 
         {/* ═══════════════ SIGNAL CARDS ═══════════════ */}
-        <div style={{
+        <div className="btc-card-signal-grid" style={{
           position: "relative", zIndex: 2,
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
@@ -910,7 +1014,7 @@ export function BtcCrashCard() {
         </div>
 
         {/* ═══════════════ NET FLOW ROW ═══════════════ */}
-        <div style={{
+        <div className="btc-card-net-flow" style={{
           position: "relative", zIndex: 2,
           margin: "12px 14px",
           padding: "14px 18px",
@@ -923,7 +1027,7 @@ export function BtcCrashCard() {
           transition: "all 0.45s ease",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{
+            <span className="btc-card-net-total" style={{
               fontSize: "9px", fontWeight: 800, letterSpacing: "0.14em",
               textTransform: "uppercase", color: "rgba(255,255,255,0.27)",
             }}>
@@ -965,7 +1069,7 @@ export function BtcCrashCard() {
         </div>
 
         {/* ═══════════════ NET FLOW WINDOWS (5m / 15m) ═══════════════ */}
-        <div style={{
+        <div className="btc-card-net-windows" style={{
           position: "relative", zIndex: 2,
           margin: "-4px 14px 12px",
           padding: "10px 18px",
@@ -1002,7 +1106,7 @@ export function BtcCrashCard() {
 
         {/* ═══════════════ ZZ TREND ═══════════════ */}
         {d && (
-          <div style={{
+          <div className="btc-card-trend" style={{
             position: "relative", zIndex: 2,
             margin: "0 14px 12px",
             padding: "14px 18px",
@@ -1065,52 +1169,6 @@ export function BtcCrashCard() {
                   }}>${trendSwingL.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════ PAUSED BANNER ═══════════════ */}
-        {isPaused && (
-          <div style={{
-            position: "relative", zIndex: 2,
-            margin: "0 14px 14px",
-            padding: "14px 18px",
-            borderRadius: "14px",
-            background: "linear-gradient(135deg, rgba(255,51,51,0.11), rgba(255,51,51,0.04))",
-            border: "1px solid rgba(255,51,51,0.30)",
-            boxShadow: "inset 0 1px 0 rgba(255,51,51,0.10)",
-            display: "flex", alignItems: "center", gap: "14px",
-            animation: "_bc_slide_in 0.35s ease both",
-          }}>
-            <div style={{
-              width: "40px", height: "40px", borderRadius: "50%",
-              background: "linear-gradient(135deg, rgba(255,51,51,0.22), rgba(255,51,51,0.08))",
-              border: "1.5px solid rgba(255,51,51,0.42)",
-              boxShadow: "none",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="#FF3333">
-                <rect x="2" y="2" width="3.5" height="10" rx="1.2" />
-                <rect x="8.5" y="2" width="3.5" height="10" rx="1.2" />
-              </svg>
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
-                <span style={{
-                  fontSize: "11px", fontWeight: 900, color: "#FF3333",
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  textShadow: "none",
-                }}>
-                  PAUSED
-                </span>
-              </div>
-              <div style={{
-                fontSize: "11px", lineHeight: 1.65,
-                color: "#FF3333", wordBreak: "break-word",
-              }}>
-                Reason: {pauseReason}
-              </div>
             </div>
           </div>
         )}
