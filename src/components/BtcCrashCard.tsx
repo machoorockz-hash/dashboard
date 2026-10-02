@@ -553,9 +553,9 @@ export function BtcCrashCard() {
   const cfg        = STAGE[stage] ?? STAGE.SAFE;
   const isPaused   = d?.trade_mode === "Pause";
 
-  // When paused, override the whole card's colour theme to yellow
+  // When paused, override the whole card's colour theme to red
   const displayCfg = isPaused
-    ? { color: "#f5c542", colorMid: "rgba(245,197,66,0.5)", glow: "rgba(245,197,66,0.18)", border: "rgba(245,197,66,0.35)", label: "PAUSED", sub: "TRADING HALTED" }
+    ? { color: "#FF3333", colorMid: "rgba(255,51,51,0.5)", glow: "rgba(255,51,51,0.18)", border: "rgba(255,51,51,0.35)", label: "PAUSED", sub: "TRADING HALTED" }
     : cfg;
 
   const pauseReason = (() => {
@@ -1076,21 +1076,21 @@ export function BtcCrashCard() {
             margin: "0 14px 14px",
             padding: "14px 18px",
             borderRadius: "14px",
-            background: "linear-gradient(135deg, rgba(245,197,66,0.11), rgba(245,197,66,0.04))",
-            border: "1px solid rgba(245,197,66,0.30)",
-            boxShadow: "inset 0 1px 0 rgba(245,197,66,0.10)",
+            background: "linear-gradient(135deg, rgba(255,51,51,0.11), rgba(255,51,51,0.04))",
+            border: "1px solid rgba(255,51,51,0.30)",
+            boxShadow: "inset 0 1px 0 rgba(255,51,51,0.10)",
             display: "flex", alignItems: "center", gap: "14px",
             animation: "_bc_slide_in 0.35s ease both",
           }}>
             <div style={{
               width: "40px", height: "40px", borderRadius: "50%",
-              background: "linear-gradient(135deg, rgba(245,197,66,0.22), rgba(245,197,66,0.08))",
-              border: "1.5px solid rgba(245,197,66,0.42)",
+              background: "linear-gradient(135deg, rgba(255,51,51,0.22), rgba(255,51,51,0.08))",
+              border: "1.5px solid rgba(255,51,51,0.42)",
               boxShadow: "none",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0,
             }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="#f5c542">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="#FF3333">
                 <rect x="2" y="2" width="3.5" height="10" rx="1.2" />
                 <rect x="8.5" y="2" width="3.5" height="10" rx="1.2" />
               </svg>
@@ -1098,26 +1098,18 @@ export function BtcCrashCard() {
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
                 <span style={{
-                  fontSize: "11px", fontWeight: 900, color: "#f5c542",
+                  fontSize: "11px", fontWeight: 900, color: "#FF3333",
                   letterSpacing: "0.08em", textTransform: "uppercase",
                   textShadow: "none",
                 }}>
-                  Trading Paused
-                </span>
-                <span style={{
-                  padding: "2px 7px", borderRadius: "4px",
-                  background: "rgba(245,197,66,0.15)", border: "1px solid rgba(245,197,66,0.35)",
-                  fontSize: "7px", fontWeight: 900, color: "#f5c542",
-                  letterSpacing: "0.12em", textTransform: "uppercase",
-                }}>
-                  BOT HALTED
+                  PAUSED
                 </span>
               </div>
               <div style={{
                 fontSize: "11px", lineHeight: 1.65,
-                color: "rgba(245,197,66,0.58)", wordBreak: "break-word",
+                color: "#FF3333", wordBreak: "break-word",
               }}>
-                {pauseReason}
+                Reason: {pauseReason}
               </div>
             </div>
           </div>
