@@ -83,10 +83,16 @@ function getPauseReasons(data: PumpSnapshot | null): string[] {
   return reasons;
 }
 
-function isSessionOnlyPause(data: PumpSnapshot | null): boolean {
+function isMarketSessionPause(data: PumpSnapshot | null): boolean {
   const reasons = getPauseReasons(data);
 
-  return reasons.length === 1 && /\b(session|weekly)\b/i.test(reasons[0]);
+  return reasons.length === 1 && /\bsession\b/i.test(reasons[0]);
+}
+
+function isMarketResetPause(data: PumpSnapshot | null): boolean {
+  const reasons = getPauseReasons(data);
+
+  return reasons.length === 1 && /\bweekely\b/i.test(reasons[0]);
 }
 
 function isEventGuardPause(data: PumpSnapshot | null): boolean {
@@ -228,6 +234,7 @@ export function TickerTape() {
   const [tradeMode, setTradeMode] = useState<string | null>(null);
   const [scannerPaused, setScannerPaused] = useState(false);
   const [scannerSessionPause, setScannerSessionPause] = useState(false);
+  const [scannerMarketResetPause, setScannerMarketResetPause] = useState(false);
   const [scannerEventGuardPause, setScannerEventGuardPause] = useState(false);
 
   // Poll delist data
@@ -306,7 +313,8 @@ export function TickerTape() {
 
         if (mounted) {
           setScannerPaused(isScannerPaused(json));
-          setScannerSessionPause(isSessionOnlyPause(json));
+          setScannerSessionPause(isMarketSessionPause(json));
+          setScannerMarketResetPause(isMarketResetPause(json));
           setScannerEventGuardPause(isEventGuardPause(json));
         }
       } catch {
@@ -336,6 +344,8 @@ export function TickerTape() {
             ? "EVENT GUARD"
             : scannerSessionPause
               ? "MARKET SESSION"
+              : scannerMarketResetPause
+                ? "MARKET RESET"
               : "SCANNER PAUSED",
         ]
       : []),
