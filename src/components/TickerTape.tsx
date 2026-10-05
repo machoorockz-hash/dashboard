@@ -177,10 +177,12 @@ function isUpcoming(item: DelistSymbol): boolean {
 function PauseBanner({
   messages,
   scannerSessionPause,
+  scannerMarketResetPause,
   scannerEventGuardPause,
 }: {
   messages: string[];
   scannerSessionPause: boolean;
+  scannerMarketResetPause: boolean;
   scannerEventGuardPause: boolean;
 }) {
   const items = messages.length > 0 ? messages : ["PAUSED"];
@@ -203,6 +205,9 @@ function PauseBanner({
                 ? "text-[#0047AB]"
                 : items[i % items.length] === "MARKET SESSION" &&
               scannerSessionPause
+                ? "text-purple-400"
+                : items[i % items.length] === "MARKET RESET" &&
+              scannerMarketResetPause
                 ? "text-purple-400"
                 : "text-yellow-400"
             }`}
@@ -357,6 +362,7 @@ export function TickerTape() {
       <PauseBanner
         messages={pauseMessages}
         scannerSessionPause={scannerSessionPause}
+        scannerMarketResetPause={scannerMarketResetPause}
         scannerEventGuardPause={scannerEventGuardPause}
       />
     );
