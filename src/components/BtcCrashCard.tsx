@@ -761,12 +761,6 @@ export function BtcCrashCard() {
               animation: "_bc_slide_in 0.35s ease both",
             }}>
               <span style={{
-                fontSize: "11px", fontWeight: 900, color: "#FF3333",
-                letterSpacing: "0.08em",
-              }}>
-                PAUSED
-              </span>
-              <span style={{
                 fontSize: "11px", lineHeight: 1.4,
                 color: "#FF3333", wordBreak: "break-word",
               }}>
