@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CoinIcon } from "./CoinIcon";
+import { PriceChart } from "./PriceChart";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -768,6 +769,16 @@ export function BtcCrashCard() {
               </span>
             </div>
           )}
+
+          <div style={{ marginBottom: "14px" }}>
+            <PriceChart
+              symbol="BTCUSDT"
+              interval="1m"
+              height={170}
+              showIntervalControls={false}
+              compact
+            />
+          </div>
 
           {/* Stat strip */}
           <div style={{
