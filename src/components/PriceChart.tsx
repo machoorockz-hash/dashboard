@@ -284,7 +284,7 @@ interface PriceLineSpec { price: number; label: string; color: string; }
 interface Props {
   symbol: string; interval?: Interval; height?: number;
   onIntervalChange?: (i: Interval) => void; onSymbolChange?: (s: string) => void;
-  showIntervalControls?: boolean; searchable?: boolean; priceLines?: PriceLineSpec[];
+  showIntervalControls?: boolean; searchable?: boolean; compact?: boolean; priceLines?: PriceLineSpec[];
   signalTimestamp?: string | number | null;
 }
 
@@ -298,7 +298,7 @@ interface OverlayLine {
 export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
-  showIntervalControls = true, searchable = false, priceLines, signalTimestamp,
+  showIntervalControls = true, searchable = false, compact = false, priceLines, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -867,6 +867,7 @@ export function PriceChart({
       `}</style>
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      {!compact && (
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center gap-3 min-w-0">
           <CoinIcon symbol={base} size={28} />
@@ -928,6 +929,7 @@ export function PriceChart({
           )}
         </div>
       </div>
+      )}
 
       {/* ── TP / SL / Entry label strip ─────────────────────────────────────── */}
       {hasLines && (
