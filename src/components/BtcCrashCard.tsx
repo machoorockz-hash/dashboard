@@ -510,6 +510,7 @@ export function BtcCrashCard() {
   const [age, setAge]         = useState("");
   const [price, setPrice]     = useState<number | null>(null);
   const [flash, setFlash]     = useState<"up" | "down" | null>(null);
+  const [chartSymbol, setChartSymbol] = useState("BTCUSDT");
   const prev                  = useRef<number | null>(null);
 
   useEffect(() => {
@@ -772,10 +773,12 @@ export function BtcCrashCard() {
 
           <div style={{ marginBottom: "14px" }}>
             <PriceChart
-              symbol="BTCUSDT"
+              symbol={chartSymbol}
               interval="1m"
-              height={170}
-              showIntervalControls={false}
+              height={204}
+              showIntervalControls
+              searchable
+              onSymbolChange={setChartSymbol}
               compact
             />
           </div>
