@@ -528,7 +528,7 @@ export function PriceChart({
     if (signalMarkerRef.current) signalMarkerRef.current.style.display = "none";
     (async () => {
       try {
-        const data = await getKlines({ data: { symbol, interval: iv, limit: 1000 } });
+        const data = await getKlines({ data: { symbol, interval: iv, limit: compact ? 120 : 1000 } });
         if (!alive) return;
         const candles: CandlestickData[] = data.map((d) => ({
           time: d.time as UTCTimestamp,
@@ -579,7 +579,7 @@ export function PriceChart({
       } catch (err) { console.error("chart error", err); }
     })();
     return () => { alive = false; ws?.close(); };
-  }, [symbol, iv]);
+  }, [symbol, iv, compact]);
 
   useEffect(() => {
     if (!flash) return;
@@ -741,7 +741,7 @@ export function PriceChart({
   const isBtc    = symbol === "BTCUSDT";
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
+    <div className={`rounded-2xl border border-primary/20 bg-transparent overflow-hidden ${compact ? "w-full min-w-0" : ""}`}>
       <style>{`
         /* ── Hide TradingView attribution logo ─────────────────────────────── */
         .tv-lightweight-charts a { display:none !important; }
@@ -867,53 +867,60 @@ export function PriceChart({
       `}</style>
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      {!compact && (
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
-        <div className="flex items-center gap-3 min-w-0">
-          <CoinIcon symbol={base} size={28} />
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="font-black text-sm md:text-base truncate leading-none">{symbol}</span>
-            {livePrice && (
-              <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-                <span
-                  key={String(livePrice)}
-                  className={`text-xs font-black tabular-nums leading-none ${
-                    flash === "up"   ? "hdr-flash-up text-emerald-400"
-                    : flash === "down" ? "hdr-flash-down text-red-400"
-                    : "text-muted-foreground"
-                  }`}
-                >
-                  {flash === "up" ? "▲" : flash === "down" ? "▼" : ""} ${fmtPrice(livePrice)}
+      <div className={`flex flex-wrap items-center gap-2 border-b border-border bg-gradient-to-r from-primary/5 to-transparent ${
+        compact ? "px-2 py-2" : "justify-between gap-3 px-4 py-3"
+      }`}>
+        {!compact && (
+          <div className="flex items-center gap-3 min-w-0">
+            <CoinIcon symbol={base} size={28} />
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="font-black text-sm md:text-base truncate leading-none">{symbol}</span>
+              {livePrice && (
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                  <span
+                    key={String(livePrice)}
+                    className={`text-xs font-black tabular-nums leading-none ${
+                      flash === "up"   ? "hdr-flash-up text-emerald-400"
+                      : flash === "down" ? "hdr-flash-down text-red-400"
+                      : "text-muted-foreground"
+                    }`}
+                  >
+                    {flash === "up" ? "▲" : flash === "down" ? "▼" : ""} ${fmtPrice(livePrice)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
+              {!isBtc && <>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
                 </span>
-              </div>
-            )}
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 50
+                </span>
+              </>}
+              {isBtc && <>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
+                </span>
+              </>}
+            </div>
           </div>
+        )}
 
-          {/* Legend */}
-          <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
-            {!isBtc && <>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 50
-              </span>
-            </>}
-            {isBtc && <>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
-              </span>
-            </>}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className={`flex items-center gap-2 flex-wrap ${compact ? "w-full min-w-0" : ""}`}>
           {searchable && (
-            <form onSubmit={submitSearch} className="flex items-center gap-1 bg-muted/40 rounded-lg px-2 py-1">
+            <form onSubmit={submitSearch} className={`flex items-center gap-1 bg-muted/40 rounded-lg px-2 py-1 ${
+              compact ? "min-w-[140px] flex-1" : ""
+            }`}>
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="e.g. ETH, SOLUSDT"
-                className="bg-transparent text-xs outline-none w-32 sm:w-40 placeholder:text-muted-foreground/60" />
+                className={`bg-transparent text-xs outline-none placeholder:text-muted-foreground/60 ${
+                  compact ? "min-w-0 flex-1" : "w-32 sm:w-40"
+                }`} />
               <button type="submit" className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/20 text-primary hover:bg-primary/30">GO</button>
             </form>
           )}
@@ -921,7 +928,7 @@ export function PriceChart({
             <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-1">
               {INTERVALS.map((i) => (
                 <button key={i} onClick={() => { setIv(i); onIntervalChange?.(i); }}
-                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${iv === i ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  className={`${compact ? "px-1.5 sm:px-2.5 text-[10px] sm:text-xs" : "px-2.5 text-xs"} py-1 rounded-md font-medium transition-colors ${iv === i ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                   {i}
                 </button>
               ))}
@@ -929,7 +936,6 @@ export function PriceChart({
           )}
         </div>
       </div>
-      )}
 
       {/* ── TP / SL / Entry label strip ─────────────────────────────────────── */}
       {hasLines && (
