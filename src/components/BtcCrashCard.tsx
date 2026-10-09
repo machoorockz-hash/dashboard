@@ -626,7 +626,7 @@ export function BtcCrashCard() {
         @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
 
         .btc-live-price-chart > * {
-          border-color: rgba(255,255,255,0.07) !important;
+          border-color: #F7931A !important;
         }
 
       `}</style>
