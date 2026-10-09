@@ -625,6 +625,10 @@ export function BtcCrashCard() {
         @keyframes _bc_slide_in  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
         @keyframes _bc_epulse    { 0%,100%{opacity:.4} 50%{opacity:1} }
 
+        .btc-live-price-chart > * {
+          border-color: rgba(255,255,255,0.07) !important;
+        }
+
       `}</style>
 
       <section style={{
@@ -771,7 +775,7 @@ export function BtcCrashCard() {
             </div>
           )}
 
-          <div style={{ marginBottom: "14px" }}>
+          <div className="btc-live-price-chart" style={{ marginBottom: "14px" }}>
             <PriceChart
               symbol={chartSymbol}
               interval="1m"
