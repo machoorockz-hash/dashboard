@@ -222,7 +222,7 @@ function PauseBanner({
   );
 
   return (
-    <div className="border-b border-yellow-500/40 bg-yellow-500/10 overflow-hidden">
+    <div className="border-b border-teal-500/60 bg-transparent overflow-hidden">
       <div className="flex ticker-scroll w-max">
         {label}
         {label}
