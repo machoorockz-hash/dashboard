@@ -779,7 +779,7 @@ export function BtcCrashCard() {
             <PriceChart
               symbol={chartSymbol}
               interval="1m"
-              height={204}
+              height={220}
               showIntervalControls
               searchable
               onSymbolChange={setChartSymbol}
