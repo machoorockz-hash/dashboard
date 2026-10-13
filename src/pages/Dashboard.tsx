@@ -530,6 +530,7 @@ export default function Dashboard() {
   const lastTrade = tradeData?.last_closed_trade ?? null;
 
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
+  const [showMainChart, setShowMainChart] = useState(false);
   const [pumpSignalsBySymbol, setPumpSignalsBySymbol] = useState<Record<string, PumpSignal>>({});
 
   useEffect(() => {
@@ -963,19 +964,24 @@ export default function Dashboard() {
         </section>
 
         <PumpScannerCard
-          onCoinSelect={(sym) => setChartSymbol(sym)}
+          onCoinSelect={(sym) => {
+            setChartSymbol(sym);
+            setShowMainChart(true);
+          }}
           onLatestSignalsChange={handleLatestPumpSignals}
         />
 
-        <PriceChart
-          symbol={chartSymbol}
-          interval="1m"
-          height={500}
-          searchable
-          onSymbolChange={setChartSymbol}
-          priceLines={chartLines}
-          signalTimestamp={pumpSignalsBySymbol[chartSymbol.toUpperCase()]?.timestamp ?? null}
-        />
+        {showMainChart && (
+          <PriceChart
+            symbol={chartSymbol}
+            interval="1m"
+            height={350}
+            searchable
+            onSymbolChange={setChartSymbol}
+            priceLines={chartLines}
+            signalTimestamp={pumpSignalsBySymbol[chartSymbol.toUpperCase()]?.timestamp ?? null}
+          />
+        )}
 
         <SoldCoinsCard />
 
