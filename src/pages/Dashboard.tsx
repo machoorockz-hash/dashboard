@@ -968,60 +968,55 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative mt-5 rounded-xl border border-border bg-transparent px-4 py-3 flex items-center justify-between transition-all duration-300">
-                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
-                  <Activity className="h-3 w-3" /> Live price
-                </span>
-                <span className="text-[1.95rem] md:text-[2.1875rem] font-black tabular-nums">
-                  ${cur ? fmtPrice(cur) : "…"}
-                </span>
-              </div>
-
-              {/* ── DCA STEP ── */}
-              {showDca && (
-                <div
-                  className="relative mt-4 rounded-xl overflow-hidden px-4 py-4"
-                  style={{
-                    background: "transparent",
-                    border: "1px solid color-mix(in oklab,var(--primary) 28%,transparent)",
-                  }}
-                >
-                  <div className="relative flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <Layers className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
-                      <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "color-mix(in oklab,var(--primary) 80%,var(--muted-foreground))" }}>
-                        DCA Step
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span
-                        className="text-2xl font-black tabular-nums leading-none"
-                        style={{
-                          color: "var(--primary)",
-                          textShadow: "0 0 16px color-mix(in oklab,var(--primary) 70%,transparent)",
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {dcaStep}
-                      </span>
-                      <span
-                        className="text-base font-black leading-none"
-                        style={{ color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)" }}
-                      >
-                        /{dcaTotal}
-                      </span>
-                    </div>
-                  </div>
-
-                  <StepSegments
-                    step={dcaStep}
-                    total={dcaTotal}
-                    stepAmounts={dcaAmounts}
-                    stepTimestamps={dcaTimestamps}
-                    skippedSteps={dcaSkipped}
-                  />
+              <div className="relative mt-5 rounded-xl border border-border bg-transparent px-4 py-3 transition-all duration-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
+                    <Activity className="h-3 w-3" /> Live price
+                  </span>
+                  <span className="text-[1.95rem] md:text-[2.1875rem] font-black tabular-nums">
+                    ${cur ? fmtPrice(cur) : "…"}
+                  </span>
                 </div>
-              )}
+
+                {showDca && (
+                  <div className="relative mt-3 border-t border-border/60 pt-3">
+                    <div className="relative flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
+                        <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "color-mix(in oklab,var(--primary) 80%,var(--muted-foreground))" }}>
+                          DCA Step
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span
+                          className="text-2xl font-black tabular-nums leading-none"
+                          style={{
+                            color: "var(--primary)",
+                            textShadow: "0 0 16px color-mix(in oklab,var(--primary) 70%,transparent)",
+                            letterSpacing: "-0.02em",
+                          }}
+                        >
+                          {dcaStep}
+                        </span>
+                        <span
+                          className="text-base font-black leading-none"
+                          style={{ color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)" }}
+                        >
+                          /{dcaTotal}
+                        </span>
+                      </div>
+                    </div>
+
+                    <StepSegments
+                      step={dcaStep}
+                      total={dcaTotal}
+                      stepAmounts={dcaAmounts}
+                      stepTimestamps={dcaTimestamps}
+                      skippedSteps={dcaSkipped}
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className="relative mt-3">
                 <PriceChart
