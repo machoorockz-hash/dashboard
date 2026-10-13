@@ -780,7 +780,7 @@ export default function Dashboard() {
                       key={b.asset}
                       className="shrink-0 flex items-center gap-1.5 rounded-lg relative overflow-hidden cursor-default"
                       style={{
-                        padding: "5px 8px",
+                        padding: "6px 9px",
                         background: "oklch(0.55 0.06 210 / 10%)",
                         border: `1px solid ${accentColor}28`,
                         /*
@@ -808,15 +808,15 @@ export default function Dashboard() {
                         style={{ background: accentColor, opacity: 0.7 }}
                       />
 
-                      <CoinIcon symbol={b.asset} size={16} />
+                      <CoinIcon symbol={b.asset} size={19.2} />
 
-                      <span className="text-[10px] font-black tracking-tight truncate" style={{ maxWidth: "48px" }}>
+                      <span className="text-[12px] font-black tracking-tight truncate" style={{ maxWidth: "48px" }}>
                         {b.asset}
                       </span>
 
                       <span
-                        className="text-[9px] font-bold tabular-nums"
-                        style={{ color: "oklch(0.82 0.01 200)" }}
+                        className="font-bold tabular-nums"
+                        style={{ color: "oklch(0.82 0.01 200)", fontSize: "10.8px" }}
                       >
                         ${fmt(b.usd, 2)}
                       </span>
