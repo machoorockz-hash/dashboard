@@ -828,10 +828,9 @@ export default function Dashboard() {
 
             {!activeTrade && latestSoldTrade && (
               <div
-                className="mt-2 rounded-lg border px-3 py-3"
+                className="mt-2 rounded-lg px-3 py-3"
                 style={{
                   background: "linear-gradient(105deg, color-mix(in oklab, #EE1120 10%, transparent), color-mix(in oklab, #EE1120 4%, transparent) 58%, transparent)",
-                  borderColor: "color-mix(in oklab, #EE1120 30%, transparent)",
                   boxShadow: "0 0 24px -16px color-mix(in oklab, #EE1120 65%, transparent)",
                 }}
               >
@@ -841,8 +840,8 @@ export default function Dashboard() {
                       SOLD
                     </span>
                     <div className="flex min-w-0 items-center gap-1">
-                      <CoinIcon symbol={latestSoldTrade.base} size={24} />
-                      <span className="min-w-0 truncate text-xl font-black">
+                      <CoinIcon symbol={latestSoldTrade.base} size={22} />
+                      <span className="min-w-0 truncate text-base font-black">
                         {latestSoldTrade.base}/USDT
                       </span>
                     </div>
