@@ -978,18 +978,13 @@ export default function Dashboard() {
               </div>
 
               <div className="relative mt-3">
-                <div className="mb-1.5 flex items-center justify-between px-1">
-                  <span className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">
-                    Live chart
-                  </span>
-                  <span className="text-[9px] font-bold text-muted-foreground">1m</span>
-                </div>
                 <PriceChart
                   symbol={orderSymbol ?? primary.symbol}
                   interval="1m"
                   height={270}
                   compact
                   showIntervalControls={false}
+                  showPriceLineStrip={false}
                   priceLines={activeTradeChartLines}
                   signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
                 />
