@@ -756,7 +756,7 @@ export default function Dashboard() {
 
               {/* ── AED equivalent value ── */}
               <div
-                className="mt-1.5 text-[19.2px] md:text-[21.6px] font-bold tabular-nums"
+                className="mt-1.5 text-base md:text-lg font-bold tabular-nums"
                 style={{ color: "color-mix(in oklab, var(--muted-foreground) 75%, transparent)" }}
               >
                 {account.isLoading ? "…" : `≈ AED ${fmt(animatedTotal * AED_RATE)}`}
