@@ -139,9 +139,10 @@ function FlareBeamAnimation() {
 interface PumpScannerCardProps {
   onCoinSelect?: (symbol: string) => void;
   onLatestSignalsChange?: (signals: PumpSignal[]) => void;
+  onPauseStatusChange?: (paused: boolean, reasons: string[]) => void;
 }
 
-export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }: PumpScannerCardProps) {
+export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, onPauseStatusChange }: PumpScannerCardProps) {
   const [data, setData] = useState<PumpData | null>(null);
   const [stale, setStale] = useState(false);
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
@@ -238,6 +239,11 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
     const generalReason = textValue(data?.pauseReason ?? data?.reason);
     if (generalReason) pauseReasons.push(generalReason);
   }
+
+  const pauseReasonKey = pauseReasons.join("\u0000");
+  useEffect(() => {
+    onPauseStatusChange?.(scannerPaused, pauseReasonKey ? pauseReasonKey.split("\u0000") : []);
+  }, [scannerPaused, pauseReasonKey, onPauseStatusChange]);
 
   const pauseAccentColor = pauseReasons.length === 1
     ? /\bevent guard\b:?/i.test(pauseReasons[0])
