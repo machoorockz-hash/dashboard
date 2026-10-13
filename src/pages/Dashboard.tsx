@@ -836,9 +836,6 @@ export default function Dashboard() {
               >
                 <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="shrink-0 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
-                      SOLD
-                    </span>
                     <div className="flex min-w-0 items-center gap-1">
                       <CoinIcon symbol={latestSoldTrade.base} size={22} />
                       <span className="min-w-0 truncate text-base font-black">
@@ -847,6 +844,9 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:ml-auto sm:justify-end">
+                    <span className="shrink-0 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
+                      SOLD
+                    </span>
                     {latestSoldDateTime && (
                       <span className="min-w-0 text-[10px] font-bold tabular-nums text-muted-foreground sm:ml-1">
                         {latestSoldDateTime.date} · {latestSoldDateTime.time}
