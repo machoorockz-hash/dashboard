@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
@@ -7,7 +7,7 @@ import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
 import { BitcoinCalendar } from "../components/BitcoinCalendar";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
-import SoldCoinsCard from "../components/SoldCoinsCard";
+import SoldCoinsCard, { type SoldTradeSummary } from "../components/SoldCoinsCard";
 import { getAccount, getAllPrices } from "../lib/binance";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -528,7 +528,12 @@ export default function Dashboard() {
   const orderSymbol = activeTrade?.symbol;
   const orderBase = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
   const lastTrade = tradeData?.last_closed_trade ?? null;
-  const latestSoldDateTime = lastTrade ? fmtUAE(lastTrade.time) : null;
+  const [latestSoldTrade, setLatestSoldTrade] = useState<SoldTradeSummary | null>(null);
+  const latestSoldDateTime = latestSoldTrade ? fmtUAE(latestSoldTrade.time) : null;
+
+  const handleLatestSoldTradeChange = useCallback((trade: SoldTradeSummary | null) => {
+    setLatestSoldTrade((current) => current?.id === trade?.id ? current : trade);
+  }, []);
 
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
   const [showMainChart, setShowMainChart] = useState(false);
@@ -821,21 +826,21 @@ export default function Dashboard() {
               </div>
             )}
 
-            {!activeTrade && lastTrade && (
+            {!activeTrade && latestSoldTrade && (
               <div className="mt-2 flex min-w-0 items-center gap-2 rounded-lg border border-border/50 bg-transparent px-2 py-1.5">
-                <CoinIcon symbol={lastTrade.base} size={16} />
+                <CoinIcon symbol={latestSoldTrade.base} size={16} />
                 <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                   Latest sold
                 </span>
                 <span className="min-w-0 truncate text-[10px] font-black">
-                  {lastTrade.base}/USDT
+                  {latestSoldTrade.base}/USDT
                 </span>
                 <span className="shrink-0 text-[10px] font-bold tabular-nums text-muted-foreground">
-                  ${fmtPrice(lastTrade.price)}
+                  ${fmtPrice(latestSoldTrade.price)}
                 </span>
-                {lastTrade.quoteQty > 0 && (
+                {latestSoldTrade.quoteQty > 0 && (
                   <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground/70">
-                    · ${fmt(lastTrade.quoteQty)}
+                    · ${fmt(latestSoldTrade.quoteQty)}
                   </span>
                 )}
                 {latestSoldDateTime && (
@@ -1011,7 +1016,7 @@ export default function Dashboard() {
           />
         )}
 
-        <SoldCoinsCard />
+        <SoldCoinsCard onLatestTradeChange={handleLatestSoldTradeChange} />
 
         <BtcCrashCard />
 
