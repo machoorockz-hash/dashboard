@@ -823,15 +823,16 @@ export default function Dashboard() {
         </section>
 
         {/* ── ACTIVE TRADE ── */}
-        <section
-          className={`rounded-2xl border p-5 md:p-6 relative overflow-hidden transition-all duration-500 bg-transparent ${
-            primary
-              ? pnlUsd < 0
-                ? "border-bear/40 shadow-[0_0_60px_-20px_rgba(239,68,68,0.45)]"
-                : "border-bull/40 shadow-[0_0_60px_-20px_rgba(16,185,129,0.45)]"
-              : "border-border"
-          }`}
-        >
+        {primary && (
+          <section
+            className={`rounded-2xl border p-5 md:p-6 relative overflow-hidden transition-all duration-500 bg-transparent ${
+              primary
+                ? pnlUsd < 0
+                  ? "border-bear/40 shadow-[0_0_60px_-20px_rgba(239,68,68,0.45)]"
+                  : "border-bull/40 shadow-[0_0_60px_-20px_rgba(16,185,129,0.45)]"
+                : "border-border"
+            }`}
+          >
           {primary ? (
             <>
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -961,7 +962,8 @@ export default function Dashboard() {
             /* ── NO ACTIVE TRADE — show last closed trade ── */
             <NoActiveTrade lastTrade={lastTrade} />
           )}
-        </section>
+          </section>
+        )}
 
         <PumpScannerCard
           onCoinSelect={(sym) => {
