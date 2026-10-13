@@ -884,10 +884,11 @@ export default function Dashboard() {
                 <PriceChart
                   symbol={orderSymbol ?? primary.symbol}
                   interval="1m"
-                  height={300}
+                  height={270}
                   compact
                   showIntervalControls={false}
                   priceLines={activeTradeChartLines}
+                  signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
                 />
               </div>
 
