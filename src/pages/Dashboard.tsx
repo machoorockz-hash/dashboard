@@ -528,6 +528,7 @@ export default function Dashboard() {
   const orderSymbol = activeTrade?.symbol;
   const orderBase = orderSymbol?.replace(/USDT$|BUSD$|FDUSD$|BTC$|ETH$/, "") || "";
   const lastTrade = tradeData?.last_closed_trade ?? null;
+  const latestSoldDateTime = lastTrade ? fmtUAE(lastTrade.time) : null;
 
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
   const [showMainChart, setShowMainChart] = useState(false);
@@ -835,6 +836,11 @@ export default function Dashboard() {
                 {lastTrade.quoteQty > 0 && (
                   <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground/70">
                     · ${fmt(lastTrade.quoteQty)}
+                  </span>
+                )}
+                {latestSoldDateTime && (
+                  <span className="ml-auto shrink-0 text-[9px] tabular-nums text-muted-foreground/70">
+                    {latestSoldDateTime.date} · {latestSoldDateTime.time} UAE
                   </span>
                 )}
               </div>
