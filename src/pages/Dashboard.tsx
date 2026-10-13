@@ -55,6 +55,51 @@ function fmtUAE(ts: number): { date: string; time: string } {
   return { date, time };
 }
 
+function getPauseWindowCountdown(paused: boolean, reasons: string[], now = Date.now()): number | null {
+  if (!paused || reasons.length === 0) return null;
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Dubai",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(now));
+  const getPart = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  const nowSeconds = getPart("hour") * 3600 + getPart("minute") * 60 + getPart("second");
+  const matches: number[] = [];
+
+  for (const reason of reasons) {
+    const range = reason.match(/\(\s*(\d{1,2}:\d{2}\s*[ap]\.?m\.?)\s*(?:[–—-]|\$|â€“|â€[“\u0093])\s*(\d{1,2}:\d{2}\s*[ap]\.?m\.?)\s*\)/i);
+    if (!range) continue;
+
+    const toSeconds = (time: string) => {
+      const match = time.match(/^\s*(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*$/i);
+      if (!match) return null;
+      const hour = Number(match[1]);
+      const minute = Number(match[2]);
+      if (hour < 1 || hour > 12 || minute > 59) return null;
+      const hour24 = (hour % 12) + (match[3].toUpperCase() === "P" ? 12 : 0);
+      return hour24 * 3600 + minute * 60;
+    };
+
+    const start = toSeconds(range[1]);
+    const end = toSeconds(range[2]);
+    if (start === null || end === null) continue;
+
+    const overnight = end < start;
+    const inWindow = overnight
+      ? nowSeconds >= start || nowSeconds <= end
+      : nowSeconds >= start && nowSeconds <= end;
+    if (!inWindow) continue;
+
+    const endTodayOrTomorrow = end + (overnight && nowSeconds >= start ? 24 * 3600 : 0);
+    matches.push(Math.max(0, endTodayOrTomorrow - nowSeconds));
+  }
+
+  return matches.length > 0 ? Math.min(...matches) : null;
+}
+
 function StepSegments({
   step,
   total,
@@ -538,6 +583,7 @@ export default function Dashboard() {
   const [chartSymbol, setChartSymbol] = useState<string>("BTCUSDT");
   const [showMainChart, setShowMainChart] = useState(false);
   const [pumpSignalsBySymbol, setPumpSignalsBySymbol] = useState<Record<string, PumpSignal>>({});
+  const [pumpPause, setPumpPause] = useState<{ paused: boolean; reasons: string[] }>({ paused: false, reasons: [] });
 
   useEffect(() => {
     if (orderSymbol) setChartSymbol(orderSymbol);
@@ -563,6 +609,22 @@ export default function Dashboard() {
       return changed ? next : previous;
     });
   };
+
+  const handlePumpPauseStatusChange = useCallback((paused: boolean, reasons: string[]) => {
+    setPumpPause((current) => {
+      if (current.paused === paused && current.reasons.join("\u0000") === reasons.join("\u0000")) return current;
+      return { paused, reasons };
+    });
+  }, []);
+
+  const pauseCountdownSeconds = getPauseWindowCountdown(pumpPause.paused, pumpPause.reasons);
+  const pauseCountdownText = pauseCountdownSeconds === null
+    ? null
+    : [
+        Math.floor(pauseCountdownSeconds / 3600),
+        Math.floor((pauseCountdownSeconds % 3600) / 60),
+        pauseCountdownSeconds % 60,
+      ].map((part) => String(part).padStart(2, "0")).join(":");
 
   const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
@@ -668,7 +730,9 @@ export default function Dashboard() {
                   color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
                 }}
               >
-                {clockTime.dayStr}, {clockTime.monthStr} {clockTime.dayNum}
+                {pauseCountdownText !== null
+                  ? `${pauseCountdownSeconds === 0 ? "PAUSE COMPLETE" : "PAUSE ENDS IN"} ${pauseCountdownText}`
+                  : `${clockTime.dayStr}, ${clockTime.monthStr} ${clockTime.dayNum}`}
               </div>
 
             </div>
@@ -1008,6 +1072,7 @@ export default function Dashboard() {
             setShowMainChart(true);
           }}
           onLatestSignalsChange={handleLatestPumpSignals}
+          onPauseStatusChange={handlePumpPauseStatusChange}
         />
 
         {showMainChart && (
