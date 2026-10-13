@@ -848,7 +848,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:ml-auto sm:justify-end">
                     {latestSoldDateTime && (
-                      <span className="min-w-0 text-[12px] font-bold tabular-nums text-muted-foreground sm:ml-1">
+                      <span className="min-w-0 text-[10px] font-bold tabular-nums text-muted-foreground sm:ml-1">
                         {latestSoldDateTime.date} · {latestSoldDateTime.time}
                       </span>
                     )}
