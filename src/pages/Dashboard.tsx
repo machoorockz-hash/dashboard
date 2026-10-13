@@ -827,29 +827,35 @@ export default function Dashboard() {
             )}
 
             {!activeTrade && latestSoldTrade && (
-              <div className="mt-2 flex min-w-0 items-center gap-2.5 rounded-lg border border-border/50 bg-transparent px-3 py-2.5">
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Latest sold
-                </span>
-                <div className="flex min-w-0 items-center gap-1">
-                  <CoinIcon symbol={latestSoldTrade.base} size={20} />
-                  <span className="min-w-0 truncate text-xs font-black">
-                    {latestSoldTrade.base}/USDT
-                  </span>
+              <div className="mt-2 rounded-lg border border-border/50 bg-transparent px-3 py-2.5">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Latest sold
+                    </span>
+                    <div className="flex min-w-0 items-center gap-1">
+                      <CoinIcon symbol={latestSoldTrade.base} size={20} />
+                      <span className="min-w-0 truncate text-xs font-black">
+                        {latestSoldTrade.base}/USDT
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:ml-auto sm:justify-end">
+                    <span className="shrink-0 text-[11px] font-bold tabular-nums text-muted-foreground">
+                      ${fmtPrice(latestSoldTrade.price)}
+                    </span>
+                    {latestSoldTrade.quoteQty > 0 && (
+                      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/70">
+                        · ${fmt(latestSoldTrade.quoteQty)}
+                      </span>
+                    )}
+                    {latestSoldDateTime && (
+                      <span className="min-w-0 text-[10px] tabular-nums text-muted-foreground/70 sm:ml-1">
+                        {latestSoldDateTime.date} · {latestSoldDateTime.time} UAE
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <span className="shrink-0 text-[11px] font-bold tabular-nums text-muted-foreground">
-                  ${fmtPrice(latestSoldTrade.price)}
-                </span>
-                {latestSoldTrade.quoteQty > 0 && (
-                  <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/70">
-                    · ${fmt(latestSoldTrade.quoteQty)}
-                  </span>
-                )}
-                {latestSoldDateTime && (
-                  <span className="ml-auto shrink-0 text-[10px] tabular-nums text-muted-foreground/70">
-                    {latestSoldDateTime.date} · {latestSoldDateTime.time} UAE
-                  </span>
-                )}
               </div>
             )}
           </div>
