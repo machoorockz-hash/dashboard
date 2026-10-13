@@ -842,7 +842,7 @@ export default function Dashboard() {
                     <div className="flex min-w-0 items-center gap-1">
                       <CoinIcon symbol={latestSoldTrade.base} size={22} />
                       <span className="min-w-0 truncate text-base font-black">
-                        {latestSoldTrade.base}/USDT
+                        {latestSoldTrade.base}
                       </span>
                     </div>
                   </div>
