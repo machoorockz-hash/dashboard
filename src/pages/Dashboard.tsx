@@ -819,6 +819,26 @@ export default function Dashboard() {
                 })}
               </div>
             )}
+
+            {!activeTrade && lastTrade && (
+              <div className="mt-2 flex min-w-0 items-center gap-2 rounded-lg border border-border/50 bg-transparent px-2 py-1.5">
+                <CoinIcon symbol={lastTrade.base} size={16} />
+                <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Latest sold
+                </span>
+                <span className="min-w-0 truncate text-[10px] font-black">
+                  {lastTrade.base}/USDT
+                </span>
+                <span className="shrink-0 text-[10px] font-bold tabular-nums text-muted-foreground">
+                  ${fmtPrice(lastTrade.price)}
+                </span>
+                {lastTrade.quoteQty > 0 && (
+                  <span className="shrink-0 text-[9px] tabular-nums text-muted-foreground/70">
+                    · ${fmt(lastTrade.quoteQty)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
