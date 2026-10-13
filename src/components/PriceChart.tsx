@@ -306,6 +306,7 @@ export function PriceChart({
   const candleRef     = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const ema200Ref     = useRef<ISeriesApi<"Line"> | null>(null);
   const ema50Ref      = useRef<ISeriesApi<"Line"> | null>(null);
+  const tpRangeRef    = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ── Zig Zag series (canvas) ──────────────────────────────────────────────
   // Faded full-history upper/lower lines (every past + current channel, dim)
@@ -315,6 +316,32 @@ export function PriceChart({
 
   const candlesRef    = useRef<CandlestickData[]>([]);
   const chartLinesRef = useRef<IPriceLine[]>([]);
+  const priceLinesDataRef = useRef<PriceLineSpec[] | undefined>(priceLines);
+
+  function syncTakeProfitRange() {
+    const rangeSeries = tpRangeRef.current;
+    if (!rangeSeries) return;
+
+    const target = priceLinesDataRef.current?.find((line) =>
+      line.label.toLowerCase().includes("tp"),
+    );
+    const candles = candlesRef.current;
+    if (!target || !isFinite(target.price) || candles.length === 0) {
+      rangeSeries.setData([]);
+      return;
+    }
+
+    const firstTime = candles[0].time as UTCTimestamp;
+    const lastTime = candles[candles.length - 1].time as UTCTimestamp;
+    rangeSeries.setData(
+      firstTime === lastTime
+        ? [{ time: firstTime, value: target.price }]
+        : [
+            { time: firstTime, value: target.price },
+            { time: lastTime, value: target.price },
+          ],
+    );
+  }
 
   // ── Swing high/low pivot labels (BTCUSDT ZZ only) ─────────────────────────
   const zzPivotsRef          = useRef<{ time: UTCTimestamp; price: number; type: "top" | "btm" }[]>([]);
@@ -396,6 +423,13 @@ export function PriceChart({
     });
     ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
     ema50Ref.current  = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    tpRangeRef.current = chart.addSeries(LineSeries, {
+      color: "rgba(0,0,0,0)",
+      lineWidth: 1,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
 
     // ── ZZ upper (current): bright dashed line, current segment only.
     zzUpperCurrentRef.current = chart.addSeries(LineSeries, {
@@ -467,21 +501,24 @@ export function PriceChart({
 
   // ── Price lines (Entry / TP / SL) ─────────────────────────────────────────
   useEffect(() => {
+    priceLinesDataRef.current = priceLines;
     const series = candleRef.current; if (!series) return;
     for (const pl of chartLinesRef.current) series.removePriceLine(pl);
     chartLinesRef.current = [];
-    if (!priceLines) return;
-    for (const spec of priceLines) {
-      if (!spec.price || !isFinite(spec.price)) continue;
-      chartLinesRef.current.push(series.createPriceLine({
-        price: spec.price,
-        color: "transparent",
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: spec.label,
-      }));
+    if (priceLines) {
+      for (const spec of priceLines) {
+        if (!spec.price || !isFinite(spec.price)) continue;
+        chartLinesRef.current.push(series.createPriceLine({
+          price: spec.price,
+          color: "transparent",
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: spec.label,
+        }));
+      }
     }
+    syncTakeProfitRange();
   }, [priceLines]);
 
   // Fits all loaded candles into view (fully zoomed out).
@@ -489,20 +526,20 @@ export function PriceChart({
     chartRef.current?.timeScale().fitContent();
   }
 
-  // Zooms in 30% from the fully-zoomed-out view — anchored to the right edge
+  // Shows 50% of the fully-zoomed-out range — anchored to the right edge
   // (most recent candle) so live data stays in frame — since showing every
   // candle at once reads as too cramped, on desktop and mobile alike. Must
   // only ever be applied ONCE against a settled fully-zoomed-out range:
   // fitContent() doesn't update getVisibleLogicalRange() synchronously, so
   // calling this repeatedly (e.g. once per layout-settle retry) would read
-  // an already-shrunk range each time and compound the zoom far past 30%.
+  // an already-shrunk range each time and compound the zoom past the target.
   function applyZoomIn() {
     const ts = chartRef.current?.timeScale();
     if (!ts) return;
     const range = ts.getVisibleLogicalRange();
     if (!range) return;
     const span = range.to - range.from;
-    ts.setVisibleLogicalRange({ from: range.to - span * 0.7, to: range.to });
+    ts.setVisibleLogicalRange({ from: range.to - span * 0.5, to: range.to });
   }
 
   // Recenters the view so the current (most recent) candle sits in the
@@ -540,11 +577,12 @@ export function PriceChart({
         candleRef.current?.setData(candles);
         recomputeEMAs();
         recomputeZigZag();
+        syncTakeProfitRange();
         // On first mount the wrapper's layout/width can still be settling
         // when this runs, which makes fitContent() compute against a stale
         // (smaller) width and land zoomed in — so re-fit a couple more times
-        // after the browser has had a chance to finish layout. The 30%
-        // zoom-in is only applied once, after the final re-fit, against the
+        // after the browser has had a chance to finish layout. The 50%
+        // range is applied only once, after the final re-fit, against the
         // now-settled fully-zoomed-out range.
         fitAll();
         requestAnimationFrame(fitAll);
