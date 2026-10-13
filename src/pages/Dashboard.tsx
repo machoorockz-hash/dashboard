@@ -864,6 +864,22 @@ export default function Dashboard() {
                 </span>
               </div>
 
+              <div className="relative mt-3">
+                <div className="mb-1.5 flex items-center justify-between px-1">
+                  <span className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">
+                    Live chart
+                  </span>
+                  <span className="text-[9px] font-bold text-muted-foreground">1m</span>
+                </div>
+                <PriceChart
+                  symbol={orderSymbol ?? primary.symbol}
+                  interval="1m"
+                  height={170}
+                  compact
+                  showIntervalControls={false}
+                />
+              </div>
+
               {/* ── DCA STEP ── */}
               {showDca && (
                 <div
