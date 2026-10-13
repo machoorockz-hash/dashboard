@@ -365,7 +365,7 @@ export default function SoldCoinsCard() {
               return (
                 <div
                   key={trade.id}
-                  className={`relative overflow-hidden rounded-xl border px-3 py-3 transition-colors ${
+                  className={`relative shrink-0 overflow-hidden rounded-xl border px-3 py-3 transition-colors ${
                     isLatest
                       ? "sold-latest sold-latest-shimmer border-[#EE1120]/50 bg-gradient-to-r from-[#EE1120]/10 to-[#EE1120]/5"
                       : `bg-transparent ${profitable ? "border-bull/20 hover:border-bull/40" : "border-bear/20 hover:border-bear/40"}`
