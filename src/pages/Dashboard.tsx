@@ -851,7 +851,7 @@ export default function Dashboard() {
                       ${fmtPrice(latestSoldTrade.price)}
                     </span>
                     {latestSoldTrade.quoteQty > 0 && (
-                      <span className="shrink-0 text-[12px] font-bold tabular-nums text-muted-foreground/70">
+                      <span className="shrink-0 text-[12px] font-bold tabular-nums text-muted-foreground">
                         · ${fmt(latestSoldTrade.quoteQty)}
                       </span>
                     )}
