@@ -605,6 +605,16 @@ export default function Dashboard() {
     return out;
   }, [orderSymbol, chartSymbol, entry, tpPrice, slPrice]);
 
+  const activeTradeChartLines = useMemo(() => {
+    const out: Array<{ price: number; label: string; color: string }> = [];
+    if (orderSymbol) {
+      if (entry > 0) out.push({ price: entry, label: `Entry ${fmtPrice(entry)}`, color: "#a3b1c2" });
+      if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`, color: "#10b981" });
+      if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`, color: "#ef4444" });
+    }
+    return out;
+  }, [orderSymbol, entry, tpPrice, slPrice]);
+
   return (
     <AppLayout>
       {/*
@@ -877,6 +887,7 @@ export default function Dashboard() {
                   height={300}
                   compact
                   showIntervalControls={false}
+                  priceLines={activeTradeChartLines}
                 />
               </div>
 
