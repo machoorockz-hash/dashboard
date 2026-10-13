@@ -21,6 +21,11 @@ type SoldTrade = {
   pnlUsd: number | null;
 };
 
+export type SoldTradeSummary = Pick<
+  SoldTrade,
+  "id" | "symbol" | "base" | "price" | "qty" | "quoteQty" | "time"
+>;
+
 function numberValue(...values: unknown[]): number | null {
   for (const value of values) {
     if (value === null || value === undefined || value === "") continue;
@@ -137,7 +142,11 @@ function fmtTime(timestamp: number) {
   };
 }
 
-export default function SoldCoinsCard() {
+export default function SoldCoinsCard({
+  onLatestTradeChange,
+}: {
+  onLatestTradeChange?: (trade: SoldTradeSummary | null) => void;
+}) {
   const [trades, setTrades] = useState<SoldTrade[]>(readStoredTrades);
   const [isLoading, setIsLoading] = useState(true);
   const [latestTradeId, setLatestTradeId] = useState<string | null>(null);
@@ -146,6 +155,10 @@ export default function SoldCoinsCard() {
   const seenTradeIdsRef = useRef<Set<string>>(new Set());
   const latestTradeIdRef = useRef<string | null>(null);
   const scrollFadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    onLatestTradeChange?.(trades[0] ?? null);
+  }, [onLatestTradeChange, trades]);
 
   function handleTradesScroll() {
     setIsTradesScrolling(true);
