@@ -147,8 +147,19 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
   const [latestKey, setLatestKey] = useState<string | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const lastFetchRef = useRef<number>(0);
+  const scrollFadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleScroll() {
+    setIsScrolling(true);
+    if (scrollFadeTimeoutRef.current) clearTimeout(scrollFadeTimeoutRef.current);
+    scrollFadeTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+      scrollFadeTimeoutRef.current = null;
+    }, 800);
+  }
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -201,7 +212,10 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
     }
 
     void fetchData();
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (scrollFadeTimeoutRef.current) clearTimeout(scrollFadeTimeoutRef.current);
+    };
   }, []);
 
   const active = !stale && data?.active;
@@ -288,16 +302,22 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
           pointer-events: none;
         }
         .pump-scroll {
-          scrollbar-width: thin;
+          scrollbar-width: none;
           scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent) transparent;
+        }
+        .pump-scroll.is-scrolling {
+          scrollbar-width: thin;
         }
         .pump-scroll::-webkit-scrollbar { width: 3px; }
         .pump-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 9999px; }
         .pump-scroll::-webkit-scrollbar-thumb {
-          background: color-mix(in oklab, var(--primary) 35%, transparent);
+          background: transparent;
           border-radius: 9999px;
         }
-        .pump-scroll::-webkit-scrollbar-thumb:hover {
+        .pump-scroll.is-scrolling::-webkit-scrollbar-thumb {
+          background: color-mix(in oklab, var(--primary) 35%, transparent);
+        }
+        .pump-scroll.is-scrolling::-webkit-scrollbar-thumb:hover {
           background: color-mix(in oklab, var(--primary) 65%, transparent);
         }
         .pump-row-clickable {
@@ -445,7 +465,11 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange }:
 
       {/* ── SIGNAL LIST ── */}
       {data && data.signals.length > 0 ? (
-        <div className="pump-scroll flex flex-col gap-2 overflow-y-auto pr-2" style={{ maxHeight: "19rem" }}>
+        <div
+          className={`pump-scroll flex flex-col gap-2 overflow-y-auto pr-2${isScrolling ? " is-scrolling" : ""}`}
+          onScroll={handleScroll}
+          style={{ maxHeight: "19rem" }}
+        >
           {data.signals
             // Drop rows that are missing the minimum required fields (e.g. a heartbeat
             // payload accidentally stored by the server).
