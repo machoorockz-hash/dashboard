@@ -972,22 +972,9 @@ export default function Dashboard() {
                 <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3" /> Live price
                 </span>
-                <span className="text-[1.95rem] md:text-[2.4375rem] font-black tabular-nums">
+                <span className="text-[1.95rem] md:text-[2.1875rem] font-black tabular-nums">
                   ${cur ? fmtPrice(cur) : "…"}
                 </span>
-              </div>
-
-              <div className="relative mt-3">
-                <PriceChart
-                  symbol={orderSymbol ?? primary.symbol}
-                  interval="1m"
-                  height={270}
-                  compact
-                  showIntervalControls={false}
-                  showPriceLineStrip={false}
-                  priceLines={activeTradeChartLines}
-                  signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
-                />
               </div>
 
               {/* ── DCA STEP ── */}
@@ -1035,6 +1022,19 @@ export default function Dashboard() {
                   />
                 </div>
               )}
+
+              <div className="relative mt-3">
+                <PriceChart
+                  symbol={orderSymbol ?? primary.symbol}
+                  interval="1m"
+                  height={270}
+                  compact
+                  showIntervalControls={false}
+                  showPriceLineStrip={false}
+                  priceLines={activeTradeChartLines}
+                  signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
+                />
+              </div>
 
               <div className="relative mt-4 grid sm:grid-cols-2 gap-3">
                 <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
