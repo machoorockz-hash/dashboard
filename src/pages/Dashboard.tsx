@@ -1016,19 +1016,20 @@ export default function Dashboard() {
                     />
                   </div>
                 )}
-              </div>
 
-              <div className="relative mt-3">
-                <PriceChart
-                  symbol={orderSymbol ?? primary.symbol}
-                  interval="1m"
-                  height={270}
-                  compact
-                  showIntervalControls={false}
-                  showPriceLineStrip={false}
-                  priceLines={activeTradeChartLines}
-                  signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
-                />
+                <div className="relative mt-3 border-t border-border/60 pt-3">
+                  <PriceChart
+                    symbol={orderSymbol ?? primary.symbol}
+                    interval="1m"
+                    height={270}
+                    compact
+                    showIntervalControls={false}
+                    showPriceLineStrip={false}
+                    borderless
+                    priceLines={activeTradeChartLines}
+                    signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
+                  />
+                </div>
               </div>
 
               <div className="relative mt-4 grid sm:grid-cols-2 gap-3">
