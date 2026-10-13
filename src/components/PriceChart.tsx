@@ -285,7 +285,7 @@ interface Props {
   symbol: string; interval?: Interval; height?: number;
   onIntervalChange?: (i: Interval) => void; onSymbolChange?: (s: string) => void;
   showIntervalControls?: boolean; searchable?: boolean; compact?: boolean; priceLines?: PriceLineSpec[];
-  showPriceLineStrip?: boolean;
+  showPriceLineStrip?: boolean; borderless?: boolean;
   signalTimestamp?: string | number | null;
 }
 
@@ -300,7 +300,7 @@ export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
   showIntervalControls = true, searchable = false, compact = false, priceLines,
-  showPriceLineStrip = true, signalTimestamp,
+  showPriceLineStrip = true, borderless = false, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -781,7 +781,7 @@ export function PriceChart({
   const isBtc    = symbol === "BTCUSDT";
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-transparent overflow-hidden">
+    <div className={borderless ? "overflow-hidden" : "rounded-2xl border border-primary/20 bg-transparent overflow-hidden"}>
       <style>{`
         /* ── Hide TradingView attribution logo ─────────────────────────────── */
         .tv-lightweight-charts a { display:none !important; }
