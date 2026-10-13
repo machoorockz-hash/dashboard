@@ -858,7 +858,7 @@ export default function Dashboard() {
                     )}
                     {latestSoldDateTime && (
                       <span className="min-w-0 text-[12px] tabular-nums text-muted-foreground/70 sm:ml-1">
-                        {latestSoldDateTime.date} · {latestSoldDateTime.time} UAE
+                        {latestSoldDateTime.date} · {latestSoldDateTime.time}
                       </span>
                     )}
                   </div>
