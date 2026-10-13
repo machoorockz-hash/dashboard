@@ -285,6 +285,7 @@ interface Props {
   symbol: string; interval?: Interval; height?: number;
   onIntervalChange?: (i: Interval) => void; onSymbolChange?: (s: string) => void;
   showIntervalControls?: boolean; searchable?: boolean; compact?: boolean; priceLines?: PriceLineSpec[];
+  showPriceLineStrip?: boolean;
   signalTimestamp?: string | number | null;
 }
 
@@ -298,7 +299,8 @@ interface OverlayLine {
 export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
-  showIntervalControls = true, searchable = false, compact = false, priceLines, signalTimestamp,
+  showIntervalControls = true, searchable = false, compact = false, priceLines,
+  showPriceLineStrip = true, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -970,7 +972,7 @@ export function PriceChart({
       )}
 
       {/* ── TP / SL / Entry label strip ─────────────────────────────────────── */}
-      {hasLines && (
+      {hasLines && showPriceLineStrip && (
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-muted/10 flex-wrap">
           {priceLines!.map((spec, i) => {
             if (!spec.price || !isFinite(spec.price)) return null;
