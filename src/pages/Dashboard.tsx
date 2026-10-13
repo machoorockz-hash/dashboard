@@ -731,7 +731,7 @@ export default function Dashboard() {
                 }}
               >
                 {pauseCountdownText !== null
-                  ? `${pauseCountdownSeconds === 0 ? "PAUSE COMPLETE" : "PAUSE ENDS IN"} ${pauseCountdownText}`
+                  ? `SESSION: ${pauseCountdownText}`
                   : `${clockTime.dayStr}, ${clockTime.monthStr} ${clockTime.dayNum}`}
               </div>
 
