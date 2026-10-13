@@ -847,16 +847,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:ml-auto sm:justify-end">
-                    <span className="shrink-0 text-[12px] font-bold tabular-nums text-muted-foreground">
-                      ${fmtPrice(latestSoldTrade.price)}
-                    </span>
-                    {latestSoldTrade.quoteQty > 0 && (
-                      <span className="shrink-0 text-[12px] font-bold tabular-nums text-muted-foreground">
-                        · ${fmt(latestSoldTrade.quoteQty)}
-                      </span>
-                    )}
                     {latestSoldDateTime && (
-                      <span className="min-w-0 text-[12px] tabular-nums text-muted-foreground/70 sm:ml-1">
+                      <span className="min-w-0 text-[12px] font-bold tabular-nums text-muted-foreground sm:ml-1">
                         {latestSoldDateTime.date} · {latestSoldDateTime.time}
                       </span>
                     )}
