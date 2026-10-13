@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleDollarSign } from "lucide-react";
 import { CoinIcon } from "./CoinIcon";
 import { coinName } from "../lib/coinMeta";
@@ -140,6 +140,10 @@ function fmtTime(timestamp: number) {
 export default function SoldCoinsCard() {
   const [trades, setTrades] = useState<SoldTrade[]>(readStoredTrades);
   const [isLoading, setIsLoading] = useState(true);
+  const [latestTradeId, setLatestTradeId] = useState<string | null>(null);
+  const tradesRef = useRef<SoldTrade[]>(trades);
+  const seenTradeIdsRef = useRef<Set<string>>(new Set());
+  const latestTradeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -175,13 +179,24 @@ export default function SoldCoinsCard() {
         }
 
         if (alive) {
-          setTrades((current) => {
-            const next = mergeTrades(current, incoming);
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-            } catch {}
-            return next;
-          });
+          const newIds = new Set<string>();
+          for (const trade of incoming) {
+            if (!seenTradeIdsRef.current.has(trade.id)) {
+              seenTradeIdsRef.current.add(trade.id);
+              newIds.add(trade.id);
+            }
+          }
+          const next = mergeTrades(tradesRef.current, incoming);
+          const newest = next[0];
+          if (newest && (latestTradeIdRef.current === null || newIds.has(newest.id))) {
+            latestTradeIdRef.current = newest.id;
+            setLatestTradeId(newest.id);
+          }
+          tradesRef.current = next;
+          setTrades(next);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          } catch {}
           setIsLoading(false);
         }
       } catch {
@@ -209,6 +224,42 @@ export default function SoldCoinsCard() {
         boxShadow: "0 0 45px -25px color-mix(in oklab, #EE1120 55%, transparent)",
       }}
     >
+      <style>{`
+        @keyframes sold-latest-in {
+          0%   { opacity: 0; transform: translateX(22px) scale(0.96); box-shadow: none; }
+          40%  { opacity: 1; transform: translateX(0) scale(1.012); }
+          60%  { transform: scale(1); }
+          100% { transform: scale(1); }
+        }
+        @keyframes sold-glow-pulse {
+          0%, 100% { box-shadow: 0 0 0px 0px color-mix(in oklab, #EE1120 0%, transparent); }
+          50%      { box-shadow: 0 0 8px 2px color-mix(in oklab, #EE1120 18%, transparent); }
+        }
+        @keyframes sold-shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .sold-latest {
+          animation:
+            sold-latest-in 0.5s cubic-bezier(0.22,1,0.36,1) both,
+            sold-glow-pulse 1.8s ease-in-out 0.5s infinite;
+        }
+        .sold-latest-shimmer::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: linear-gradient(
+            105deg,
+            transparent 30%,
+            color-mix(in oklab, #EE1120 20%, transparent) 50%,
+            transparent 70%
+          );
+          background-size: 200% 100%;
+          animation: sold-shimmer 1.4s ease-in-out 0.3s 2;
+          pointer-events: none;
+        }
+      `}</style>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#EE1120]/70 to-transparent" />
 
       <div className="relative p-5 md:p-6">
@@ -305,22 +356,31 @@ export default function SoldCoinsCard() {
               scrollbarColor: "color-mix(in oklab, var(--primary) 35%, transparent) transparent",
             }}
           >
-            {trades.map((trade) => {
+            {trades.map((trade, index) => {
               const { date, time } = fmtTime(trade.time);
               const hasPnl = trade.pnlUsd != null || trade.pnlPct != null;
               const profitable = (trade.pnlUsd ?? trade.pnlPct ?? 0) >= 0;
+              const isLatest = index === 0 && latestTradeId === trade.id;
 
               return (
                 <div
                   key={trade.id}
-                  className={`rounded-xl border bg-transparent px-3 py-3 transition-colors ${
-                    profitable ? "border-bull/20 hover:border-bull/40" : "border-bear/20 hover:border-bear/40"
+                  className={`relative overflow-hidden rounded-xl border px-3 py-3 transition-colors ${
+                    isLatest
+                      ? "sold-latest sold-latest-shimmer border-[#EE1120]/50 bg-gradient-to-r from-[#EE1120]/10 to-[#EE1120]/5"
+                      : `bg-transparent ${profitable ? "border-bull/20 hover:border-bull/40" : "border-bear/20 hover:border-bear/40"}`
                   }`}
                 >
+                  {isLatest && (
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#EE1120]/70 to-transparent" />
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="flex flex-1 items-center gap-3 min-w-0">
-                      <div className={`shrink-0 rounded-full p-[2px] ${profitable ? "bg-bull/20" : "bg-bear/20"}`}>
+                      <div className={`relative shrink-0 rounded-full p-[2px] ${profitable ? "bg-bull/20" : "bg-bear/20"}`}>
                         <CoinIcon symbol={trade.base} size={34} />
+                        {isLatest && (
+                          <span className="pointer-events-none absolute -inset-0.5 rounded-full ring-2 ring-[#EE1120] animate-ping opacity-40" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
