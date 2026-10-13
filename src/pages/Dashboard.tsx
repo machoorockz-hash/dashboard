@@ -827,7 +827,14 @@ export default function Dashboard() {
             )}
 
             {!activeTrade && latestSoldTrade && (
-              <div className="mt-2 rounded-lg border border-border/50 bg-transparent px-3 py-3">
+              <div
+                className="mt-2 rounded-lg border px-3 py-3"
+                style={{
+                  background: "linear-gradient(105deg, color-mix(in oklab, #EE1120 10%, transparent), color-mix(in oklab, #EE1120 4%, transparent) 58%, transparent)",
+                  borderColor: "color-mix(in oklab, #EE1120 30%, transparent)",
+                  boxShadow: "0 0 24px -16px color-mix(in oklab, #EE1120 65%, transparent)",
+                }}
+              >
                 <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span className="shrink-0 text-[12px] font-bold uppercase tracking-wider text-muted-foreground">
