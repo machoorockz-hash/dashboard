@@ -140,20 +140,20 @@ function fmtTime(timestamp: number) {
 export default function SoldCoinsCard() {
   const [trades, setTrades] = useState<SoldTrade[]>(readStoredTrades);
   const [isLoading, setIsLoading] = useState(true);
-  const [isScrolling, setIsScrolling] = useState(false);
   const [latestTradeId, setLatestTradeId] = useState<string | null>(null);
+  const [isTradesScrolling, setIsTradesScrolling] = useState(false);
   const tradesRef = useRef<SoldTrade[]>(trades);
   const seenTradeIdsRef = useRef<Set<string>>(new Set());
   const latestTradeIdRef = useRef<string | null>(null);
-  const scrollIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollFadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleTradesScroll() {
-    setIsScrolling(true);
-    if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
-    scrollIdleTimerRef.current = setTimeout(() => {
-      setIsScrolling(false);
-      scrollIdleTimerRef.current = null;
-    }, 700);
+    setIsTradesScrolling(true);
+    if (scrollFadeTimeoutRef.current) clearTimeout(scrollFadeTimeoutRef.current);
+    scrollFadeTimeoutRef.current = setTimeout(() => {
+      setIsTradesScrolling(false);
+      scrollFadeTimeoutRef.current = null;
+    }, 800);
   }
 
   useEffect(() => {
@@ -221,7 +221,7 @@ export default function SoldCoinsCard() {
     return () => {
       alive = false;
       clearTimeout(timer);
-      if (scrollIdleTimerRef.current) clearTimeout(scrollIdleTimerRef.current);
+      if (scrollFadeTimeoutRef.current) clearTimeout(scrollFadeTimeoutRef.current);
     };
   }, []);
 
@@ -271,13 +271,26 @@ export default function SoldCoinsCard() {
           animation: sold-shimmer 1.4s ease-in-out 0.3s 2;
           pointer-events: none;
         }
-        .sold-scrollbar::-webkit-scrollbar { width: 3px; }
-        .sold-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .sold-scrollbar::-webkit-scrollbar-thumb {
+        .sold-coins-scrollbar {
+          scrollbar-width: none;
+          scrollbar-color: #EE1120 transparent;
+        }
+        .sold-coins-scrollbar.is-scrolling {
+          scrollbar-width: thin;
+        }
+        .sold-coins-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .sold-coins-scrollbar::-webkit-scrollbar-track {
           background: transparent;
+        }
+        .sold-coins-scrollbar::-webkit-scrollbar-thumb {
+          background-color: transparent;
           border-radius: 9999px;
         }
-        .sold-scrollbar.sold-scrolling::-webkit-scrollbar-thumb { background: #EE1120; }
+        .sold-coins-scrollbar.is-scrolling::-webkit-scrollbar-thumb {
+          background-color: #EE1120;
+        }
       `}</style>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#EE1120]/70 to-transparent" />
 
@@ -368,12 +381,10 @@ export default function SoldCoinsCard() {
 
         {trades.length > 0 && (
           <div
-            className={`sold-scrollbar flex flex-col gap-2 overflow-y-auto pr-1 ${isScrolling ? "sold-scrolling" : ""}`}
+            className={`sold-coins-scrollbar flex flex-col gap-2 overflow-y-auto pr-1${isTradesScrolling ? " is-scrolling" : ""}`}
             onScroll={handleTradesScroll}
             style={{
               maxHeight: "29rem",
-              scrollbarWidth: "thin",
-              scrollbarColor: isScrolling ? "#EE1120 transparent" : "transparent transparent",
             }}
           >
             {trades.map((trade, index) => {
