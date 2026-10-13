@@ -1026,6 +1026,7 @@ export default function Dashboard() {
                     showIntervalControls={false}
                     showPriceLineStrip={false}
                     borderless
+                    initialVisibleRangeRatio={0.4}
                     priceLines={activeTradeChartLines}
                     signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
                   />
