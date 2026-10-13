@@ -874,7 +874,7 @@ export default function Dashboard() {
                 <PriceChart
                   symbol={orderSymbol ?? primary.symbol}
                   interval="1m"
-                  height={170}
+                  height={300}
                   compact
                   showIntervalControls={false}
                 />
