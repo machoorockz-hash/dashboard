@@ -1017,7 +1017,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                <div className="relative mt-3 border-t border-border/60 pt-3">
+                <div className="relative -mx-4 mt-3 border-t border-border/60 pt-3">
                   <PriceChart
                     symbol={orderSymbol ?? primary.symbol}
                     interval="1m"
