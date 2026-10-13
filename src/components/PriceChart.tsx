@@ -286,6 +286,7 @@ interface Props {
   onIntervalChange?: (i: Interval) => void; onSymbolChange?: (s: string) => void;
   showIntervalControls?: boolean; searchable?: boolean; compact?: boolean; priceLines?: PriceLineSpec[];
   showPriceLineStrip?: boolean; borderless?: boolean;
+  initialVisibleRangeRatio?: number;
   signalTimestamp?: string | number | null;
 }
 
@@ -300,7 +301,7 @@ export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
   showIntervalControls = true, searchable = false, compact = false, priceLines,
-  showPriceLineStrip = true, borderless = false, signalTimestamp,
+  showPriceLineStrip = true, borderless = false, initialVisibleRangeRatio = 0.5, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -528,20 +529,20 @@ export function PriceChart({
     chartRef.current?.timeScale().fitContent();
   }
 
-  // Shows 50% of the fully-zoomed-out range — anchored to the right edge
-  // (most recent candle) so live data stays in frame — since showing every
-  // candle at once reads as too cramped, on desktop and mobile alike. Must
+  // Shows a configured portion of the fully-zoomed-out range — anchored to the
+  // right edge (most recent candle) so live data stays in frame — since showing
+  // every candle at once reads as too cramped, on desktop and mobile alike. Must
   // only ever be applied ONCE against a settled fully-zoomed-out range:
   // fitContent() doesn't update getVisibleLogicalRange() synchronously, so
   // calling this repeatedly (e.g. once per layout-settle retry) would read
   // an already-shrunk range each time and compound the zoom past the target.
-  function applyZoomIn() {
+  function applyZoomIn(visibleRangeRatio: number) {
     const ts = chartRef.current?.timeScale();
     if (!ts) return;
     const range = ts.getVisibleLogicalRange();
     if (!range) return;
     const span = range.to - range.from;
-    ts.setVisibleLogicalRange({ from: range.to - span * 0.5, to: range.to });
+    ts.setVisibleLogicalRange({ from: range.to - span * visibleRangeRatio, to: range.to });
   }
 
   // Recenters the view so the current (most recent) candle sits in the
@@ -588,7 +589,7 @@ export function PriceChart({
         // now-settled fully-zoomed-out range.
         fitAll();
         requestAnimationFrame(fitAll);
-        setTimeout(() => { fitAll(); applyZoomIn(); centerCurrentCandle(); }, 150);
+        setTimeout(() => { fitAll(); applyZoomIn(initialVisibleRangeRatio); centerCurrentCandle(); }, 150);
         const lastClose = candles[candles.length - 1]?.close;
         if (lastClose) { setLivePrice(lastClose); livePriceRef.current = lastClose; }
 
@@ -619,7 +620,7 @@ export function PriceChart({
       } catch (err) { console.error("chart error", err); }
     })();
     return () => { alive = false; ws?.close(); };
-  }, [symbol, iv]);
+  }, [symbol, iv, initialVisibleRangeRatio]);
 
   useEffect(() => {
     if (!flash) return;
