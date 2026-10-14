@@ -427,10 +427,10 @@ export function PriceChart({
       lastPriceAnimation: LastPriceAnimationMode.Disabled,
     });
     // Soft translucent underlays create a glass-like tint behind each EMA.
-    ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.16)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
-    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.18)",  lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
-    ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.58)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.68)",  lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.12)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.14)",  lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.42)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.48)",  lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     tpRangeRef.current = chart.addSeries(LineSeries, {
       color: "rgba(0,0,0,0)",
       lineWidth: 1,
