@@ -427,10 +427,10 @@ export function PriceChart({
       lastPriceAnimation: LastPriceAnimationMode.Disabled,
     });
     // Soft translucent underlays create a glass-like tint behind each EMA.
-    ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.12)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
-    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.14)",  lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
-    ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.42)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.48)",  lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(106,13,173,0.12)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(212,175,55,0.14)",  lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(106,13,173,0.42)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(212,175,55,0.48)",  lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     tpRangeRef.current = chart.addSeries(LineSeries, {
       color: "rgba(0,0,0,0)",
       lineWidth: 1,
@@ -944,10 +944,10 @@ export function PriceChart({
           <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground flex-wrap">
             {!isBtc && <>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[3px] bg-white/70 rounded" />EMA 200
+                <span className="inline-block w-5 h-[3px] bg-[#6A0DAD] rounded" />EMA 200
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-yellow-400 rounded" />EMA 50
+                <span className="inline-block w-5 h-[2px] bg-[#D4AF37] rounded" />EMA 50
               </span>
             </>}
             {isBtc && <>
