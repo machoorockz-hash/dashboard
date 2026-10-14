@@ -737,7 +737,7 @@ export default function Dashboard() {
                 {pauseCountdownText !== null
                   ? <>
                       {isUrgentPauseCountdown ? "SESSION ENDS:" : "SESSION:"}{" "}
-                      {pauseCountdownText.split(/([HMS])/).map((part, index) => (
+                      {pauseCountdownText.split(/([:HMS])/).map((part, index) => (
                         <span
                           key={index}
                           style={isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : undefined}
