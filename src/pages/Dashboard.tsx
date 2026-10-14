@@ -740,7 +740,10 @@ export default function Dashboard() {
                       {pauseCountdownText.split(/([:HMS])/).map((part, index) => (
                         <span
                           key={index}
-                          style={isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : undefined}
+                          style={{
+                            ...(isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : {}),
+                            ...(/^[HMS]$/.test(part) ? { fontSize: "7px" } : {}),
+                          }}
                         >
                           {part}
                         </span>
