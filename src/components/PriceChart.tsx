@@ -428,9 +428,9 @@ export function PriceChart({
     });
     // Soft translucent underlays create a glass-like tint behind each EMA.
     ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.08)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
-    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(212,175,55,0.09)",  lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(255,230,0,0.09)",   lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
     ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.30)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
-    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(212,175,55,0.34)",  lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(255,230,0,0.34)",   lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     tpRangeRef.current = chart.addSeries(LineSeries, {
       color: "rgba(0,0,0,0)",
       lineWidth: 1,
@@ -947,7 +947,7 @@ export function PriceChart({
                 <span className="inline-block w-5 h-[3px] bg-white/30 rounded" />EMA 200
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-[#D4AF37]/35 rounded" />EMA 50
+                <span className="inline-block w-5 h-[2px] bg-[#FFE600]/35 rounded" />EMA 50
               </span>
             </>}
             {isBtc && <>
