@@ -736,10 +736,15 @@ export default function Dashboard() {
               >
                 {pauseCountdownText !== null
                   ? <>
-                      SESSION:{" "}
-                      <span style={isUrgentPauseCountdown ? { color: "#EE1120" } : undefined}>
-                        {pauseCountdownText}
-                      </span>
+                      {isUrgentPauseCountdown ? "SESSION ENDS:" : "SESSION:"}{" "}
+                      {pauseCountdownText.split(/([HMS])/).map((part, index) => (
+                        <span
+                          key={index}
+                          style={isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : undefined}
+                        >
+                          {part}
+                        </span>
+                      ))}
                     </>
                   : `${clockTime.dayStr}, ${clockTime.monthStr} ${clockTime.dayNum}`}
               </div>
