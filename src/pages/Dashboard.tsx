@@ -618,13 +618,14 @@ export default function Dashboard() {
   }, []);
 
   const pauseCountdownSeconds = getPauseWindowCountdown(pumpPause.paused, pumpPause.reasons);
+  const isUrgentPauseCountdown = pauseCountdownSeconds !== null && pauseCountdownSeconds <= 10 * 60;
   const pauseCountdownText = pauseCountdownSeconds === null
     ? null
     : [
-        Math.floor(pauseCountdownSeconds / 3600),
-        Math.floor((pauseCountdownSeconds % 3600) / 60),
-        pauseCountdownSeconds % 60,
-      ].map((part) => String(part).padStart(2, "0")).join(":");
+        `${String(Math.floor(pauseCountdownSeconds / 3600)).padStart(2, "0")}H`,
+        `${String(Math.floor((pauseCountdownSeconds % 3600) / 60)).padStart(2, "0")}M`,
+        `${String(pauseCountdownSeconds % 60).padStart(2, "0")}S`,
+      ].join(":");
 
   const allAssets = useMemo(() => {
     if (!account.data || !prices.data) return [];
@@ -723,15 +724,23 @@ export default function Dashboard() {
 
               {/* ── Live date (UAE timezone) ── */}
               <div
+                className={pauseCountdownText !== null ? "text-muted-foreground" : undefined}
                 style={{
-                  fontSize: "0.6rem",
+                  fontSize: pauseCountdownText !== null ? "12px" : "10px",
                   fontWeight: 700,
                   letterSpacing: "0.12em",
-                  color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                  ...(pauseCountdownText === null
+                    ? { color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)" }
+                    : {}),
                 }}
               >
                 {pauseCountdownText !== null
-                  ? `SESSION: ${pauseCountdownText}`
+                  ? <>
+                      SESSION:{" "}
+                      <span style={isUrgentPauseCountdown ? { color: "#EE1120" } : undefined}>
+                        {pauseCountdownText}
+                      </span>
+                    </>
                   : `${clockTime.dayStr}, ${clockTime.monthStr} ${clockTime.dayNum}`}
               </div>
 
