@@ -726,7 +726,7 @@ export default function Dashboard() {
               <div
                 className={pauseCountdownText !== null ? "text-muted-foreground" : undefined}
                 style={{
-                  fontSize: pauseCountdownText !== null ? "10.5px" : "10px",
+                  fontSize: "10.5px",
                   fontWeight: 700,
                   letterSpacing: "0.12em",
                   ...(pauseCountdownText === null
