@@ -307,6 +307,8 @@ export function PriceChart({
   const overlayRef    = useRef<HTMLDivElement>(null);
   const chartRef      = useRef<IChartApi | null>(null);
   const candleRef     = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const ema200GlowRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const ema50GlowRef  = useRef<ISeriesApi<"Line"> | null>(null);
   const ema200Ref     = useRef<ISeriesApi<"Line"> | null>(null);
   const ema50Ref      = useRef<ISeriesApi<"Line"> | null>(null);
   const tpRangeRef    = useRef<ISeriesApi<"Line"> | null>(null);
@@ -424,8 +426,11 @@ export function PriceChart({
       wickDownColor:      "#ff2d5f",
       lastPriceAnimation: LastPriceAnimationMode.Disabled,
     });
-    ema200Ref.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.7)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
-    ema50Ref.current  = chart.addSeries(LineSeries, { color: "#facc15",              lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    // Soft translucent underlays create a glass-like tint behind each EMA.
+    ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.16)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.18)",  lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
+    ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.58)", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(250,204,21,0.68)",  lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     tpRangeRef.current = chart.addSeries(LineSeries, {
       color: "rgba(0,0,0,0)",
       lineWidth: 1,
@@ -460,21 +465,25 @@ export function PriceChart({
   function recomputeEMAs() {
     // EMAs are hidden for BTCUSDT — the ZZ channel is the only overlay there.
     if (symbol === "BTCUSDT") {
+      ema200GlowRef.current?.setData([]);
+      ema50GlowRef.current?.setData([]);
       ema200Ref.current?.setData([]);
       ema50Ref.current?.setData([]);
       return;
     }
     const closes = candlesRef.current.map((c) => c.close);
     const times  = candlesRef.current.map((c) => c.time as UTCTimestamp);
-    for (const [s, period] of [
-      [ema200Ref.current, 200], [ema50Ref.current, 50],
-    ] as [ISeriesApi<"Line"> | null, number][]) {
-      if (!s) continue;
+    for (const [glow, lineSeries, period] of [
+      [ema200GlowRef.current, ema200Ref.current, 200],
+      [ema50GlowRef.current, ema50Ref.current, 50],
+    ] as [ISeriesApi<"Line"> | null, ISeriesApi<"Line"> | null, number][]) {
+      if (!glow && !lineSeries) continue;
       const vals = ema(closes, period);
       const line: LineData[] = [];
       for (let i = 0; i < vals.length; i++)
         if (vals[i] !== undefined) line.push({ time: times[i], value: vals[i] as number });
-      s.setData(line);
+      glow?.setData(line);
+      lineSeries?.setData(line);
     }
   }
 
