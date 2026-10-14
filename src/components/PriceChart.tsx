@@ -430,7 +430,7 @@ export function PriceChart({
     ema200GlowRef.current = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.08)", lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
     ema50GlowRef.current  = chart.addSeries(LineSeries, { color: "rgba(255,230,0,0.09)",   lineWidth: 4, priceLineVisible: false, lastValueVisible: false });
     ema200Ref.current     = chart.addSeries(LineSeries, { color: "rgba(255,255,255,0.70)", lineWidth: 2.5 as unknown as 4, priceLineVisible: false, lastValueVisible: false });
-    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(255,230,0,0.50)",   lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+    ema50Ref.current      = chart.addSeries(LineSeries, { color: "rgba(255,230,0,0.60)",   lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
     tpRangeRef.current = chart.addSeries(LineSeries, {
       color: "rgba(0,0,0,0)",
       lineWidth: 1,
@@ -947,7 +947,7 @@ export function PriceChart({
                 <span className="inline-block w-5 h-[2.5px] bg-white/70 rounded" />EMA 200
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-[#FFE600]/50 rounded" />EMA 50
+                <span className="inline-block w-5 h-[2px] bg-[#FFE600]/60 rounded" />EMA 50
               </span>
             </>}
             {isBtc && <>
