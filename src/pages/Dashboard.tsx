@@ -742,7 +742,7 @@ export default function Dashboard() {
                           key={index}
                           style={{
                             ...(isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : {}),
-                            ...(/^[HMS]$/.test(part) ? { fontSize: "7px" } : {}),
+                            ...(/^[HMS]$/.test(part) ? { fontSize: "10.5px" } : {}),
                           }}
                         >
                           {part}
