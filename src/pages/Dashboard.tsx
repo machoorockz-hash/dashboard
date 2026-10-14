@@ -846,25 +846,23 @@ export default function Dashboard() {
             {/* ── Coin asset cards ── */}
             {walletAssets.length > 0 && (
               <div
-                className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+                className="mt-3 grid grid-cols-3 gap-2 -mx-1 px-1"
               >
-                {walletAssets.slice(0, 10).map((b, i) => {
+                {walletAssets.map((b, i) => {
                   const pct = totalUsdt > 0 ? (b.usd / totalUsdt) * 100 : 0;
                   const accentColor = SPECTRUM_COLORS[i % SPECTRUM_COLORS.length];
 
                   return (
                     <div
                       key={b.asset}
-                      className="shrink-0 flex items-center gap-1.5 rounded-lg relative overflow-hidden cursor-default"
+                      className="min-w-0 w-full flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-lg relative overflow-hidden cursor-default"
                       style={{
-                        padding: "6px 9px",
+                        padding: "6px 7px",
                         background: "oklch(0.55 0.06 210 / 10%)",
                         border: `1px solid ${accentColor}28`,
                         /*
                           FIX: Reduced blur from 10px → 4px on each chip card.
-                          With up to 10 chips rendered, each with a 10px blur,
-                          the composite cost multiplies significantly on mobile.
+                          With multiple asset cards rendered, blur cost scales on mobile.
                           4px retains the frosted look with a fraction of the GPU cost.
                         */
                         backdropFilter: "blur(4px)",
@@ -888,12 +886,12 @@ export default function Dashboard() {
 
                       <CoinIcon symbol={b.asset} size={19.2} />
 
-                      <span className="text-[12px] font-black tracking-tight truncate" style={{ maxWidth: "48px" }}>
+                      <span className="min-w-0 text-[12px] font-black tracking-tight truncate" style={{ maxWidth: "48px" }}>
                         {b.asset}
                       </span>
 
                       <span
-                        className="font-bold tabular-nums"
+                        className="min-w-0 truncate font-bold tabular-nums"
                         style={{ color: "oklch(0.82 0.01 200)", fontSize: "10.8px" }}
                       >
                         ${fmt(b.usd, 2)}
