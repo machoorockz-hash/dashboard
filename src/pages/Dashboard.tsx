@@ -983,14 +983,16 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[25.2px] font-black tabular-nums leading-none">
+                  <div className="text-[1.95rem] md:text-[2.1875rem] font-black tabular-nums leading-none">
                     ${cur ? fmtPrice(cur) : "…"}
                   </div>
-                  <div className={`text-[15.2px] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
-                    {pnlUsd >= 0 ? "+" : ""}${pnlUsd.toFixed(2)}
-                  </div>
-                  <div className={`text-[12px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
-                    {pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%
+                  <div className="flex items-baseline justify-end gap-1">
+                    <span className={`text-[1.2rem] md:text-[1.8rem] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
+                      {pnlUsd >= 0 ? "+" : ""}${pnlUsd.toFixed(2)}
+                    </span>
+                    <span className={`text-xs font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
+                      ({Math.abs(pnlPct).toFixed(2)}%)
+                    </span>
                   </div>
                 </div>
               </div>
