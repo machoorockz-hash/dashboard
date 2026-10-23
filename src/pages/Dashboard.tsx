@@ -1049,7 +1049,6 @@ export default function Dashboard() {
                     interval="1m"
                     height={300}
                     compact
-                    showRiskRewardZones
                     showIntervalControls={false}
                     showPriceLineStrip={false}
                     borderless
