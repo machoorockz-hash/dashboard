@@ -734,7 +734,7 @@ export default function Dashboard() {
               {/* ── Live date (UAE timezone) ── */}
               <div
                 style={{
-                  fontSize: "10.5px",
+                  fontSize: "11px",
                   fontWeight: 700,
                   letterSpacing: "0.12em",
                   color: pauseCountdownText !== null
@@ -750,7 +750,7 @@ export default function Dashboard() {
                           key={index}
                           style={{
                             ...(isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : {}),
-                            ...(/^[HMS]$/.test(part) ? { fontSize: "10.5px" } : {}),
+                            ...(/^[HMS]$/.test(part) ? { fontSize: "11px" } : {}),
                           }}
                         >
                           {part}
