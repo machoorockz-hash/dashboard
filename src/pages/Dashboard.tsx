@@ -442,6 +442,9 @@ interface DcaData {
   updated_at?: number;
   dca_step?: number;
   dca_total_steps?: number;
+  dca_next_step?: number;
+  dca_next_trigger_pct?: number;
+  dca_next_trigger_price?: number;
   status?: string;
   dca_step_amounts?: number[];      // USDT spent per step, e.g. [50, 100, 150]
   dca_step_timestamps?: number[];   // unix-ms per step
@@ -663,6 +666,9 @@ export default function Dashboard() {
   const dcaAmounts    = activeTrade?.dca_step_amounts;
   const dcaTimestamps = activeTrade?.dca_step_timestamps;
   const dcaSkipped    = activeTrade?.dca_skipped_steps;
+  const dcaNextStep = activeTrade?.dca_next_step;
+  const dcaNextTriggerPct = activeTrade?.dca_next_trigger_pct;
+  const dcaNextTriggerPrice = activeTrade?.dca_next_trigger_price;
   const showDca = !!primary && dcaStep > 0;
 
   const chartLines = useMemo(() => {
@@ -681,9 +687,12 @@ export default function Dashboard() {
       if (entry > 0) out.push({ price: entry, label: `Entry ${fmtPrice(entry)}`, color: "#a3b1c2" });
       if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`, color: "#10b981" });
       if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`, color: "#ef4444" });
+      if (dcaNextStep != null && dcaNextTriggerPrice != null && dcaNextTriggerPrice > 0) {
+        out.push({ price: dcaNextTriggerPrice, label: `DCA TRIGGER STEP ${dcaNextStep} ${fmtPrice(dcaNextTriggerPrice)}`, color: "#f97316" });
+      }
     }
     return out;
-  }, [orderSymbol, entry, tpPrice, slPrice]);
+  }, [orderSymbol, entry, tpPrice, slPrice, dcaNextStep, dcaNextTriggerPrice]);
 
   return (
     <AppLayout>
@@ -1029,6 +1038,26 @@ export default function Dashboard() {
                       stepTimestamps={dcaTimestamps}
                       skippedSteps={dcaSkipped}
                     />
+
+                    {dcaNextStep != null &&
+                      dcaNextTriggerPct != null &&
+                      dcaNextTriggerPrice != null &&
+                      dcaNextTriggerPrice > 0 && (
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+                          <div className="min-w-0">
+                            <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                              Next DCA buy · Step {dcaNextStep}
+                            </div>
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              {fmt(dcaNextTriggerPct, 2)}% below previous fill
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-sm font-black tabular-nums">${fmtPrice(dcaNextTriggerPrice)}</div>
+                            <div className="text-[9px] font-bold uppercase tracking-wider text-primary">Trigger price</div>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 )}
 
