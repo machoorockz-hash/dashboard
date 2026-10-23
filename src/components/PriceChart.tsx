@@ -525,14 +525,17 @@ export function PriceChart({
     if (priceLines) {
       for (const spec of priceLines) {
         if (!spec.price || !isFinite(spec.price)) continue;
-        const isDcaTrigger = spec.label.toLowerCase().includes("dca trigger");
+        const label = spec.label.toLowerCase();
+        const isDcaTrigger = label.includes("dca trigger");
+        const isEntryOrTp = label.includes("entry") || label.includes("tp");
+        const showAxisLabel = !isDcaTrigger && !isEntryOrTp;
         chartLinesRef.current.push(series.createPriceLine({
           price: spec.price,
           color: "transparent",
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
-          axisLabelVisible: !isDcaTrigger,
-          title: isDcaTrigger ? "" : spec.label,
+          axisLabelVisible: showAxisLabel,
+          title: showAxisLabel ? spec.label : "",
         }));
       }
     }
