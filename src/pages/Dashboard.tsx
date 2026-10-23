@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Wallet as WalletIcon, TrendingUp, Target, Shield, Activity, Layers, Clock } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, Target, Shield, Layers, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
@@ -983,25 +983,19 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className={`text-[1.2rem] md:text-[1.8rem] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
+                  <div className="text-[25.2px] font-black tabular-nums leading-none">
+                    ${cur ? fmtPrice(cur) : "…"}
+                  </div>
+                  <div className={`text-[15.2px] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
                     {pnlUsd >= 0 ? "+" : ""}${pnlUsd.toFixed(2)}
                   </div>
-                  <div className={`text-xs font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
+                  <div className={`text-[12px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
                     {pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%
                   </div>
                 </div>
               </div>
 
-              <div className="relative mt-5 rounded-xl border border-border bg-transparent px-4 py-3 transition-all duration-300">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground flex items-center gap-1.5">
-                    <Activity className="h-3 w-3" /> Live price
-                  </span>
-                  <span className="text-[1.95rem] md:text-[2.1875rem] font-black tabular-nums">
-                    ${cur ? fmtPrice(cur) : "…"}
-                  </span>
-                </div>
-
+              <div className="relative mt-5">
                 {showDca && (
                   <div className="relative mt-3 border-t border-border/60 pt-3">
                     <div className="relative flex items-center justify-between mb-3">
