@@ -1045,7 +1045,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative mt-4 w-full">
+              <div className="relative mt-4 w-full border-t border-border/60 pt-4">
                 <div className="grid sm:grid-cols-2 gap-x-8">
                   <div className="min-w-0">
                     <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
