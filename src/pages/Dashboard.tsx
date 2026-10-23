@@ -1047,13 +1047,13 @@ export default function Dashboard() {
 
               <div className="relative mt-4 rounded-xl border border-border bg-transparent p-3 sm:p-4">
                 <div className="grid sm:grid-cols-2">
-                  <div className="pb-4 sm:pb-0 sm:pr-4">
+                  <div className="min-w-0">
                     <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
                       fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={tpPrice ? `TP $${fmtPrice(tpPrice)}` : "—"}
                       pct={tpProgress} rightValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
                       hint={tpPrice && cur ? `${distToTpPct >= 0 ? "+" : ""}${distToTpPct.toFixed(2)}% to TP` : ""} color="bull" />
                   </div>
-                  <div className="border-t border-border/60 pt-4 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+                  <div className="min-w-0 pt-4 sm:pt-0">
                     <ProgressTrack icon={<Shield className="h-3.5 w-3.5" />} label="Stop loss"
                       fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={slPrice ? `SL $${fmtPrice(slPrice)}` : "—"}
                       pct={slProgress} rightValue={slPrice ? `${stopPct.toFixed(2)}%` : "—"}
@@ -1061,7 +1061,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="relative mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 border-t border-border/60 pt-3 text-xs">
+                <div className="relative mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                   <Cell label="Entry (avg)" value={`$${fmtPrice(entry)}`} />
                   <Cell label="Qty" value={`${fmt(orderQty, 4)} ${orderBase}`} />
                   <Cell label="Take Profit" value={tpPrice ? `$${fmtPrice(tpPrice)}` : "—"} accent />
