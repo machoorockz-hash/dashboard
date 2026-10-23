@@ -993,8 +993,8 @@ export default function Dashboard() {
                   <div className="relative mt-3 border-t border-border/60 pt-3">
                     <div className="relative flex items-center justify-between mb-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase tracking-widest font-extrabold" style={{ color: "#dc2626" }}>
-                          SELL
+                        <span className="text-[10px] uppercase tracking-widest font-extrabold" style={{ color: "var(--primary)" }}>
+                          DCA
                         </span>
                       </div>
                       <div className="flex items-baseline gap-1">
