@@ -288,7 +288,6 @@ interface Props {
   showPriceLineStrip?: boolean; borderless?: boolean;
   initialVisibleRangeRatio?: number;
   signalTimestamp?: string | number | null;
-  showRiskRewardZones?: boolean;
 }
 
 interface OverlayLine {
@@ -303,7 +302,6 @@ export function PriceChart({
   onIntervalChange, onSymbolChange,
   showIntervalControls = true, searchable = false, compact = false, priceLines,
   showPriceLineStrip = true, borderless = false, initialVisibleRangeRatio = 0.5, signalTimestamp,
-  showRiskRewardZones = false,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -361,8 +359,6 @@ export function PriceChart({
   const tpLineRef      = useRef<HTMLDivElement>(null);
   const slLineRef      = useRef<HTMLDivElement>(null);
   const dcaLineRef     = useRef<HTMLDivElement>(null);
-  const tpZoneRef      = useRef<HTMLDivElement>(null);
-  const slZoneRef      = useRef<HTMLDivElement>(null);
   const signalMarkerRef = useRef<HTMLDivElement>(null);
 
   // ── Price refs (used inside RAF without stale closure) ────────────────────
@@ -663,38 +659,6 @@ export function PriceChart({
       el.style.top = `${Math.round(y)}px`;
     }
 
-    function positionRiskZone(
-      el: HTMLDivElement | null,
-      firstPrice: number | null,
-      secondPrice: number | null,
-      visible: boolean,
-    ) {
-      if (!el) return;
-      const series = candleRef.current;
-      const bounds = overlayRef.current;
-      if (!visible || firstPrice === null || secondPrice === null || !series || !bounds) {
-        el.style.display = "none";
-        return;
-      }
-      const firstY = series.priceToCoordinate(firstPrice);
-      const secondY = series.priceToCoordinate(secondPrice);
-      if (firstY === null || secondY === null || !Number.isFinite(firstY) || !Number.isFinite(secondY)) {
-        el.style.display = "none";
-        return;
-      }
-      const top = Math.min(firstY, secondY);
-      const bottom = Math.max(firstY, secondY);
-      const zoneTop = Math.max(0, top);
-      const zoneBottom = Math.min(bounds.clientHeight, bottom);
-      if (zoneBottom <= zoneTop) {
-        el.style.display = "none";
-        return;
-      }
-      el.style.display = "block";
-      el.style.top = `${Math.round(zoneTop)}px`;
-      el.style.height = `${Math.round(zoneBottom - zoneTop)}px`;
-    }
-
     function getSwingLabelEl(i: number): HTMLDivElement | null {
       const container = zzLabelsContainerRef.current;
       if (!container) return null;
@@ -809,18 +773,6 @@ export function PriceChart({
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
       const dcaTrigger = pl.find((line) => line.label.toLowerCase().includes("dca trigger"));
       positionLine(dcaLineRef.current, dcaTrigger?.price ?? null, !!dcaTrigger);
-      positionRiskZone(
-        tpZoneRef.current,
-        entry?.price ?? null,
-        tp?.price ?? null,
-        showRiskRewardZones && !!entry && !!tp,
-      );
-      positionRiskZone(
-        slZoneRef.current,
-        entry?.price ?? null,
-        sl?.price ?? null,
-        showRiskRewardZones && !!entry && !!sl,
-      );
 
       // Pump signal marker — one orange S on the candle containing the
       // latest signal timestamp for the currently selected symbol.
@@ -836,7 +788,7 @@ export function PriceChart({
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [priceLines, showRiskRewardZones]);
+  }, [priceLines]);
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -959,17 +911,6 @@ export function PriceChart({
           border:1px solid rgba(249,115,22,.38); border-radius:4px; padding:1px 6px;
           font-size:9px; font-weight:900; color:#fb923c; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 4px rgba(249,115,22,.24);
-        }
-
-        /* ── Trade risk/reward zones ─────────────────────────────────────── */
-        .overlay-risk-zone {
-          position:absolute; left:0; right:68px; pointer-events:none;
-        }
-        .overlay-risk-tp-zone {
-          background:linear-gradient(180deg,rgba(45,212,191,.15),rgba(45,212,191,.045));
-        }
-        .overlay-risk-sl-zone {
-          background:linear-gradient(180deg,rgba(248,113,113,.045),rgba(248,113,113,.15));
         }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
@@ -1095,10 +1036,6 @@ export function PriceChart({
 
         {/* HTML overlay */}
         <div ref={overlayRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
-
-          {/* Risk/reward shading: zones sit behind the horizontal lines */}
-          <div ref={tpZoneRef} className="overlay-risk-zone overlay-risk-tp-zone" style={{ display: "none" }} />
-          <div ref={slZoneRef} className="overlay-risk-zone overlay-risk-sl-zone" style={{ display: "none" }} />
 
           {/* Live price line */}
           <div ref={liveLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
