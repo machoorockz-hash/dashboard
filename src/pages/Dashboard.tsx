@@ -971,15 +971,6 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl md:text-2xl font-black truncate">{primary.symbol}</h2>
                     </div>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/15 text-primary uppercase tracking-wider">{primary.type}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${primary.side === "SELL" ? "bg-bear/15 text-bear" : "bg-bull/15 text-bull"}`}>{primary.side}</span>
-                      {activeTrade.order_status && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground uppercase tracking-wider">
-                          {activeTrade.order_status}
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -990,7 +981,7 @@ export default function Dashboard() {
                     <span className={`text-[0.96rem] md:text-[1.44rem] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
                       {pnlUsd >= 0 ? "+" : ""}{pnlUsd.toFixed(2)}
                     </span>
-                    <span className={`text-xs font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
+                    <span className={`text-[12.6px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
                       ({pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%)
                     </span>
                   </div>
