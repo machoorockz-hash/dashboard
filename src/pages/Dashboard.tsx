@@ -993,10 +993,10 @@ export default function Dashboard() {
                   <div className="relative mt-3 border-t border-border/60 pt-3">
                     <div className="relative flex items-center justify-between mb-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "#ef4444" }}>
+                        <span className="text-[10px] uppercase tracking-widest font-extrabold" style={{ color: "#dc2626" }}>
                           SELL
                         </span>
-                        <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "#14b8a6" }}>
+                        <span className="text-[10px] uppercase tracking-widest font-extrabold" style={{ color: "#0f766e" }}>
                           OCO
                         </span>
                       </div>
