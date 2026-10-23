@@ -1033,12 +1033,12 @@ export default function Dashboard() {
                   <PriceChart
                     symbol={orderSymbol ?? primary.symbol}
                     interval="1m"
-                    height={480}
+                    height={420}
                     compact
                     showIntervalControls={false}
                     showPriceLineStrip={false}
                     borderless
-                    initialVisibleRangeRatio={0.12}
+                    initialVisibleRangeRatio={0.2}
                     priceLines={activeTradeChartLines}
                     signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
                   />
