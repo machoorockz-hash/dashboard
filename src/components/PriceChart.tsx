@@ -358,6 +358,7 @@ export function PriceChart({
   const entryLineRef   = useRef<HTMLDivElement>(null);
   const tpLineRef      = useRef<HTMLDivElement>(null);
   const slLineRef      = useRef<HTMLDivElement>(null);
+  const dcaLineRef     = useRef<HTMLDivElement>(null);
   const signalMarkerRef = useRef<HTMLDivElement>(null);
 
   // ── Price refs (used inside RAF without stale closure) ────────────────────
@@ -762,6 +763,8 @@ export function PriceChart({
       positionLine(entryLineRef.current, entry?.price ?? null, !!entry);
       positionLine(tpLineRef.current,    tp?.price    ?? null, !!tp);
       positionLine(slLineRef.current,    sl?.price    ?? null, !!sl);
+      const dcaTrigger = pl.find((line) => line.label.toLowerCase().includes("dca trigger"));
+      positionLine(dcaLineRef.current, dcaTrigger?.price ?? null, !!dcaTrigger);
 
       // Pump signal marker — one orange S on the candle containing the
       // latest signal timestamp for the currently selected symbol.
@@ -886,6 +889,20 @@ export function PriceChart({
           border:1px solid rgba(255,45,95,.5); border-radius:4px; padding:1px 6px;
           font-size:9px; font-weight:900; color:#ff2d5f; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(255,45,95,.5);
+        }
+
+        /* ── Next DCA trigger line ──────────────────────────────────────────  */
+        .overlay-dca-line {
+          position:absolute; left:0; right:68px; height:2px; transform:translateY(-50%);
+          background:repeating-linear-gradient(90deg,rgba(249,115,22,.95) 0 8px,transparent 8px 14px);
+          pointer-events:none;
+        }
+        .overlay-dca-badge {
+          position:absolute; left:8px; transform:translateY(-50%);
+          background:linear-gradient(90deg,rgba(249,115,22,.22),rgba(249,115,22,.06));
+          border:1px solid rgba(249,115,22,.55); border-radius:4px; padding:1px 6px;
+          font-size:9px; font-weight:900; color:#fb923c; letter-spacing:.05em;
+          white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(249,115,22,.45);
         }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
@@ -1033,6 +1050,12 @@ export function PriceChart({
           <div ref={slLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-sl-line" />
             <div className="overlay-sl-badge">▼ STOP LOSS</div>
+          </div>
+
+          {/* Next DCA trigger line — only the upcoming trigger is passed in */}
+          <div ref={dcaLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
+            <div className="overlay-dca-line" />
+            <div className="overlay-dca-badge">↓ NEXT DCA</div>
           </div>
 
           {/* Latest pump signal marker (positioned on the matching candle) */}
