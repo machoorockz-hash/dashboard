@@ -518,7 +518,7 @@ export function PriceChart({
     const nextDcaSpec = priceLines?.find((line) => line.label.toLowerCase().includes("dca trigger"));
     const nextDcaStep = nextDcaSpec?.label.match(/DCA TRIGGER STEP\s+(\d+)/i)?.[1];
     const dcaBadge = dcaLineRef.current?.querySelector(".overlay-dca-badge");
-    if (dcaBadge) dcaBadge.textContent = nextDcaStep ? "NEXT DCA " + nextDcaStep : "NEXT DCA";
+    if (dcaBadge) dcaBadge.textContent = nextDcaStep ? "DCA " + nextDcaStep : "DCA";
     const series = candleRef.current; if (!series) return;
     for (const pl of chartLinesRef.current) series.removePriceLine(pl);
     chartLinesRef.current = [];
@@ -1061,7 +1061,7 @@ export function PriceChart({
           {/* Next DCA trigger line — only the upcoming trigger is passed in */}
           <div ref={dcaLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-dca-line" />
-            <div className="overlay-dca-badge">NEXT DCA</div>
+            <div className="overlay-dca-badge">DCA</div>
           </div>
 
           {/* Latest pump signal marker (positioned on the matching candle) */}
