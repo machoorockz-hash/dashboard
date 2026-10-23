@@ -733,14 +733,13 @@ export default function Dashboard() {
 
               {/* ── Live date (UAE timezone) ── */}
               <div
-                className={pauseCountdownText !== null ? "text-muted-foreground" : undefined}
                 style={{
                   fontSize: "10.5px",
                   fontWeight: 700,
                   letterSpacing: "0.12em",
-                  ...(pauseCountdownText === null
-                    ? { color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)" }
-                    : {}),
+                  color: pauseCountdownText !== null
+                    ? "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))"
+                    : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
                 }}
               >
                 {pauseCountdownText !== null
