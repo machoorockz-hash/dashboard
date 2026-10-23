@@ -996,9 +996,6 @@ export default function Dashboard() {
                         <span className="text-[10px] uppercase tracking-widest font-extrabold" style={{ color: "#dc2626" }}>
                           SELL
                         </span>
-                        <span className="text-[10px] uppercase tracking-widest font-extrabold" style={{ color: "#0f766e" }}>
-                          OCO
-                        </span>
                       </div>
                       <div className="flex items-baseline gap-1">
                         <span
