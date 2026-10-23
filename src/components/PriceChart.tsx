@@ -915,7 +915,7 @@ export function PriceChart({
           position:absolute; left:8px; transform:translateY(-50%);
           background:linear-gradient(90deg,rgba(249,115,22,.14),rgba(249,115,22,.04));
           border:1px solid rgba(249,115,22,.38); border-radius:4px; padding:1px 6px;
-          font-size:9px; font-weight:900; color:#fb923c; letter-spacing:.05em;
+          font-size:9px; font-weight:900; color:#ffffff; letter-spacing:.05em;
           white-space:nowrap; z-index:2; text-shadow:0 0 4px rgba(249,115,22,.24);
         }
 
