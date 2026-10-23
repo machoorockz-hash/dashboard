@@ -994,17 +994,7 @@ export default function Dashboard() {
                     <div className="relative flex items-center justify-between mb-3">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] uppercase tracking-widest font-extrabold">
-                          <span className="font-extrabold" style={{ color: "var(--primary)" }}>DCA</span>{" "}
-                          <span
-                            className="font-extrabold"
-                            style={{
-                              color: "#b91c1c",
-                              textShadow: "0 0 6px color-mix(in oklab, #b91c1c 65%, transparent)",
-                              filter: "drop-shadow(0 0 4px color-mix(in oklab, #b91c1c 55%, transparent))",
-                            }}
-                          >
-                            SELL OCO
-                          </span>
+                          <span className="font-extrabold" style={{ color: "var(--primary)" }}>DCA OCO</span>
                         </span>
                       </div>
                       <div className="flex items-baseline gap-1">
