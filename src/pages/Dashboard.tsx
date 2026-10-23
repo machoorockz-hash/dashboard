@@ -978,10 +978,10 @@ export default function Dashboard() {
                     ${cur ? fmtPrice(cur) : "…"}
                   </div>
                   <div className="flex items-baseline justify-end gap-1">
-                    <span className={`text-[0.96rem] md:text-[1.44rem] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
+                    <span className={`text-[15.9744px] md:text-[23.9616px] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
                       {pnlUsd >= 0 ? "+" : ""}{pnlUsd.toFixed(2)}
                     </span>
-                    <span className={`text-[12.6px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
+                    <span className={`text-[13.104px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
                       ({pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%)
                     </span>
                   </div>
