@@ -1039,25 +1039,7 @@ export default function Dashboard() {
                       skippedSteps={dcaSkipped}
                     />
 
-                    {dcaNextStep != null &&
-                      dcaNextTriggerPct != null &&
-                      dcaNextTriggerPrice != null &&
-                      dcaNextTriggerPrice > 0 && (
-                        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
-                          <div className="min-w-0">
-                            <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-                              Next DCA buy · Step {dcaNextStep}
-                            </div>
-                            <div className="mt-1 text-[10px] text-muted-foreground">
-                              {fmt(dcaNextTriggerPct, 2)}% below previous fill
-                            </div>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <div className="text-sm font-black tabular-nums">${fmtPrice(dcaNextTriggerPrice)}</div>
-                            <div className="text-[9px] font-bold uppercase tracking-wider text-primary">Trigger price</div>
-                          </div>
-                        </div>
-                      )}
+
                   </div>
                 )}
 
