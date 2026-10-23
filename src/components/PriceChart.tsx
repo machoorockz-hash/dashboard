@@ -1045,13 +1045,11 @@ export function PriceChart({
           {/* Entry line */}
           <div ref={entryLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-entry-line" />
-            <div className="overlay-entry-badge">── ENTRY</div>
           </div>
 
           {/* TP line */}
           <div ref={tpLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-tp-line" />
-            <div className="overlay-tp-badge">▲ TAKE PROFIT</div>
           </div>
 
           {/* SL line */}
