@@ -971,18 +971,18 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl md:text-2xl font-black truncate">{orderBase}</h2>
                     </div>
-                    <div className="mt-1 text-[26.9568px] md:text-[30.24px] font-black tabular-nums leading-none">
+                    <div className="mt-1 text-xl md:text-2xl font-black tabular-nums leading-none">
                       ${cur ? fmtPrice(cur) : "…"}
                     </div>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="flex items-baseline justify-end gap-1">
+                  <div className="flex flex-col items-end gap-0">
                     <span className={`text-[15.9744px] md:text-[23.9616px] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
-                      {pnlUsd >= 0 ? "+" : ""}{pnlUsd.toFixed(2)}
+                      {pnlUsd >= 0 ? "+$" : "-$"}{Math.abs(pnlUsd).toFixed(2)}
                     </span>
                     <span className={`text-[13.104px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
-                      ({pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%)
+                      {pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%
                     </span>
                   </div>
                 </div>
