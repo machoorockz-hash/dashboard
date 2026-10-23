@@ -978,7 +978,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="flex flex-col items-end gap-0">
-                    <span className={`text-[25.26px] md:text-[37.89px] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
+                    <span className={`text-[23.06px] md:text-[34.59px] font-black tabular-nums ${pnlUsd >= 0 ? "text-bull" : "text-bear"}`}>
                       {pnlUsd >= 0 ? "+" : "-"}{Math.abs(pnlUsd).toFixed(2)}
                     </span>
                     <span className={`text-[14.4144px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
