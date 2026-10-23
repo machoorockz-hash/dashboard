@@ -974,7 +974,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[1.95rem] md:text-[2.1875rem] font-black tabular-nums leading-none">
+                  <div className="text-[28.08px] md:text-[31.5px] font-black tabular-nums leading-none">
                     ${cur ? fmtPrice(cur) : "…"}
                   </div>
                   <div className="flex items-baseline justify-end gap-1">
