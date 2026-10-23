@@ -691,8 +691,14 @@ export default function Dashboard() {
         out.push({ price: dcaNextTriggerPrice, label: `DCA TRIGGER STEP ${dcaNextStep} ${fmtPrice(dcaNextTriggerPrice)}`, color: "#f97316" });
       }
     }
-    return out;
-  }, [orderSymbol, entry, tpPrice, slPrice, dcaNextStep, dcaNextTriggerPrice]);
+    if (out.length <= 1) return out;
+
+    const referencePrice = cur > 0 ? cur : entry > 0 ? entry : out[0].price;
+    const nearest = out.reduce((closest, line) =>
+      Math.abs(line.price - referencePrice) < Math.abs(closest.price - referencePrice) ? line : closest
+    );
+    return [nearest];
+  }, [orderSymbol, entry, tpPrice, slPrice, dcaNextStep, dcaNextTriggerPrice, cur]);
 
   return (
     <AppLayout>
@@ -1033,12 +1039,12 @@ export default function Dashboard() {
                   <PriceChart
                     symbol={orderSymbol ?? primary.symbol}
                     interval="1m"
-                    height={420}
+                    height={480}
                     compact
                     showIntervalControls={false}
                     showPriceLineStrip={false}
                     borderless
-                    initialVisibleRangeRatio={0.2}
+                    initialVisibleRangeRatio={0.12}
                     priceLines={activeTradeChartLines}
                     signalTimestamp={pumpSignalsBySymbol[(orderSymbol ?? primary.symbol).toUpperCase()]?.timestamp ?? null}
                   />
