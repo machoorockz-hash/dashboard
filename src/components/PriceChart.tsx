@@ -515,19 +515,24 @@ export function PriceChart({
   // ── Price lines (Entry / TP / SL) ─────────────────────────────────────────
   useEffect(() => {
     priceLinesDataRef.current = priceLines;
+    const nextDcaSpec = priceLines?.find((line) => line.label.toLowerCase().includes("dca trigger"));
+    const nextDcaStep = nextDcaSpec?.label.match(/DCA TRIGGER STEP\s+(\d+)/i)?.[1];
+    const dcaBadge = dcaLineRef.current?.querySelector(".overlay-dca-badge");
+    if (dcaBadge) dcaBadge.textContent = nextDcaStep ? "NEXT DCA " + nextDcaStep : "NEXT DCA";
     const series = candleRef.current; if (!series) return;
     for (const pl of chartLinesRef.current) series.removePriceLine(pl);
     chartLinesRef.current = [];
     if (priceLines) {
       for (const spec of priceLines) {
         if (!spec.price || !isFinite(spec.price)) continue;
+        const isDcaTrigger = spec.label.toLowerCase().includes("dca trigger");
         chartLinesRef.current.push(series.createPriceLine({
           price: spec.price,
           color: "transparent",
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: spec.label,
+          axisLabelVisible: !isDcaTrigger,
+          title: isDcaTrigger ? "" : spec.label,
         }));
       }
     }
@@ -894,15 +899,15 @@ export function PriceChart({
         /* ── Next DCA trigger line ──────────────────────────────────────────  */
         .overlay-dca-line {
           position:absolute; left:0; right:68px; height:2px; transform:translateY(-50%);
-          background:repeating-linear-gradient(90deg,rgba(249,115,22,.95) 0 8px,transparent 8px 14px);
+          background:repeating-linear-gradient(90deg,rgba(249,115,22,.58) 0 8px,transparent 8px 14px);
           pointer-events:none;
         }
         .overlay-dca-badge {
           position:absolute; left:8px; transform:translateY(-50%);
-          background:linear-gradient(90deg,rgba(249,115,22,.22),rgba(249,115,22,.06));
-          border:1px solid rgba(249,115,22,.55); border-radius:4px; padding:1px 6px;
+          background:linear-gradient(90deg,rgba(249,115,22,.14),rgba(249,115,22,.04));
+          border:1px solid rgba(249,115,22,.38); border-radius:4px; padding:1px 6px;
           font-size:9px; font-weight:900; color:#fb923c; letter-spacing:.05em;
-          white-space:nowrap; z-index:2; text-shadow:0 0 6px rgba(249,115,22,.45);
+          white-space:nowrap; z-index:2; text-shadow:0 0 4px rgba(249,115,22,.24);
         }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
@@ -1055,7 +1060,7 @@ export function PriceChart({
           {/* Next DCA trigger line — only the upcoming trigger is passed in */}
           <div ref={dcaLineRef} style={{ display: "none", position: "absolute", left: 0, right: 0 }}>
             <div className="overlay-dca-line" />
-            <div className="overlay-dca-badge">↓ NEXT DCA</div>
+            <div className="overlay-dca-badge">NEXT DCA</div>
           </div>
 
           {/* Latest pump signal marker (positioned on the matching candle) */}
