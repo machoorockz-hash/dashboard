@@ -1033,7 +1033,7 @@ export default function Dashboard() {
                   <PriceChart
                     symbol={orderSymbol ?? primary.symbol}
                     interval="1m"
-                    height={480}
+                    height={350}
                     compact
                     showIntervalControls={false}
                     showPriceLineStrip={false}
