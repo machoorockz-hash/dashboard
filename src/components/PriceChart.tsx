@@ -287,6 +287,7 @@ interface Props {
   showIntervalControls?: boolean; searchable?: boolean; compact?: boolean; priceLines?: PriceLineSpec[];
   showPriceLineStrip?: boolean; borderless?: boolean;
   initialVisibleRangeRatio?: number;
+  scaleAnchorPrice?: number;
   signalTimestamp?: string | number | null;
 }
 
@@ -301,7 +302,7 @@ export function PriceChart({
   symbol, interval = "1m", height = 460,
   onIntervalChange, onSymbolChange,
   showIntervalControls = true, searchable = false, compact = false, priceLines,
-  showPriceLineStrip = true, borderless = false, initialVisibleRangeRatio = 0.5, signalTimestamp,
+  showPriceLineStrip = true, borderless = false, initialVisibleRangeRatio = 0.5, scaleAnchorPrice, signalTimestamp,
 }: Props) {
   const chartWrapRef  = useRef<HTMLDivElement>(null);
   const overlayRef    = useRef<HTMLDivElement>(null);
@@ -327,9 +328,14 @@ export function PriceChart({
     const rangeSeries = tpRangeRef.current;
     if (!rangeSeries) return;
 
-    const target = priceLinesDataRef.current?.find((line) =>
-      line.label.toLowerCase().includes("tp"),
-    );
+    const specs = priceLinesDataRef.current?.filter((line) =>
+      line.price > 0 && isFinite(line.price),
+    ) ?? [];
+    const target = scaleAnchorPrice != null && scaleAnchorPrice > 0 && specs.length > 0
+      ? specs.reduce((closest, line) =>
+          Math.abs(line.price - scaleAnchorPrice) < Math.abs(closest.price - scaleAnchorPrice) ? line : closest
+        )
+      : specs.find((line) => line.label.toLowerCase().includes("tp"));
     const candles = candlesRef.current;
     if (!target || !isFinite(target.price) || candles.length === 0) {
       rangeSeries.setData([]);
@@ -540,7 +546,7 @@ export function PriceChart({
       }
     }
     syncTakeProfitRange();
-  }, [priceLines]);
+  }, [priceLines, scaleAnchorPrice]);
 
   // Fits all loaded candles into view (fully zoomed out).
   function fitAll() {
