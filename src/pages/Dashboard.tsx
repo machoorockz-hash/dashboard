@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Wallet as WalletIcon, TrendingUp, Target, Shield, Layers, Clock } from "lucide-react";
+import { Wallet as WalletIcon, TrendingUp, Target, Shield, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
@@ -993,9 +993,11 @@ export default function Dashboard() {
                   <div className="relative mt-3 border-t border-border/60 pt-3">
                     <div className="relative flex items-center justify-between mb-3">
                       <div className="flex items-center gap-1.5">
-                        <Layers className="h-3.5 w-3.5" style={{ color: "var(--primary)" }} />
-                        <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "color-mix(in oklab,var(--primary) 80%,var(--muted-foreground))" }}>
-                          DCA Step
+                        <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "#ef4444" }}>
+                          SELL
+                        </span>
+                        <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "#14b8a6" }}>
+                          OCO
                         </span>
                       </div>
                       <div className="flex items-baseline gap-1">
