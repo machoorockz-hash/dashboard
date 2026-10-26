@@ -354,7 +354,7 @@ export function PriceChart({
     );
   }
 
-  // ── Swing high/low pivot labels (BTCUSDT ZZ only) ─────────────────────────
+  // ── Swing high/low pivot labels ───────────────────────────────────────────
   const zzPivotsRef          = useRef<{ time: UTCTimestamp; price: number; type: "top" | "btm" }[]>([]);
   const zzLabelsContainerRef = useRef<HTMLDivElement>(null);
   const zzLabelPoolRef       = useRef<HTMLDivElement[]>([]);
@@ -494,14 +494,8 @@ export function PriceChart({
     }
   }
 
-  // ── ZigZag recompute (BTCUSDT only) ──────────────────────────────────────
+  // ── ZigZag recompute ──────────────────────────────────────────────────────
   function recomputeZigZag() {
-    if (symbol !== "BTCUSDT") {
-      zzUpperCurrentRef.current?.setData([]);
-      zzLowerCurrentRef.current?.setData([]);
-      zzPivotsRef.current = [];
-      return;
-    }
     const { currentUpper, currentLower, pivots, trend } = computeZigZagChannels(candlesRef.current);
 
     // Uptrend  → teal green bands; downtrend → red bands.
@@ -733,7 +727,7 @@ export function PriceChart({
       const container = zzLabelsContainerRef.current;
       if (!container) return;
       const pivots = zzPivotsRef.current;
-      if (symbolRef.current !== "BTCUSDT" || pivots.length === 0) {
+      if (pivots.length === 0) {
         for (const el of zzLabelPoolRef.current) el.style.display = "none";
         return;
       }
@@ -981,11 +975,9 @@ export function PriceChart({
                 <span className="inline-block w-5 h-[2px] bg-[#FFE600]/60 rounded" />EMA 50
               </span>
             </>}
-            {isBtc && <>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
-              </span>
-            </>}
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-5 h-[2px] bg-[#ff5d00] rounded" />ZZ
+            </span>
           </div>
         </div>
 
