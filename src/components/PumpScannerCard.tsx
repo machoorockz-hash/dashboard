@@ -187,6 +187,14 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
   const seenRef = useRef<Set<string>>(new Set());
   const lastFetchRef = useRef<number>(0);
   const scrollFadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function cancelLongPress() {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  }
 
   function handleScroll() {
     setIsScrolling(true);
@@ -260,6 +268,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
     return () => {
       clearTimeout(timer);
       if (scrollFadeTimeoutRef.current) clearTimeout(scrollFadeTimeoutRef.current);
+      if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
     };
   }, []);
 
@@ -550,12 +559,23 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                 }`}
                 onClick={() => {
                   setSelectedRowKey(rowKey);
-                  setSelectedSignal(sig);
                   onCoinSelect?.(sig.symbol);
                 }}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  cancelLongPress();
+                  longPressTimeoutRef.current = setTimeout(() => {
+                    setSelectedSignal(sig);
+                    longPressTimeoutRef.current = null;
+                  }, 2000);
+                }}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
+                onPointerCancel={cancelLongPress}
+                onContextMenu={(event) => event.preventDefault()}
                 aria-pressed={isSelected}
                 aria-haspopup="dialog"
-                title={`View ${sig.symbol.replace("USDT", "")} signal details`}
+                title={`Press and hold for 2 seconds to view ${sig.symbol.replace("USDT", "")} signal details`}
               >
                 {isLatest && (
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -595,7 +615,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
       {/* ── SIGNAL COUNT FOOTER ── */}
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
-          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first · tap for details
+          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first · hold 2s for details
         </div>
       )}
 
