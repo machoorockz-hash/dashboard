@@ -10,6 +10,20 @@ export interface PumpSignal {
   symbol: string;
   price: number;
   timestamp: string;
+  signalType?: string;
+  overallScore?: number;
+  volume24hUsd?: number;
+  minimum24hVolumeUsd?: number;
+  last72hVolumeBlocksUsd?: number[];
+  minimum24hVolumePerBlockUsd?: number;
+  closed1mCandleUsd?: number;
+  minimumClosed1mCandleUsd?: number;
+  psi?: number;
+  fakeScore?: number;
+  rocPct?: number;
+  rsi?: number;
+  ema200Above?: Partial<Record<"1m" | "5m" | "15m" | "30m" | "1h" | "4h", boolean>>;
+  volumeRatio?: number;
 }
 
 interface PumpData {
@@ -55,6 +69,26 @@ function formatPrice(p: number) {
   if (p >= 1) return p.toFixed(4);
   if (p >= 0.001) return p.toFixed(6);
   return p.toFixed(8);
+}
+
+function formatUsd(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `$${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value)}`;
+}
+
+function formatMetric(value?: number, digits = 1) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return value.toFixed(digits);
+}
+
+function MetricTile({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-border/70 bg-muted/20 px-3 py-2.5">
+      <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="mt-1 break-words text-sm font-bold tabular-nums text-foreground">{value}</div>
+      {detail && <div className="mt-1 text-[10px] leading-snug text-muted-foreground">{detail}</div>}
+    </div>
+  );
 }
 
 function FlareBeamAnimation() {
@@ -148,6 +182,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
   const [newKeys, setNewKeys] = useState<Set<string>>(new Set());
   const [latestKey, setLatestKey] = useState<string | null>(null);
   const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+  const [selectedSignal, setSelectedSignal] = useState<PumpSignal | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const lastFetchRef = useRef<number>(0);
@@ -161,6 +196,15 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
       scrollFadeTimeoutRef.current = null;
     }, 800);
   }
+
+  useEffect(() => {
+    if (!selectedSignal) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedSignal(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedSignal]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -506,10 +550,12 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                 }`}
                 onClick={() => {
                   setSelectedRowKey(rowKey);
+                  setSelectedSignal(sig);
                   onCoinSelect?.(sig.symbol);
                 }}
                 aria-pressed={isSelected}
-                title={`View ${sig.symbol.replace("USDT", "")} chart`}
+                aria-haspopup="dialog"
+                title={`View ${sig.symbol.replace("USDT", "")} signal details`}
               >
                 {isLatest && (
                   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -549,7 +595,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
       {/* ── SIGNAL COUNT FOOTER ── */}
       {data && data.signals.length > 0 && (
         <div className="text-[9px] uppercase tracking-widest text-muted-foreground/50 text-center">
-          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first · tap to view chart
+          {data.signals.length} signal{data.signals.length !== 1 ? "s" : ""} · latest first · tap for details
         </div>
       )}
 
@@ -601,6 +647,122 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
           scanning all USDT pairs
         </div>
       </div>
+
+      {selectedSignal && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedSignal(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pump-signal-dialog-title"
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-primary/30 bg-background shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+              <div className="min-w-0">
+                <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  {selectedSignal.signalType?.replace(/_/g, " ").toUpperCase() || "PUMP SIGNAL"}
+                </div>
+                <h2 id="pump-signal-dialog-title" className="truncate text-base font-black tracking-wide text-foreground">
+                  {selectedSignal.symbol}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSignal(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                aria-label="Close signal details"
+                autoFocus
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3 p-4">
+              {selectedSignal.overallScore === undefined &&
+                selectedSignal.volume24hUsd === undefined &&
+                selectedSignal.last72hVolumeBlocksUsd === undefined &&
+                selectedSignal.closed1mCandleUsd === undefined &&
+                selectedSignal.psi === undefined &&
+                selectedSignal.fakeScore === undefined &&
+                selectedSignal.rocPct === undefined &&
+                selectedSignal.rsi === undefined &&
+                selectedSignal.ema200Above === undefined &&
+                selectedSignal.volumeRatio === undefined && (
+                  <p className="rounded-xl border border-yellow-400/20 bg-yellow-400/[0.06] px-3 py-2.5 text-xs leading-relaxed text-yellow-100/80">
+                    The dashboard response has only the coin, price, and time for this signal. The bot’s extra metrics need to be included by the dashboard API before they can appear here.
+                  </p>
+                )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <MetricTile
+                  label="Overall Score"
+                  value={`${formatMetric(selectedSignal.overallScore)} / 100`}
+                />
+                <MetricTile
+                  label="24h Volume"
+                  value={formatUsd(selectedSignal.volume24hUsd)}
+                  detail={`Minimum ${formatUsd(selectedSignal.minimum24hVolumeUsd)}`}
+                />
+                <MetricTile
+                  label="Last 72h Volume"
+                  value={selectedSignal.last72hVolumeBlocksUsd?.map(formatUsd).join(" / ") || "—"}
+                  detail={`Oldest → newest · minimum ${formatUsd(selectedSignal.minimum24hVolumePerBlockUsd)} each`}
+                />
+                <MetricTile
+                  label="Closed 1m Candle"
+                  value={formatUsd(selectedSignal.closed1mCandleUsd)}
+                  detail={`Minimum ${formatUsd(selectedSignal.minimumClosed1mCandleUsd)}`}
+                />
+                <MetricTile label="PSI" value={`${formatMetric(selectedSignal.psi)} / 100`} />
+                <MetricTile label="Fake Score" value={`${formatMetric(selectedSignal.fakeScore, 0)} / 100`} />
+                <MetricTile
+                  label="ROC"
+                  value={typeof selectedSignal.rocPct === "number" && selectedSignal.rocPct >= 0
+                    ? `+${formatMetric(selectedSignal.rocPct, 2)}%`
+                    : `${formatMetric(selectedSignal.rocPct, 2)}%`}
+                />
+                <MetricTile label="RSI" value={formatMetric(selectedSignal.rsi, 0)} />
+                <MetricTile label="Volume Ratio" value={`${formatMetric(selectedSignal.volumeRatio, 2)}× avg`} />
+                <MetricTile label="Price" value={`$${formatPrice(selectedSignal.price)}`} />
+              </div>
+
+              <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2.5">
+                <div className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">EMA200 confirmations</div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {(["1m", "5m", "15m", "30m", "1h", "4h"] as const).map((timeframe) => {
+                    const above = selectedSignal.ema200Above?.[timeframe];
+                    return (
+                      <span
+                        key={timeframe}
+                        className={`rounded-md border px-2 py-1 text-[10px] font-bold ${
+                          above === true
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                            : above === false
+                              ? "border-red-500/30 bg-red-500/10 text-red-300"
+                              : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        {timeframe} {above === true ? "ABOVE" : above === false ? "BELOW" : "—"}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="text-right text-[10px] text-muted-foreground">
+                {(() => {
+                  const { date, time } = toUAE(selectedSignal.timestamp);
+                  return `${date} · ${time} UAE`;
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </section>
   );
