@@ -562,6 +562,38 @@ export default function Dashboard() {
   const prices = useQuery({ queryKey: ["prices"], queryFn: () => getAllPrices(), refetchInterval: 5_000 });
   const tradeData = useTradeData();
   const clockTime = useClock();
+  const [btcMarket, setBtcMarket] = useState<{ price: number; changePct: number } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let ws: WebSocket | null = null;
+
+    const connect = () => {
+      ws = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@ticker");
+      ws.onmessage = (event) => {
+        try {
+          const ticker = JSON.parse(event.data);
+          const price = Number(ticker.c);
+          const changePct = Number(ticker.P);
+          if (alive && Number.isFinite(price) && Number.isFinite(changePct)) {
+            setBtcMarket({ price, changePct });
+          }
+        } catch {}
+      };
+      ws.onclose = () => {
+        if (alive) reconnectTimer = setTimeout(connect, 3000);
+      };
+      ws.onerror = () => ws?.close();
+    };
+
+    connect();
+    return () => {
+      alive = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, []);
 
   const activeTrade = tradeData?.status === "ACTIVE" && tradeData.symbol
     ? tradeData
@@ -731,33 +763,76 @@ export default function Dashboard() {
                 Wallet
               </div>
 
-              {/* ── Live date (UAE timezone) ── */}
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  color: pauseCountdownText !== null
-                    ? "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))"
-                    : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
-                }}
-              >
-                {pauseCountdownText !== null
-                  ? <>
-                      {isUrgentPauseCountdown ? "SESSION ENDS:" : "SESSION:"}{" "}
-                      {pauseCountdownText.split(/([:HMS])/).map((part, index) => (
-                        <span
-                          key={index}
-                          style={{
-                            ...(isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : {}),
-                            ...(/^[HMS]$/.test(part) ? { fontSize: "11px" } : {}),
-                          }}
-                        >
-                          {part}
-                        </span>
-                      ))}
-                    </>
-                  : `${clockTime.dayStr}, ${clockTime.monthStr} ${clockTime.dayNum}`}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "5px" }}>
+                {/* ── Live date (UAE timezone) ── */}
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    color: pauseCountdownText !== null
+                      ? "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))"
+                      : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                  }}
+                >
+                  {pauseCountdownText !== null
+                    ? <>
+                        {isUrgentPauseCountdown ? "SESSION ENDS:" : "SESSION:"}{" "}
+                        {pauseCountdownText.split(/([:HMS])/).map((part, index) => (
+                          <span
+                            key={index}
+                            style={{
+                              ...(isUrgentPauseCountdown && /^\d+$/.test(part) ? { color: "#EE1120" } : {}),
+                              ...(/^[HMS]$/.test(part) ? { fontSize: "11px" } : {}),
+                            }}
+                          >
+                            {part}
+                          </span>
+                        ))}
+                      </>
+                    : `${clockTime.dayStr}, ${clockTime.monthStr} ${clockTime.dayNum}`}
+                </div>
+
+                {/* ── Live BTC price and 24-hour change ── */}
+                <div
+                  aria-label={btcMarket
+                    ? `Bitcoin live price $${fmt(btcMarket.price, 2, 2)}, 24-hour change ${btcMarket.changePct.toFixed(2)} percent`
+                    : "Bitcoin live price loading"}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: "2px",
+                    padding: "5px 9px",
+                    borderRadius: "9px",
+                    background: "rgba(255,255,255,0.035)",
+                    border: "1px solid rgba(245,197,66,0.22)",
+                    fontVariantNumeric: "tabular-nums",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "9px", fontWeight: 900, letterSpacing: "0.08em", color: "#F7931A" }}>
+                      BTC
+                    </span>
+                    <span style={{ fontSize: "11px", fontWeight: 800, color: "rgba(255,255,255,0.92)" }}>
+                      {btcMarket ? `$${fmt(btcMarket.price, 2, 2)}` : "—"}
+                    </span>
+                  </div>
+                  {btcMarket ? (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: 800,
+                        color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
+                      }}
+                    >
+                      {btcMarket.changePct < 0 ? "↓" : "↑"} {btcMarket.changePct > 0 ? "+" : ""}{btcMarket.changePct.toFixed(2)}% 24H
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>24H —</span>
+                  )}
+                </div>
               </div>
 
             </div>
