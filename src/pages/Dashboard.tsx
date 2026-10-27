@@ -794,13 +794,6 @@ export default function Dashboard() {
                 top: 39px;
                 right: 20px;
               }
-              @media (max-width: 640px) {
-                .wallet-btc-market {
-                  position: static;
-                  margin: 8px 0 0 auto;
-                  width: max-content;
-                }
-              }
             `}</style>
             {/* ── Live BTC price and 24-hour change ── */}
             <div
