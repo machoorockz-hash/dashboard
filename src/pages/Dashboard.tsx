@@ -563,6 +563,8 @@ export default function Dashboard() {
   const tradeData = useTradeData();
   const clockTime = useClock();
   const [btcMarket, setBtcMarket] = useState<{ price: number; changePct: number } | null>(null);
+  const balanceAmountRef = useRef<HTMLSpanElement | null>(null);
+  const btcQuoteRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -592,6 +594,43 @@ export default function Dashboard() {
       alive = false;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    const amount = balanceAmountRef.current;
+    const row = amount?.closest(".wallet-balance-fit-row") as HTMLElement | null;
+    const quote = btcQuoteRef.current;
+    if (!amount || !row) return;
+
+    const fitBalance = () => {
+      amount.style.fontSize = "";
+      if (!window.matchMedia("(max-width: 640px)").matches) return;
+
+      const quoteWidth = quote?.getBoundingClientRect().width ?? 0;
+      const availableWidth = row.clientWidth - quoteWidth - 20;
+      const baseFontSize = parseFloat(window.getComputedStyle(amount).fontSize);
+      const naturalTextWidth = amount.scrollWidth;
+
+      if (availableWidth > 0 && naturalTextWidth > availableWidth) {
+        amount.style.fontSize = `${Math.max(18, baseFontSize * availableWidth / naturalTextWidth)}px`;
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(fitBalance);
+    resizeObserver.observe(row);
+    if (quote) resizeObserver.observe(quote);
+
+    const textObserver = new MutationObserver(fitBalance);
+    textObserver.observe(amount, { childList: true, characterData: true, subtree: true });
+
+    window.addEventListener("resize", fitBalance);
+    fitBalance();
+
+    return () => {
+      resizeObserver.disconnect();
+      textObserver.disconnect();
+      window.removeEventListener("resize", fitBalance);
     };
   }, []);
 
@@ -798,6 +837,7 @@ export default function Dashboard() {
             {/* ── Live BTC price and 24-hour change ── */}
             <div
               className="wallet-btc-market"
+              ref={btcQuoteRef}
               aria-label={btcMarket
                 ? `Bitcoin live price $${fmt(btcMarket.price, 2, 2)}, 24-hour change ${btcMarket.changePct.toFixed(2)} percent`
                 : "Bitcoin live price loading"}
@@ -874,7 +914,7 @@ export default function Dashboard() {
                 .bal-scale-pop { animation: bal-scale-pop 0.6s cubic-bezier(0.22,1,0.36,1) forwards; will-change: transform; }
                 .delta-rise    { animation: delta-rise    2s ease-out forwards; will-change: transform, opacity; }
               `}</style>
-              <div className="flex items-start gap-2 relative">
+              <div className="wallet-balance-fit-row flex items-start gap-2 relative">
                 <div style={{ position: "relative", display: "inline-block" }}>
 
                   {/* Glow halo — box-shadow on a sibling, never touches the text */}
@@ -893,7 +933,7 @@ export default function Dashboard() {
                     style={{ display: "inline-block", position: "relative" }}
                   >
                     {/* Gradient text via CSS class — NOT inline styles, avoids React serialisation bugs */}
-                    <span className="bal-text text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums">
+                    <span ref={balanceAmountRef} className="bal-text text-5xl md:text-7xl font-black tracking-tight leading-none tabular-nums">
                       {account.isLoading ? "…" : `$${fmt(animatedTotal)}`}
                     </span>
 
