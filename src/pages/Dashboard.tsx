@@ -797,7 +797,7 @@ export default function Dashboard() {
             <style>{`
               .wallet-btc-market {
                 position: absolute;
-                top: 36px;
+                top: 39px;
                 right: 20px;
               }
               @media (max-width: 640px) {
@@ -822,18 +822,17 @@ export default function Dashboard() {
                 padding: "5px 9px",
                 borderRadius: "9px",
                 background: "rgba(255,255,255,0.035)",
-                border: "1px solid rgba(245,197,66,0.22)",
                 fontVariantNumeric: "tabular-nums",
                 whiteSpace: "nowrap",
               }}
             >
-              <span style={{ fontSize: "11px", fontWeight: 800, color: "#F7931A" }}>
+              <span style={{ fontSize: "12.65px", fontWeight: 800, color: "#F7931A" }}>
                 {btcMarket ? `$${fmt(btcMarket.price, 2, 2)}` : "—"}
               </span>
               {btcMarket ? (
                 <span
                   style={{
-                    fontSize: "9px",
+                    fontSize: "10.35px",
                     fontWeight: 800,
                     color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
                   }}
