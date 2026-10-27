@@ -741,14 +741,8 @@ export default function Dashboard() {
           style={{
             background: "transparent",
             border: "1px solid oklch(0.78 0.07 200 / 22%)",
-            /*
-              FIX: Reduced blur from 32px → 8px.
-              32px blur forces the GPU to sample a huge radius on every scroll
-              frame, which is the primary cause of mobile scroll jank.
-              8px is visually indistinguishable at card size but ~16× cheaper.
-            */
-            backdropFilter: "blur(8px) saturate(150%)",
-            WebkitBackdropFilter: "blur(8px) saturate(150%)",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
           }}
         >
 
@@ -821,7 +815,7 @@ export default function Dashboard() {
                 gap: "2px",
                 padding: "5px 9px",
                 borderRadius: "9px",
-                background: "rgba(255,255,255,0.035)",
+                background: "transparent",
                 fontVariantNumeric: "tabular-nums",
                 whiteSpace: "nowrap",
               }}
