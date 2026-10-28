@@ -857,14 +857,12 @@ export default function Dashboard() {
                 style={{
                   fontSize: "13.60px",
                   fontWeight: 800,
-                  color: btcMarket
-                    ? btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa"
-                    : "#F7931A",
+                  color: "#F7931A",
                 }}
               >
                 {btcMarket ? (
                   <>
-                    <span style={{ color: "#F7931A" }}>₿</span>{" "}
+                    <span style={{ color: "#F7931A", fontSize: "14.3px" }}>₿</span>{" "}
                     {fmt(btcMarket.price, 2, 2)}
                   </>
                 ) : "—"}
