@@ -853,10 +853,18 @@ export default function Dashboard() {
                 whiteSpace: "nowrap",
               }}
             >
-              <span style={{ fontSize: "13.60px", fontWeight: 800, color: "#F7931A" }}>
+              <span
+                style={{
+                  fontSize: "13.60px",
+                  fontWeight: 800,
+                  color: btcMarket
+                    ? btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa"
+                    : "#F7931A",
+                }}
+              >
                 {btcMarket ? (
                   <>
-                    <span style={{ color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)" }}>₿</span>{" "}
+                    <span style={{ color: "#F7931A" }}>₿</span>{" "}
                     {fmt(btcMarket.price, 2, 2)}
                   </>
                 ) : "—"}
@@ -869,8 +877,9 @@ export default function Dashboard() {
                     color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
                   }}
                 >
-                  {btcMarket.changePct < 0 ? "↓" : "↑"} {btcMarket.changePct > 0 ? "+" : ""}{btcMarket.changePct.toFixed(2)}%{" "}
-                  <span style={{ color: "color-mix(in oklab, var(--muted-foreground) 70%, transparent)" }}>24H</span>
+                  <span style={{ color: "#E5E7EB" }}>24H</span>{" "}
+                  {btcMarket.changePct > 0 ? "+" : ""}{btcMarket.changePct.toFixed(2)}%{" "}
+                  {btcMarket.changePct < 0 ? "↓" : "↑"}
                 </span>
               ) : (
                 <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>24H —</span>
