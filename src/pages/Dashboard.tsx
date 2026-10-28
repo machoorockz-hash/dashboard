@@ -831,7 +831,7 @@ export default function Dashboard() {
               .wallet-btc-market {
                 position: absolute;
                 top: 39px;
-                right: 20px;
+                right: 14px;
               }
             `}</style>
             {/* ── Live BTC price and 24-hour change ── */}
