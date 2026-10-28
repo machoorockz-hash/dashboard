@@ -876,7 +876,7 @@ export default function Dashboard() {
                   }}
                 >
                   {btcMarket.changePct > 0 ? "+" : ""}{btcMarket.changePct.toFixed(2)}%{" "}
-                  {btcMarket.changePct < 0 ? "↓" : "↑"}
+                  {btcMarket.changePct < 0 ? "▼" : "▲"}
                 </span>
               ) : (
                 <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>24H —</span>
