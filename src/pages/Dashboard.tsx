@@ -910,11 +910,14 @@ export default function Dashboard() {
                   style={{
                     fontSize: "17px",
                     fontWeight: 800,
-                    color: "#E07B12",
+                    color: "#F7931A",
                   }}
                 >
                   {btcMarket ? (
-                    fmt(btcMarket.price, 2, 2)
+                    <>
+                      <span style={{ color: "#E07B12", fontSize: "20px" }}>₿</span>{" "}
+                      {fmt(btcMarket.price, 2, 2)}
+                    </>
                   ) : "—"}
                 </span>
                 {btcMarket ? (
