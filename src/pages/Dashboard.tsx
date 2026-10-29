@@ -940,20 +940,11 @@ export default function Dashboard() {
                   aria-label={`Today's upcoming Bitcoin event times: ${walletEventTimes.map((event) => event.label).join(", ")}`}
                   style={{
                     display: "flex",
-                    flexDirection: "column",
+                    flexDirection: "row",
                     alignItems: "flex-end",
                     gap: "2px",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 800,
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    EVENT:
-                  </span>
                   {walletEventTimes.map((event) => (
                     <span
                       key={event.label}
@@ -967,7 +958,7 @@ export default function Dashboard() {
                           : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
                       }}
                     >
-                      {event.label}
+                      E: {event.label}
                     </span>
                   ))}
                 </div>
