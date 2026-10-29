@@ -5,7 +5,7 @@ import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
 import { BtcCrashCard } from "../components/BtcCrashCard";
-import { BitcoinCalendar } from "../components/BitcoinCalendar";
+import { BitcoinCalendar, type BitcoinCalendarEvent } from "../components/BitcoinCalendar";
 import PumpScannerCard, { type PumpSignal } from "../components/PumpScannerCard";
 import SoldCoinsCard, { type SoldTradeSummary } from "../components/SoldCoinsCard";
 import { getAccount, getAllPrices } from "../lib/binance";
@@ -31,6 +31,34 @@ function fmtPrice(p: number) {
   if (p >= 1) return fmt(p, 4);
   if (p >= 0.01) return fmt(p, 5);
   return fmt(p, 6);
+}
+
+const DUBAI_EVENT_DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Dubai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const DUBAI_EVENT_TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Dubai",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function dubaiDateKey(date: Date) {
+  const parts = Object.fromEntries(
+    DUBAI_EVENT_DATE_FORMAT.formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function fmtDubaiEventTime(timestamp: number) {
+  return DUBAI_EVENT_TIME_FORMAT.format(new Date(timestamp))
+    .replace(":", ".")
+    .replace(/\s+/g, "");
 }
 
 /** Format a unix-ms timestamp into UAE (Asia/Dubai, UTC+4) date & time strings */
@@ -540,6 +568,7 @@ function useClock() {
     const parts = dtf.formatToParts(new Date(now));
     const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
     return {
+      now,
       hours: get("hour"),
       minutes: get("minute"),
       seconds: get("second"),
@@ -563,6 +592,7 @@ export default function Dashboard() {
   const tradeData = useTradeData();
   const clockTime = useClock();
   const [btcMarket, setBtcMarket] = useState<{ price: number; changePct: number } | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<BitcoinCalendarEvent[]>([]);
   const balanceAmountRef = useRef<HTMLSpanElement | null>(null);
   const btcQuoteRef = useRef<HTMLDivElement | null>(null);
 
@@ -717,6 +747,29 @@ export default function Dashboard() {
 
   const totalUsdt = allAssets.reduce((s, a) => s + a.usd, 0);
   const { display: animatedTotal, direction: balanceDir, delta: balanceDelta, changeKey: balanceKey } = useAnimatedBalance(totalUsdt);
+  const walletEventTimes = useMemo(() => {
+    const now = clockTime.now;
+    const today = dubaiDateKey(new Date(now));
+    const seenTimes = new Set<string>();
+
+    return calendarEvents.reduce<Array<{ label: string; startsAt: number }>>((times, event) => {
+      const startsAt = Date.parse(event.starts_at);
+      if (
+        !Number.isFinite(startsAt) ||
+        startsAt <= now ||
+        dubaiDateKey(new Date(startsAt)) !== today
+      ) {
+        return times;
+      }
+
+      const label = fmtDubaiEventTime(startsAt);
+      if (!seenTimes.has(label)) {
+        seenTimes.add(label);
+        times.push({ label, startsAt });
+      }
+      return times;
+    }, []);
+  }, [calendarEvents, clockTime.now]);
 
   const tpPrice = activeTrade?.take_profit ?? 0;
   const slPrice = activeTrade?.stop_loss ?? 0;
@@ -830,14 +883,11 @@ export default function Dashboard() {
             <div
               className="wallet-btc-market"
               ref={btcQuoteRef}
-              aria-label={btcMarket
-                ? `Bitcoin live price $${fmt(btcMarket.price, 2, 2)}, 24-hour change ${btcMarket.changePct.toFixed(2)} percent`
-                : "Bitcoin live price loading"}
               style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "flex-end",
-                gap: "2px",
+                gap: "10px",
                 padding: "5px 9px",
                 borderRadius: "9px",
                 background: "transparent",
@@ -845,33 +895,84 @@ export default function Dashboard() {
                 whiteSpace: "nowrap",
               }}
             >
-              <span
+              <div
+                aria-label={btcMarket
+                  ? `Bitcoin live price $${fmt(btcMarket.price, 2, 2)}, 24-hour change ${btcMarket.changePct.toFixed(2)} percent`
+                  : "Bitcoin live price loading"}
                 style={{
-                  fontSize: "17px",
-                  fontWeight: 800,
-                  color: "#F7931A",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  gap: "2px",
                 }}
               >
-                {btcMarket ? (
-                  <>
-                    <span style={{ color: "#E07B12", fontSize: "20px" }}>₿</span>{" "}
-                    {fmt(btcMarket.price, 2, 2)}
-                  </>
-                ) : "—"}
-              </span>
-              {btcMarket ? (
                 <span
                   style={{
-                    fontSize: "14px",
+                    fontSize: "17px",
                     fontWeight: 800,
-                    color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
+                    color: "#F7931A",
                   }}
                 >
-                  {btcMarket.changePct < 0 ? "▼" : "▲"}{" "}
-                  {Math.abs(btcMarket.changePct).toFixed(2)}%
+                  {btcMarket ? (
+                    <>
+                      <span style={{ color: "#E07B12", fontSize: "20px" }}>₿</span>{" "}
+                      {fmt(btcMarket.price, 2, 2)}
+                    </>
+                  ) : "—"}
                 </span>
-              ) : (
-                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>24H —</span>
+                {btcMarket ? (
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
+                    }}
+                  >
+                    {btcMarket.changePct < 0 ? "▼" : "▲"}{" "}
+                    {Math.abs(btcMarket.changePct).toFixed(2)}%
+                  </span>
+                ) : (
+                  <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>24H —</span>
+                )}
+              </div>
+              {walletEventTimes.length > 0 && (
+                <div
+                  aria-label={`Today's upcoming Bitcoin event times: ${walletEventTimes.map((event) => event.label).join(", ")}`}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-end",
+                    gap: "2px",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 800,
+                      color: pauseCountdownText !== null
+                        ? "#FFFFFF"
+                        : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                    }}
+                  >
+                    EVENTS:
+                  </span>
+                  {walletEventTimes.map((event) => (
+                    <span
+                      key={event.label}
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 800,
+                        lineHeight: 1.1,
+                        color: pauseCountdownText !== null ||
+                          event.startsAt - clockTime.now <= 60 * 60 * 1000
+                          ? "#FFFFFF"
+                          : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                      }}
+                    >
+                      {event.label}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -1215,7 +1316,7 @@ export default function Dashboard() {
         <BtcCrashCard />
 
         {/* ── BTC EVENT CALENDAR — always last on the dashboard ── */}
-        <BitcoinCalendar />
+        <BitcoinCalendar onEventsChange={setCalendarEvents} />
       </div>
     </AppLayout>
   );
