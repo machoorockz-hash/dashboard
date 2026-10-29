@@ -949,12 +949,10 @@ export default function Dashboard() {
                     style={{
                       fontSize: "10px",
                       fontWeight: 800,
-                      color: pauseCountdownText !== null
-                        ? "#FFFFFF"
-                        : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
+                      color: "#FFFFFF",
                     }}
                   >
-                    EVENTS:
+                    EVENT:
                   </span>
                   {walletEventTimes.map((event) => (
                     <span
