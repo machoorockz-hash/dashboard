@@ -584,16 +584,16 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                   <div className="relative shrink-0">
                     <CoinIcon symbol={sig.symbol.replace("USDT", "")} size={32} />
                     {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
-                      <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                      <span className="pointer-events-none absolute -top-2 left-1/2 z-10 -translate-x-1/2">
                         <span
-                          className={`rounded border bg-black/80 px-0.5 py-0.5 text-[9px] font-black leading-none tabular-nums shadow-sm ${
+                          className={`text-[10px] font-black leading-none tabular-nums ${
                             sig.overallScore < 50
-                              ? "border-pink-400/80 text-pink-300"
+                              ? "text-pink-300"
                               : sig.overallScore < 80
-                              ? "border-yellow-400/80 text-yellow-300"
+                              ? "text-yellow-300"
                               : sig.overallScore < 90
-                              ? "border-emerald-400/80 text-emerald-300"
-                              : "border-orange-400/80 text-orange-300"
+                              ? "text-emerald-300"
+                              : "text-orange-300"
                           }`}
                           title="Bot overall score out of 100"
                           aria-label={`Overall score ${Math.round(sig.overallScore)} out of 100`}
