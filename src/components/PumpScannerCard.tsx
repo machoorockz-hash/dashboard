@@ -592,6 +592,14 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                       <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
                         {sig.symbol.replace("USDT", "")}
                       </span>
+                      {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
+                        <span
+                          className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-emerald-300"
+                          title="Bot overall score out of 100"
+                        >
+                          SCORE {formatMetric(sig.overallScore, 1)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                       {date} · {time}
