@@ -947,7 +947,7 @@ export default function Dashboard() {
                 >
                   <span
                     style={{
-                      fontSize: "12px",
+                      fontSize: "10px",
                       fontWeight: 800,
                       color: pauseCountdownText !== null
                         ? "#FFFFFF"
