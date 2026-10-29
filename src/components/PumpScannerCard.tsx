@@ -596,7 +596,7 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                         <span
                           className={`text-[11px] font-black leading-none tabular-nums ${
                             sig.overallScore < 50
-                              ? "text-pink-300 drop-shadow-[0_0_7px_rgba(244,114,182,0.95)]"
+                              ? "text-pink-500 drop-shadow-[0_0_7px_rgba(219,39,119,0.95)]"
                               : sig.overallScore < 80
                               ? "text-yellow-300 drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
                               : sig.overallScore < 90
