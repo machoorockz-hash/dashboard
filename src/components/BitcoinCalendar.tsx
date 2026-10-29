@@ -132,8 +132,16 @@ function useCalendarSnapshot() {
   return snapshot;
 }
 
-export function BitcoinCalendar() {
+interface BitcoinCalendarProps {
+  onEventsChange?: (events: BitcoinCalendarEvent[]) => void;
+}
+
+export function BitcoinCalendar({ onEventsChange }: BitcoinCalendarProps) {
   const snapshot = useCalendarSnapshot();
+  useEffect(() => {
+    onEventsChange?.(normalizedEvents(snapshot));
+  }, [snapshot, onEventsChange]);
+
   const todayKey = dateKey(new Date());
   const events = useMemo(
     () => normalizedEvents(snapshot).filter((event) => dateKey(new Date(event.starts_at)) >= todayKey),
