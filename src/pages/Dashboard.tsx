@@ -949,12 +949,11 @@ export default function Dashboard() {
                     <span
                       key={event.label}
                       style={{
-                        fontSize: "11px",
+                        fontSize: "12.5px",
                         fontWeight: 800,
                         lineHeight: 1.1,
-                        color: pauseCountdownText !== null ||
-                          event.startsAt - clockTime.now <= 60 * 60 * 1000
-                          ? "#FFFFFF"
+                        color: event.startsAt - clockTime.now <= 60 * 60 * 1000
+                          ? "#F5F5F0"
                           : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
                       }}
                     >
