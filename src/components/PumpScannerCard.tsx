@@ -583,6 +583,25 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <CoinIcon symbol={sig.symbol.replace("USDT", "")} size={32} />
+                    {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
+                      <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                        <span
+                          className={`rounded border bg-black/80 px-0.5 py-0.5 text-[9px] font-black leading-none tabular-nums shadow-sm ${
+                            sig.overallScore < 50
+                              ? "border-pink-400/80 text-pink-300"
+                              : sig.overallScore < 80
+                              ? "border-yellow-400/80 text-yellow-300"
+                              : sig.overallScore < 90
+                              ? "border-emerald-400/80 text-emerald-300"
+                              : "border-orange-400/80 text-orange-300"
+                          }`}
+                          title="Bot overall score out of 100"
+                          aria-label={`Overall score ${Math.round(sig.overallScore)} out of 100`}
+                        >
+                          {Math.round(sig.overallScore)}
+                        </span>
+                      </span>
+                    )}
                     {(isLatest || isNew) && (
                       <span className={`absolute -inset-0.5 rounded-full ring-2 animate-ping opacity-40 ${isLatest ? "ring-primary" : "ring-emerald-400"}`} />
                     )}
@@ -592,14 +611,6 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                       <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
                         {sig.symbol.replace("USDT", "")}
                       </span>
-                      {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
-                        <span
-                          className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-emerald-300"
-                          title="Bot overall score out of 100"
-                        >
-                          SCORE {formatMetric(sig.overallScore, 1)}
-                        </span>
-                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                       {date} · {time}
