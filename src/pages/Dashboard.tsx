@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Wallet as WalletIcon, TrendingUp, Target, Shield, Clock } from "lucide-react";
+import { TrendingUp, Target, Shield, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
@@ -788,14 +788,6 @@ export default function Dashboard() {
           <div className="relative p-5 md:p-6">
             {/* ── Header row ── */}
             <div className="flex items-center justify-between">
-              <div
-                className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold"
-                style={{ color: "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))" }}
-              >
-                <WalletIcon className="h-3.5 w-3.5 shrink-0" />
-                Wallet
-              </div>
-
               {/* ── Live date (UAE timezone) ── */}
               <div
                 style={{
