@@ -947,7 +947,7 @@ export default function Dashboard() {
                 >
                   <span
                     style={{
-                      fontSize: "15px",
+                      fontSize: "12px",
                       fontWeight: 800,
                       color: pauseCountdownText !== null
                         ? "#FFFFFF"
@@ -960,7 +960,7 @@ export default function Dashboard() {
                     <span
                       key={event.label}
                       style={{
-                        fontSize: "15px",
+                        fontSize: "11px",
                         fontWeight: 800,
                         lineHeight: 1.1,
                         color: pauseCountdownText !== null ||
