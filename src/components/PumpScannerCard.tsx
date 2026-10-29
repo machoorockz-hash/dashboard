@@ -595,13 +595,11 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                       {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
                         <span
                           className={`text-[11px] font-black leading-none tabular-nums ${
-                            sig.overallScore < 50
+                            sig.overallScore < 20
                               ? "text-pink-500 drop-shadow-[0_0_7px_rgba(219,39,119,0.95)]"
                               : sig.overallScore < 80
                               ? "text-yellow-300 drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
-                              : sig.overallScore < 90
-                              ? "text-emerald-300 drop-shadow-[0_0_7px_rgba(52,211,153,0.95)]"
-                              : "text-violet-300 drop-shadow-[0_0_7px_rgba(167,139,250,0.95)]"
+                              : "text-emerald-300 drop-shadow-[0_0_7px_rgba(52,211,153,0.95)]"
                           }`}
                           title="Bot overall score out of 100"
                           aria-label={`Overall score ${Math.round(sig.overallScore)} out of 100`}
