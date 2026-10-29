@@ -864,7 +864,7 @@ export default function Dashboard() {
                   style={{
                     fontSize: "14px",
                     fontWeight: 800,
-                    color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
+                    color: btcMarket.changePct < 0 ? "#DC2626" : "#0dd9aa",
                   }}
                 >
                   {btcMarket.changePct < 0 ? "▼" : "▲"}{" "}
