@@ -862,7 +862,7 @@ export default function Dashboard() {
               >
                 {btcMarket ? (
                   <>
-                    <span style={{ color: "#F7931A", fontSize: "18px" }}>₿</span>{" "}
+                    <span style={{ color: "#E07B12", fontSize: "18px" }}>₿</span>{" "}
                     {fmt(btcMarket.price, 2, 2)}
                   </>
                 ) : "—"}
