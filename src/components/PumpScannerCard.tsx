@@ -583,25 +583,6 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <CoinIcon symbol={sig.symbol.replace("USDT", "")} size={32} />
-                    {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
-                      <span className="pointer-events-none absolute -top-6 left-1/2 z-10 -translate-x-1/2">
-                        <span
-                          className={`text-[11px] font-black leading-none tabular-nums ${
-                            sig.overallScore < 50
-                              ? "text-pink-300 drop-shadow-[0_0_7px_rgba(244,114,182,0.95)]"
-                              : sig.overallScore < 80
-                              ? "text-yellow-300 drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
-                              : sig.overallScore < 90
-                              ? "text-emerald-300 drop-shadow-[0_0_7px_rgba(52,211,153,0.95)]"
-                              : "text-orange-300 drop-shadow-[0_0_7px_rgba(251,146,60,0.95)]"
-                          }`}
-                          title="Bot overall score out of 100"
-                          aria-label={`Overall score ${Math.round(sig.overallScore)} out of 100`}
-                        >
-                          {Math.round(sig.overallScore)}
-                        </span>
-                      </span>
-                    )}
                     {(isLatest || isNew) && (
                       <span className={`absolute -inset-0.5 rounded-full ring-2 animate-ping opacity-40 ${isLatest ? "ring-primary" : "ring-emerald-400"}`} />
                     )}
@@ -611,6 +592,23 @@ export default function PumpScannerCard({ onCoinSelect, onLatestSignalsChange, o
                       <span className={`font-black text-sm tracking-wide ${isLatest ? "text-primary" : "text-foreground"}`}>
                         {sig.symbol.replace("USDT", "")}
                       </span>
+                      {typeof sig.overallScore === "number" && Number.isFinite(sig.overallScore) && (
+                        <span
+                          className={`text-[11px] font-black leading-none tabular-nums ${
+                            sig.overallScore < 50
+                              ? "text-pink-300 drop-shadow-[0_0_7px_rgba(244,114,182,0.95)]"
+                              : sig.overallScore < 80
+                              ? "text-yellow-300 drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
+                              : sig.overallScore < 90
+                              ? "text-emerald-300 drop-shadow-[0_0_7px_rgba(52,211,153,0.95)]"
+                              : "text-violet-300 drop-shadow-[0_0_7px_rgba(167,139,250,0.95)]"
+                          }`}
+                          title="Bot overall score out of 100"
+                          aria-label={`Overall score ${Math.round(sig.overallScore)} out of 100`}
+                        >
+                          {Math.round(sig.overallScore)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
                       {date} · {time}
