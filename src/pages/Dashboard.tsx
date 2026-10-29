@@ -940,7 +940,7 @@ export default function Dashboard() {
                   aria-label={`Today's upcoming Bitcoin event times: ${walletEventTimes.map((event) => event.label).join(", ")}`}
                   style={{
                     display: "flex",
-                    flexDirection: "row",
+                    flexDirection: "column",
                     alignItems: "flex-end",
                     gap: "2px",
                   }}
