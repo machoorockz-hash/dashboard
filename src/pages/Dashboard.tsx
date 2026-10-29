@@ -803,7 +803,7 @@ export default function Dashboard() {
                   fontWeight: 700,
                   letterSpacing: "0.12em",
                   color: pauseCountdownText !== null
-                    ? "color-mix(in oklab, var(--primary) 80%, var(--muted-foreground))"
+                    ? "#FFFFFF"
                     : "color-mix(in oklab, var(--muted-foreground) 70%, transparent)",
                 }}
               >
