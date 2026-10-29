@@ -847,7 +847,7 @@ export default function Dashboard() {
             >
               <span
                 style={{
-                  fontSize: "15px",
+                  fontSize: "17px",
                   fontWeight: 800,
                   color: "#F7931A",
                 }}
@@ -862,7 +862,7 @@ export default function Dashboard() {
               {btcMarket ? (
                 <span
                   style={{
-                    fontSize: "12.5px",
+                    fontSize: "14px",
                     fontWeight: 800,
                     color: btcMarket.changePct < 0 ? "#ef4444" : "#0dd9aa",
                   }}
