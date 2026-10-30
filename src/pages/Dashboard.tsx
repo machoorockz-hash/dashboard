@@ -664,10 +664,12 @@ function TargetProgressCircle({
     };
   }, [targetProgress]);
 
-  const sweepDegrees = displayProgress * 3.6;
   const tipAngle = (displayProgress * 3.6 - 90) * (Math.PI / 180);
-  const tipX = 50 + Math.cos(tipAngle) * 48;
-  const tipY = 50 + Math.sin(tipAngle) * 48;
+  const tipX = 50 + Math.cos(tipAngle) * 44;
+  const tipY = 50 + Math.sin(tipAngle) * 44;
+  const ringRadius = 35;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringDashOffset = ringCircumference * (1 - displayProgress / 100);
 
   return (
     <div
@@ -681,18 +683,38 @@ function TargetProgressCircle({
         overflow: "visible",
       }}
     >
-      <div
+      <svg
         aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "50%",
-          background: `conic-gradient(from 0deg, ${color} 0deg ${sweepDegrees}deg, rgba(255,255,255,0.13) ${sweepDegrees}deg 360deg)`,
-          filter: `drop-shadow(0 0 3px ${color}66)`,
-          WebkitMask: "radial-gradient(circle, transparent 0 86%, #000 89% 100%)",
-          mask: "radial-gradient(circle, transparent 0 86%, #000 89% 100%)",
-        }}
-      />
+        viewBox="0 0 80 80"
+        width="80"
+        height="80"
+        style={{ position: "absolute", inset: 0, overflow: "visible" }}
+      >
+        <circle
+          cx="40"
+          cy="40"
+          r={ringRadius}
+          fill="none"
+          stroke="rgba(255,255,255,0.24)"
+          strokeWidth="5"
+        />
+        <circle
+          cx="40"
+          cy="40"
+          r={ringRadius}
+          fill="none"
+          stroke={color}
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={`${ringCircumference} ${ringCircumference}`}
+          strokeDashoffset={ringDashOffset}
+          transform="rotate(-90 40 40)"
+          style={{
+            filter: `drop-shadow(0 0 3px ${color}88)`,
+            transition: "stroke-dashoffset 0.2s linear",
+          }}
+        />
+      </svg>
       <div
         aria-hidden="true"
         style={{
