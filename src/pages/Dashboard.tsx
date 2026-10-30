@@ -562,7 +562,7 @@ function DcaWheel({
               zIndex: 2,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(1.2px) drop-shadow(0 0 4px rgba(223, 255, 0, 0.4))",
+              filter: "blur(1.2px) drop-shadow(0 0 3px rgba(223, 255, 0, 0.3))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -638,10 +638,7 @@ function DcaWheel({
               fontWeight: 700,
               fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.04em",
-              textShadow: safeStep > 0
-                ? "0 0 5px rgba(223,255,0,0.5), 0 0 14px rgba(223,255,0,0.3)"
-                : "none",
-              transition: "text-shadow 0.25s ease",
+              textShadow: "0 0 14px rgba(223,255,0,0.24)",
             }}
           >
             {safeStep}
