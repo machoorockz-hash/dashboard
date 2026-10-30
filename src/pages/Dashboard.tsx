@@ -294,6 +294,7 @@ function StepSegments({
                       alignItems: "center",
                       justifyContent: "center",
                       transition: "all 0.35s ease",
+                      opacity: isPast ? 0.45 : 1,
                       cursor: "default",
                       position: "relative",
                       background: isSkipped
@@ -370,9 +371,10 @@ function StepSegments({
                       textTransform: "uppercase",
                       lineHeight: 1,
                       whiteSpace: "nowrap",
+                      opacity: 0.5,
                       color: "#f59e0b",
                     }}>
-                      Done
+                      {stepNumber}
                     </span>
                   ) : isActive ? (
                     <span style={{
@@ -421,6 +423,7 @@ function StepSegments({
                   <div style={{ position: "absolute", inset: 0, background: "color-mix(in oklab,var(--primary) 8%,var(--card))" }} />
                   <div style={{
                     position: "absolute", inset: 0, transition: "background 0.5s ease",
+                    opacity: isPast ? 0.4 : 1,
                     background: isSkipped
                       ? "linear-gradient(90deg, color-mix(in oklab,#ef4444 45%,transparent), color-mix(in oklab,#ef4444 25%,transparent))"
                       : isPast
