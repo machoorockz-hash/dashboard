@@ -633,7 +633,7 @@ function DcaWheel({
         >
           <span
             style={{
-              fontSize: "8px",
+              fontSize: "9px",
               fontWeight: 700,
               letterSpacing: "0.12em",
             }}
@@ -643,7 +643,7 @@ function DcaWheel({
           <span
             style={{
               marginTop: "3px",
-              fontSize: "20px",
+              fontSize: "25px",
               fontWeight: 700,
               fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.04em",
@@ -829,10 +829,12 @@ function TargetProgressCircle({
         <span
           style={{
             marginBottom: "5px",
-            fontSize: "9px",
+            fontSize: "11px",
             fontWeight: 900,
             letterSpacing: "0.16em",
             opacity: 0.78,
+            fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            WebkitTextStroke: "0.35px currentColor",
           }}
         >
           {label === "STOP LOSS" ? "SL" : "TP"}
