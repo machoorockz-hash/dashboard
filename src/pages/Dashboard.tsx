@@ -786,7 +786,7 @@ function TargetProgressCircle({
           strokeDashoffset={ringDashOffset}
           transform="rotate(-90 40 40)"
           style={{
-            filter: `drop-shadow(0 0 3px ${color}88)`,
+            filter: `drop-shadow(0 0 3px color-mix(in oklab, ${color} 45%, transparent))`,
             transition: "stroke-dashoffset 0.2s linear",
           }}
         />
@@ -814,7 +814,7 @@ function TargetProgressCircle({
             fontSize: "11px",
             fontWeight: 900,
             letterSpacing: "0.16em",
-            opacity: 0.78,
+            opacity: 1,
             fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             WebkitTextStroke: "0.35px currentColor",
           }}
@@ -824,13 +824,11 @@ function TargetProgressCircle({
         <span
           style={{
             fontSize: "14px",
-            fontWeight: 900,
+            fontWeight: 800,
             fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
             letterSpacing: "-0.025em",
-            WebkitTextStroke: "0.45px currentColor",
-            textShadow: `0 0 14px ${color}40`,
           }}
         >
           {targetValue}
@@ -847,15 +845,15 @@ function TargetProgressCircle({
           padding: "4px 6px",
           borderRadius: "999px",
           background: "rgba(5, 10, 15, 0.98)",
-          border: `1px solid ${color}99`,
-          boxShadow: `0 2px 10px rgba(0,0,0,0.42), 0 0 8px ${color}44`,
+          border: `1px solid color-mix(in oklab, ${color} 65%, transparent)`,
+          boxShadow: `0 2px 10px rgba(0,0,0,0.42), 0 0 8px color-mix(in oklab, ${color} 28%, transparent)`,
           color,
           fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
           fontSize: "10px",
           fontWeight: 900,
           fontVariantNumeric: "tabular-nums",
           letterSpacing: "0.01em",
-          textShadow: `0 0 8px ${color}66`,
+          textShadow: `0 0 8px color-mix(in oklab, ${color} 35%, transparent)`,
           lineHeight: 1,
           whiteSpace: "nowrap",
           pointerEvents: "none",
@@ -1621,13 +1619,13 @@ export default function Dashboard() {
                       label="TAKE PROFIT"
                       targetValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
                       progress={tpProgress}
-                      color="#10b981"
+                      color="var(--bull)"
                     />
                     <TargetProgressCircle
                       label="STOP LOSS"
                       targetValue={slPrice ? `-${Math.abs(stopPct).toFixed(2)}%` : "—"}
                       progress={slProgress}
-                      color="#ef4444"
+                      color="var(--bear)"
                     />
                   </div>
                 </div>
