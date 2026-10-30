@@ -486,6 +486,8 @@ function DcaWheel({
   return (
     <>
       <style>{`
+        @import url("https://fonts.googleapis.com/css2?family=Jura:wght@500&display=swap");
+
         @keyframes dca-wheel-glow {
           0%, 100% {
             opacity: 0.68;
@@ -507,7 +509,7 @@ function DcaWheel({
         aria-label={`DCA step ${safeStep} of ${safeTotal}`}
         role="img"
         style={{
-          width: "60px",
+          width: "90px",
           aspectRatio: "1 / 1",
           margin: "8px auto 4px",
           position: "relative",
@@ -522,9 +524,11 @@ function DcaWheel({
             style={{
               position: "absolute",
               inset: 0,
+              zIndex: 1,
               borderRadius: "50%",
               background: `conic-gradient(${triggeredGlowStops.join(", ")})`,
-              filter: "blur(1.3px) drop-shadow(0 0 1.5px rgba(91, 255, 207, 0.32))",
+              filter: "blur(2px) drop-shadow(0 0 2px rgba(91, 255, 207, 0.32))",
+              mixBlendMode: "screen",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -537,9 +541,10 @@ function DcaWheel({
             style={{
               position: "absolute",
               inset: 0,
+              zIndex: 2,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(1.5px) drop-shadow(0 0 2px rgba(91, 255, 207, 0.4))",
+              filter: "blur(2px) drop-shadow(0 0 3px rgba(91, 255, 207, 0.4))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -550,6 +555,7 @@ function DcaWheel({
           style={{
             position: "absolute",
             inset: 0,
+            zIndex: 0,
             borderRadius: "50%",
             background: `conic-gradient(${gradientStops.join(", ")})`,
             WebkitMask: "radial-gradient(circle, transparent 0 54%, #000 55% 100%)",
@@ -560,10 +566,13 @@ function DcaWheel({
           aria-hidden="true"
           style={{
             position: "relative",
+            zIndex: 3,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
+            fontFamily: "'Jura', sans-serif",
+            fontWeight: 500,
             color: "#78f6d0",
             textAlign: "center",
             lineHeight: 1,
@@ -572,8 +581,8 @@ function DcaWheel({
         >
           <span
             style={{
-              fontSize: "6px",
-              fontWeight: 300,
+              fontSize: "9px",
+              fontWeight: 500,
               letterSpacing: "0.045em",
             }}
           >
@@ -581,9 +590,9 @@ function DcaWheel({
           </span>
           <span
             style={{
-              marginTop: "1.5px",
-              fontSize: "11px",
-              fontWeight: 300,
+              marginTop: "2px",
+              fontSize: "16px",
+              fontWeight: 500,
               fontVariantNumeric: "tabular-nums",
             }}
           >
