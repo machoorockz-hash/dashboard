@@ -450,6 +450,7 @@ function DcaWheel({
   const gapAngle = Math.min(5, segmentAngle * 0.16);
   const gradientStops = [`transparent 0deg ${gapAngle / 2}deg`];
   const activeGlowStops = [`transparent 0deg ${gapAngle / 2}deg`];
+  const triggeredGlowStops = [`transparent 0deg ${gapAngle / 2}deg`];
 
   for (let index = 0; index < safeTotal; index += 1) {
     const start = index * segmentAngle;
@@ -459,13 +460,16 @@ function DcaWheel({
     const stepNumber = index + 1;
     const isActive = stepNumber === safeStep;
     const isSkipped = skippedSteps?.includes(stepNumber) ?? false;
+    const isTriggered = stepNumber < safeStep && !isSkipped;
     const color = isSkipped
       ? "#71333b"
       : isActive
         ? "#78f6d0"
-        : index % 2 === 0
-          ? "#10513b"
-          : "#0d4a36";
+        : isTriggered
+          ? "#176149"
+          : index % 2 === 0
+            ? "#10513b"
+            : "#0d4a36";
 
     gradientStops.push(`${color} ${segmentStart}deg ${segmentEnd}deg`);
     gradientStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
@@ -473,6 +477,10 @@ function DcaWheel({
       `${isActive ? "rgba(120, 246, 208, 0.9)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     activeGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
+    triggeredGlowStops.push(
+      `${isTriggered ? "rgba(91, 230, 187, 0.55)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+    );
+    triggeredGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
   }
 
   return (
@@ -499,7 +507,7 @@ function DcaWheel({
         aria-label={`DCA step ${safeStep} of ${safeTotal}`}
         role="img"
         style={{
-          width: "min(100%, 320px)",
+          width: "120px",
           aspectRatio: "1 / 1",
           margin: "8px auto 4px",
           position: "relative",
@@ -507,6 +515,21 @@ function DcaWheel({
           placeItems: "center",
         }}
       >
+        {safeStep > 1 && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: `conic-gradient(${triggeredGlowStops.join(", ")})`,
+              filter: "blur(2px)",
+              opacity: 0.65,
+              WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
+              mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
+            }}
+          />
+        )}
         {safeStep > 0 && (
           <div
             className="dca-wheel-glow"
@@ -516,7 +539,7 @@ function DcaWheel({
               inset: 0,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(7px) drop-shadow(0 0 9px rgba(91, 255, 207, 0.4))",
+              filter: "blur(3px) drop-shadow(0 0 4px rgba(91, 255, 207, 0.4))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -549,7 +572,7 @@ function DcaWheel({
         >
           <span
             style={{
-              fontSize: "clamp(24px, 8vw, 34px)",
+              fontSize: "12px",
               fontWeight: 300,
               letterSpacing: "0.045em",
             }}
@@ -558,8 +581,8 @@ function DcaWheel({
           </span>
           <span
             style={{
-              marginTop: "10px",
-              fontSize: "clamp(48px, 15vw, 64px)",
+              marginTop: "3px",
+              fontSize: "22px",
               fontWeight: 300,
               fontVariantNumeric: "tabular-nums",
             }}
