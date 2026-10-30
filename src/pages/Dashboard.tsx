@@ -334,9 +334,15 @@ function StepSegments({
                         <path d="M3,3 L9,9 M9,3 L3,9" />
                       </svg>
                     ) : isPast ? (
-                      <svg className="dca-check-pop" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="2,6 5,9.5 10,3" />
-                      </svg>
+                      <span style={{
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        lineHeight: 1,
+                        fontVariantNumeric: "tabular-nums",
+                        color: "#f59e0b",
+                      }}>
+                        {stepNumber}
+                      </span>
                     ) : (
                       <span style={{
                         fontSize: isActive ? "12px" : "9px", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", transition: "all 0.4s ease",
@@ -363,20 +369,7 @@ function StepSegments({
                     }}>
                       Skipped
                     </span>
-                  ) : isPast ? (
-                    <span style={{
-                      fontSize: "8px",
-                      fontWeight: 800,
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                      lineHeight: 1,
-                      whiteSpace: "nowrap",
-                      opacity: 0.5,
-                      color: "#f59e0b",
-                    }}>
-                      {stepNumber}
-                    </span>
-                  ) : isActive ? (
+                  ) : isPast ? null : isActive ? (
                     <span style={{
                       fontSize: "8px",
                       fontWeight: 800,
