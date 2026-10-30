@@ -463,10 +463,10 @@ function DcaWheel({
     const isTriggered = stepNumber < safeStep && !isSkipped;
     const color = isSkipped
       ? "#5c3540"
-      : isActive
-        ? "#78f6d0"
+      : isActive || stepNumber === 6
+        ? "#dfff00"
         : isTriggered
-          ? "#376e5d"
+          ? "#7d8f01"
           : index % 2 === 0
             ? "#103f34"
             : "#0d382e";
@@ -474,11 +474,11 @@ function DcaWheel({
     gradientStops.push(`${color} ${segmentStart}deg ${segmentEnd}deg`);
     gradientStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
     activeGlowStops.push(
-      `${isActive ? "rgba(120, 246, 208, 0.72)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+      `${isActive ? "rgba(223, 255, 0, 0.72)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     activeGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
     triggeredGlowStops.push(
-      `${isTriggered ? "rgba(55, 110, 93, 0.52)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+      `${isTriggered ? "rgba(125, 143, 1, 0.52)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     triggeredGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
   }
@@ -545,7 +545,7 @@ function DcaWheel({
               zIndex: 1,
               borderRadius: "50%",
               background: `conic-gradient(${triggeredGlowStops.join(", ")})`,
-              filter: "blur(1.2px) drop-shadow(0 0 2px rgba(91, 255, 207, 0.22))",
+              filter: "blur(1.2px) drop-shadow(0 0 2px rgba(125, 143, 1, 0.22))",
               mixBlendMode: "screen",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
@@ -562,7 +562,7 @@ function DcaWheel({
               zIndex: 2,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(1.2px) drop-shadow(0 0 3px rgba(91, 255, 207, 0.3))",
+              filter: "blur(1.2px) drop-shadow(0 0 4px rgba(223, 255, 0, 0.4))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -601,7 +601,7 @@ function DcaWheel({
             zIndex: 4,
             borderRadius: "50%",
             border: "1px solid rgba(196,255,244,0.2)",
-            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.26), 0 0 12px rgba(120,246,208,0.08)",
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.26), 0 0 12px rgba(223,255,0,0.08)",
             pointerEvents: "none",
           }}
         />
@@ -616,7 +616,7 @@ function DcaWheel({
             justifyContent: "center",
             fontFamily: "'Jura', sans-serif",
             fontWeight: 500,
-            color: "#78f6d0",
+            color: "#dfff00",
             textAlign: "center",
             lineHeight: 1,
             userSelect: "none",
@@ -638,7 +638,10 @@ function DcaWheel({
               fontWeight: 700,
               fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.04em",
-              textShadow: "0 0 14px rgba(120,246,208,0.24)",
+              textShadow: safeStep > 0
+                ? "0 0 5px rgba(223,255,0,0.5), 0 0 14px rgba(223,255,0,0.3)"
+                : "none",
+              transition: "text-shadow 0.25s ease",
             }}
           >
             {safeStep}
@@ -1615,16 +1618,7 @@ export default function Dashboard() {
                     ) : (
                       <div aria-hidden="true" style={{ width: "80px", height: "80px", flex: "0 0 80px" }} />
                     )}
-                    {pnlUsd >= 0 ? (
-                      <TargetProgressCircle
-                        label="TAKE PROFIT"
-                        targetValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
-                        progress={tpProgress}
-                        color="var(--bull)"
-                      />
-                    ) : (
-                      <div aria-hidden="true" />
-                    )}
+                    <div aria-hidden="true" />
                     {pnlUsd < 0 ? (
                       <TargetProgressCircle
                         label="STOP LOSS"
@@ -1633,7 +1627,12 @@ export default function Dashboard() {
                         color="var(--bear)"
                       />
                     ) : (
-                      <div aria-hidden="true" />
+                      <TargetProgressCircle
+                        label="TAKE PROFIT"
+                        targetValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
+                        progress={tpProgress}
+                        color="var(--bull)"
+                      />
                     )}
                   </div>
                 </div>
