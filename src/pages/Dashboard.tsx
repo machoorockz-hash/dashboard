@@ -466,7 +466,7 @@ function DcaWheel({
       : isActive
         ? "#78f6d0"
         : isTriggered
-          ? "#1b7058"
+          ? "#692c06"
           : index % 2 === 0
             ? "#103f34"
             : "#0d382e";
@@ -478,7 +478,7 @@ function DcaWheel({
     );
     activeGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
     triggeredGlowStops.push(
-      `${isTriggered ? "rgba(120, 246, 208, 0.52)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+      `${isTriggered ? "rgba(105, 44, 6, 0.52)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     triggeredGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
   }
