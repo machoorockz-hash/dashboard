@@ -902,7 +902,7 @@ export function PriceChart({
         /* ── Next DCA trigger line ──────────────────────────────────────────  */
         .overlay-dca-line {
           position:absolute; left:0; right:68px; height:2px; transform:translateY(-50%);
-          background:repeating-linear-gradient(90deg,rgba(249,115,22,.58) 0 8px,transparent 8px 14px);
+          background:repeating-linear-gradient(90deg,#DFFF00 0 8px,transparent 8px 14px);
           pointer-events:none;
         }
         .overlay-dca-badge {
