@@ -1179,7 +1179,7 @@ export default function Dashboard() {
                       {pnlUsd >= 0 ? "+" : "-"}{Math.abs(pnlUsd).toFixed(2)}
                     </span>
                     <span className={`text-[14.4144px] font-bold ${pnlPct >= 0 ? "text-bull" : "text-bear"}`}>
-                      [ {pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}% ]
+                      {pnlPct >= 0 ? "▲" : "▼"} {Math.abs(pnlPct).toFixed(2)}%
                     </span>
                   </div>
                 </div>
