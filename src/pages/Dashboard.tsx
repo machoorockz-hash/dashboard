@@ -466,7 +466,7 @@ function DcaWheel({
       : isActive || stepNumber === 6
         ? "#dfff00"
         : isTriggered
-          ? "#556100"
+          ? "#454f00"
           : index % 2 === 0
             ? "#103f34"
             : "#0d382e";
