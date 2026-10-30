@@ -509,9 +509,9 @@ function DcaWheel({
         aria-label={`DCA step ${safeStep} of ${safeTotal}`}
         role="img"
         style={{
-          width: "90px",
+          width: "80px",
           aspectRatio: "1 / 1",
-          margin: "8px auto 4px",
+          margin: "8px 0 4px",
           position: "relative",
           display: "grid",
           placeItems: "center",
@@ -527,7 +527,7 @@ function DcaWheel({
               zIndex: 1,
               borderRadius: "50%",
               background: `conic-gradient(${triggeredGlowStops.join(", ")})`,
-              filter: "blur(2px) drop-shadow(0 0 2px rgba(91, 255, 207, 0.32))",
+              filter: "blur(1.8px) drop-shadow(0 0 1.8px rgba(91, 255, 207, 0.32))",
               mixBlendMode: "screen",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
@@ -544,7 +544,7 @@ function DcaWheel({
               zIndex: 2,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(2px) drop-shadow(0 0 3px rgba(91, 255, 207, 0.4))",
+              filter: "blur(1.8px) drop-shadow(0 0 2.7px rgba(91, 255, 207, 0.4))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -581,7 +581,7 @@ function DcaWheel({
         >
           <span
             style={{
-              fontSize: "9px",
+              fontSize: "8px",
               fontWeight: 500,
               letterSpacing: "0.045em",
             }}
@@ -591,7 +591,7 @@ function DcaWheel({
           <span
             style={{
               marginTop: "2px",
-              fontSize: "16px",
+              fontSize: "14px",
               fontWeight: 500,
               fontVariantNumeric: "tabular-nums",
             }}
