@@ -128,7 +128,7 @@ function getPauseWindowCountdown(paused: boolean, reasons: string[], now = Date.
   return matches.length > 0 ? Math.min(...matches) : null;
 }
 
-function StepSegments({
+export function StepSegments({
   step,
   total,
   stepAmounts,
@@ -430,6 +430,143 @@ function StepSegments({
             </div>
           );
         })}
+      </div>
+    </>
+  );
+}
+
+function DcaWheel({
+  step,
+  total,
+  skippedSteps,
+}: {
+  step: number;
+  total: number;
+  skippedSteps?: number[];
+}) {
+  const safeTotal = Math.max(1, Math.floor(total));
+  const safeStep = Math.max(0, Math.min(safeTotal, Math.floor(step)));
+  const segmentAngle = 360 / safeTotal;
+  const gapAngle = Math.min(5, segmentAngle * 0.16);
+  const gradientStops = [`transparent 0deg ${gapAngle / 2}deg`];
+  const activeGlowStops = [`transparent 0deg ${gapAngle / 2}deg`];
+
+  for (let index = 0; index < safeTotal; index += 1) {
+    const start = index * segmentAngle;
+    const end = (index + 1) * segmentAngle;
+    const segmentStart = start + gapAngle / 2;
+    const segmentEnd = end - gapAngle / 2;
+    const stepNumber = index + 1;
+    const isActive = stepNumber === safeStep;
+    const isSkipped = skippedSteps?.includes(stepNumber) ?? false;
+    const color = isSkipped
+      ? "#71333b"
+      : isActive
+        ? "#78f6d0"
+        : index % 2 === 0
+          ? "#10513b"
+          : "#0d4a36";
+
+    gradientStops.push(`${color} ${segmentStart}deg ${segmentEnd}deg`);
+    gradientStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
+    activeGlowStops.push(
+      `${isActive ? "rgba(120, 246, 208, 0.9)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+    );
+    activeGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
+  }
+
+  return (
+    <>
+      <style>{`
+        @keyframes dca-wheel-glow {
+          0%, 100% {
+            opacity: 0.68;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+        .dca-wheel-glow {
+          animation: dca-wheel-glow 2.2s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .dca-wheel-glow {
+            animation: none;
+          }
+        }
+      `}</style>
+      <div
+        aria-label={`DCA step ${safeStep} of ${safeTotal}`}
+        role="img"
+        style={{
+          width: "min(100%, 320px)",
+          aspectRatio: "1 / 1",
+          margin: "8px auto 4px",
+          position: "relative",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        {safeStep > 0 && (
+          <div
+            className="dca-wheel-glow"
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: `conic-gradient(${activeGlowStops.join(", ")})`,
+              filter: "blur(7px) drop-shadow(0 0 9px rgba(91, 255, 207, 0.4))",
+              WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
+              mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
+            }}
+          />
+        )}
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            background: `conic-gradient(${gradientStops.join(", ")})`,
+            WebkitMask: "radial-gradient(circle, transparent 0 54%, #000 55% 100%)",
+            mask: "radial-gradient(circle, transparent 0 54%, #000 55% 100%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#78f6d0",
+            textAlign: "center",
+            lineHeight: 1,
+            userSelect: "none",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "clamp(24px, 8vw, 34px)",
+              fontWeight: 300,
+              letterSpacing: "0.045em",
+            }}
+          >
+            DCA
+          </span>
+          <span
+            style={{
+              marginTop: "10px",
+              fontSize: "clamp(48px, 15vw, 64px)",
+              fontWeight: 300,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {safeStep}
+          </span>
+        </div>
       </div>
     </>
   );
@@ -783,8 +920,6 @@ export default function Dashboard() {
 
   const dcaStep       = activeTrade?.dca_step ?? 0;
   const dcaTotal      = activeTrade?.dca_total_steps ?? 6;
-  const dcaAmounts    = activeTrade?.dca_step_amounts;
-  const dcaTimestamps = activeTrade?.dca_step_timestamps;
   const dcaSkipped    = activeTrade?.dca_skipped_steps;
   const dcaNextStep = activeTrade?.dca_next_step;
   const dcaNextTriggerPct = activeTrade?.dca_next_trigger_pct;
@@ -1188,37 +1323,9 @@ export default function Dashboard() {
               <div className="relative mt-5">
                 {showDca && (
                   <div className="relative mt-3 border-t border-border/60 pt-3">
-                    <div className="relative flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase tracking-widest font-extrabold">
-                          <span className="font-extrabold" style={{ color: "var(--primary)" }}>DCA OCO</span>
-                        </span>
-                      </div>
-                      <div className="flex items-baseline gap-1">
-                        <span
-                          className="text-2xl font-black tabular-nums leading-none"
-                          style={{
-                            color: "var(--primary)",
-                            textShadow: "0 0 16px color-mix(in oklab,var(--primary) 70%,transparent)",
-                            letterSpacing: "-0.02em",
-                          }}
-                        >
-                          {dcaStep}
-                        </span>
-                        <span
-                          className="text-base font-black leading-none"
-                          style={{ color: "color-mix(in oklab,var(--muted-foreground) 50%,transparent)" }}
-                        >
-                          /{dcaTotal}
-                        </span>
-                      </div>
-                    </div>
-
-                    <StepSegments
+                    <DcaWheel
                       step={dcaStep}
                       total={dcaTotal}
-                      stepAmounts={dcaAmounts}
-                      stepTimestamps={dcaTimestamps}
                       skippedSteps={dcaSkipped}
                     />
 
