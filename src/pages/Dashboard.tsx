@@ -1615,18 +1615,26 @@ export default function Dashboard() {
                     ) : (
                       <div aria-hidden="true" style={{ width: "80px", height: "80px", flex: "0 0 80px" }} />
                     )}
-                    <TargetProgressCircle
-                      label="TAKE PROFIT"
-                      targetValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
-                      progress={tpProgress}
-                      color="var(--bull)"
-                    />
-                    <TargetProgressCircle
-                      label="STOP LOSS"
-                      targetValue={slPrice ? `-${Math.abs(stopPct).toFixed(2)}%` : "—"}
-                      progress={slProgress}
-                      color="var(--bear)"
-                    />
+                    {pnlUsd >= 0 ? (
+                      <TargetProgressCircle
+                        label="TAKE PROFIT"
+                        targetValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
+                        progress={tpProgress}
+                        color="var(--bull)"
+                      />
+                    ) : (
+                      <div aria-hidden="true" />
+                    )}
+                    {pnlUsd < 0 ? (
+                      <TargetProgressCircle
+                        label="STOP LOSS"
+                        targetValue={slPrice ? `-${Math.abs(stopPct).toFixed(2)}%` : "—"}
+                        progress={slProgress}
+                        color="var(--bear)"
+                      />
+                    ) : (
+                      <div aria-hidden="true" />
+                    )}
                   </div>
                 </div>
 
