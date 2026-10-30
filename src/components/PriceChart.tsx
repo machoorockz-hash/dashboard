@@ -902,15 +902,15 @@ export function PriceChart({
         /* ── Next DCA trigger line ──────────────────────────────────────────  */
         .overlay-dca-line {
           position:absolute; left:0; right:68px; height:2px; transform:translateY(-50%);
-          background:repeating-linear-gradient(90deg,rgba(249,115,22,.58) 0 8px,transparent 8px 14px);
+          background:repeating-linear-gradient(90deg,rgba(223,255,0,.58) 0 8px,transparent 8px 14px);
           pointer-events:none;
         }
         .overlay-dca-badge {
           position:absolute; left:8px; transform:translateY(-50%);
-          background:linear-gradient(90deg,rgba(249,115,22,.14),rgba(249,115,22,.04));
-          border:1px solid rgba(249,115,22,.38); border-radius:4px; padding:1px 6px;
+          background:linear-gradient(90deg,rgba(223,255,0,.14),rgba(223,255,0,.04));
+          border:1px solid rgba(223,255,0,.38); border-radius:4px; padding:1px 6px;
           font-size:9px; font-weight:900; color:#ffffff; letter-spacing:.05em;
-          white-space:nowrap; z-index:2; text-shadow:0 0 4px rgba(249,115,22,.24);
+          white-space:nowrap; z-index:2; text-shadow:0 0 4px rgba(223,255,0,.24);
         }
 
         /* ── Swing high/low labels ──────────────────────────────────────────  */
@@ -918,7 +918,7 @@ export function PriceChart({
           position:absolute; display:none; align-items:center; justify-content:center;
           transform:translate(-50%,-115%); pointer-events:none; z-index:4;
           width:18px; height:18px; border-radius:5px;
-          background:#DFFF00; border:1px solid #fed7aa; color:#1c0a00;
+          background:#f97316; border:1px solid #fed7aa; color:#1c0a00;
           box-shadow:0 0 10px rgba(249,115,22,.75), 0 2px 5px rgba(0,0,0,.45);
           font-size:11px; font-weight:1000; line-height:1;
         }
