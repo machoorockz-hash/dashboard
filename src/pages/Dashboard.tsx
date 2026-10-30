@@ -506,17 +506,77 @@ function DcaWheel({
         }
       `}</style>
       <div
-        aria-label={`DCA step ${safeStep} of ${safeTotal}`}
-        role="img"
         style={{
-          width: "80px",
-          aspectRatio: "1 / 1",
-          margin: "8px 0 4px",
+          flex: "1 1 0",
+          minWidth: 0,
+          minHeight: "132px",
           position: "relative",
-          display: "grid",
-          placeItems: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "5px",
+          padding: "10px 8px",
+          borderRadius: "16px",
+          border: "1px solid rgba(120, 246, 208, 0.18)",
+          background: "linear-gradient(145deg, rgba(23, 55, 49, 0.62), rgba(12, 17, 22, 0.94) 58%, rgba(8, 11, 15, 0.98))",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.055), 0 12px 28px -24px rgba(0,0,0,0.9)",
+          overflow: "hidden",
         }}
       >
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: "0 14% auto",
+            height: "1px",
+            background: "linear-gradient(90deg, transparent, rgba(120,246,208,0.6), transparent)",
+          }}
+        />
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "5px",
+            color: "rgba(218, 235, 231, 0.78)",
+            fontFamily: "inherit",
+            fontSize: "9px",
+            fontWeight: 800,
+            letterSpacing: "0.11em",
+            lineHeight: 1,
+            textTransform: "uppercase",
+          }}
+        >
+          <span>DCA PLAN</span>
+          <span
+            style={{
+              padding: "4px 6px",
+              borderRadius: "999px",
+              border: "1px solid rgba(120,246,208,0.18)",
+              background: "rgba(120,246,208,0.08)",
+              color: "rgba(151, 248, 220, 0.9)",
+              fontSize: "8px",
+              fontVariantNumeric: "tabular-nums",
+              letterSpacing: "0.04em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {safeStep}/{safeTotal}
+          </span>
+        </div>
+        <div
+          aria-label={`DCA step ${safeStep} of ${safeTotal}`}
+          role="img"
+          style={{
+            width: "clamp(72px, 8vw, 88px)",
+            aspectRatio: "1 / 1",
+            position: "relative",
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
         {safeStep > 1 && (
           <div
             className="dca-wheel-glow"
@@ -582,22 +642,25 @@ function DcaWheel({
           <span
             style={{
               fontSize: "8px",
-              fontWeight: 500,
-              letterSpacing: "0.045em",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
             }}
           >
-            DCA
+            STEP
           </span>
           <span
             style={{
-              marginTop: "2px",
-              fontSize: "14px",
-              fontWeight: 500,
+              marginTop: "3px",
+              fontSize: "20px",
+              fontWeight: 700,
               fontVariantNumeric: "tabular-nums",
+              letterSpacing: "-0.04em",
+              textShadow: "0 0 14px rgba(120,246,208,0.24)",
             }}
           >
             {safeStep}
           </span>
+        </div>
         </div>
       </div>
     </>
@@ -673,29 +736,97 @@ function TargetProgressCircle({
 
   return (
     <div
-      role="img"
-      aria-label={`${label}: target ${targetValue}, progress ${displayProgress.toFixed(1)}%`}
       style={{
-        width: "80px",
-        height: "80px",
-        flex: "0 0 80px",
+        flex: "1 1 0",
+        minWidth: 0,
+        minHeight: "132px",
         position: "relative",
-        overflow: "visible",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "5px",
+        padding: "10px 8px",
+        borderRadius: "16px",
+        border: `1px solid color-mix(in oklab, ${color} 22%, rgba(255,255,255,0.07))`,
+        background: `linear-gradient(145deg, color-mix(in oklab, ${color} 9%, rgba(17,22,28,0.96)), rgba(11,15,20,0.96) 62%, rgba(8,11,15,0.98))`,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.055), 0 12px 28px -24px ${color}66`,
+        overflow: "hidden",
       }}
     >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "0 14% auto",
+          height: "1px",
+          background: `linear-gradient(90deg, transparent, ${color}99, transparent)`,
+        }}
+      />
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "5px",
+          color: "rgba(226, 231, 237, 0.82)",
+          fontFamily: "inherit",
+          fontSize: "9px",
+          fontWeight: 800,
+          letterSpacing: "0.105em",
+          lineHeight: 1,
+          textTransform: "uppercase",
+        }}
+      >
+        <span style={{ whiteSpace: "nowrap" }}>{label}</span>
+        <span
+          aria-hidden="true"
+          style={{
+            width: "6px",
+            height: "6px",
+            flex: "0 0 6px",
+            borderRadius: "50%",
+            background: color,
+            boxShadow: `0 0 9px ${color}88`,
+          }}
+        />
+      </div>
+      <div
+        role="img"
+        aria-label={`${label}: target ${targetValue}, progress ${displayProgress.toFixed(1)}%`}
+        style={{
+          width: "clamp(72px, 8vw, 88px)",
+          height: "clamp(72px, 8vw, 88px)",
+          flex: "0 0 auto",
+          position: "relative",
+          overflow: "visible",
+        }}
+      >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "13px",
+          borderRadius: "50%",
+          border: "1px solid rgba(255,255,255,0.055)",
+          background: `radial-gradient(circle at 50% 38%, color-mix(in oklab, ${color} 9%, rgba(17,22,28,0.94)), rgba(8,11,15,0.96) 72%)`,
+          boxShadow: "inset 0 2px 8px rgba(0,0,0,0.35)",
+        }}
+      />
       <svg
         aria-hidden="true"
         viewBox="0 0 80 80"
         width="80"
         height="80"
-        style={{ position: "absolute", inset: 0, overflow: "visible" }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible", zIndex: 1 }}
       >
         <circle
           cx="40"
           cy="40"
           r={ringRadius}
           fill="none"
-          stroke="rgba(255,255,255,0.24)"
+          stroke="rgba(255,255,255,0.16)"
           strokeWidth="5"
         />
         <circle
@@ -720,6 +851,7 @@ function TargetProgressCircle({
         style={{
           position: "absolute",
           inset: 0,
+          zIndex: 2,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -733,24 +865,27 @@ function TargetProgressCircle({
       >
         <span
           style={{
-            fontSize: "10px",
+            fontSize: "12px",
             fontWeight: 700,
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
+            letterSpacing: "-0.025em",
+            textShadow: `0 0 14px ${color}40`,
           }}
         >
           {targetValue}
         </span>
         <span
           style={{
-            marginTop: "3px",
-            fontSize: "5.5px",
+            marginTop: "4px",
+            fontSize: "6.5px",
             fontWeight: 700,
-            letterSpacing: "0.1em",
+            letterSpacing: "0.12em",
             whiteSpace: "nowrap",
+            opacity: 0.76,
           }}
         >
-          {label}
+          {label === "STOP LOSS" ? "RISK LIMIT" : "PRICE TARGET"}
         </span>
       </div>
       <div
@@ -761,14 +896,14 @@ function TargetProgressCircle({
           top: `${tipY}%`,
           transform: "translate(-50%, -50%)",
           zIndex: 2,
-          padding: "2px 3px",
+          padding: "3px 5px",
           borderRadius: "999px",
-          background: "rgba(5, 10, 15, 0.96)",
+          background: "rgba(5, 10, 15, 0.98)",
           border: `1px solid ${color}99`,
-          boxShadow: `0 0 4px ${color}55`,
+          boxShadow: `0 2px 10px rgba(0,0,0,0.42), 0 0 8px ${color}44`,
           color,
           fontFamily: "'Jura', sans-serif",
-          fontSize: "6px",
+          fontSize: "8px",
           fontWeight: 700,
           fontVariantNumeric: "tabular-nums",
           lineHeight: 1,
@@ -777,6 +912,7 @@ function TargetProgressCircle({
         }}
       >
         {displayProgress.toFixed(1)}%
+      </div>
       </div>
     </div>
   );
@@ -1521,7 +1657,7 @@ export default function Dashboard() {
 
               <div className="relative mt-5">
                 <div className="relative mt-3 border-t border-border/60 pt-3 pb-3">
-                  <div className="flex items-center justify-between">
+                  <div className="grid grid-cols-3 items-stretch gap-2 sm:gap-3">
                     {showDca ? (
                       <DcaWheel
                         step={dcaStep}
