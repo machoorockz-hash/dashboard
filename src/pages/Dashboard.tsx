@@ -535,10 +535,15 @@ function DcaWheel({
         />
         <div
           style={{
-            width: "100%",
+            position: "absolute",
+            top: "12px",
+            left: "10px",
+            right: "10px",
+            zIndex: 4,
+            width: "auto",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-start",
             gap: "5px",
             color: "rgba(218, 235, 231, 0.78)",
             fontFamily: "inherit",
@@ -765,7 +770,12 @@ function TargetProgressCircle({
       />
       <div
         style={{
-          width: "100%",
+          position: "absolute",
+          top: "12px",
+          left: "10px",
+          right: "10px",
+          zIndex: 4,
+          width: "auto",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -780,17 +790,6 @@ function TargetProgressCircle({
         }}
       >
         <span style={{ whiteSpace: "nowrap" }}>{label}</span>
-        <span
-          aria-hidden="true"
-          style={{
-            width: "6px",
-            height: "6px",
-            flex: "0 0 6px",
-            borderRadius: "50%",
-            background: color,
-            boxShadow: `0 0 9px ${color}88`,
-          }}
-        />
       </div>
       <div
         role="img"
@@ -865,8 +864,8 @@ function TargetProgressCircle({
       >
         <span
           style={{
-            fontSize: "12px",
-            fontWeight: 700,
+            fontSize: "14px",
+            fontWeight: 900,
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
             letterSpacing: "-0.025em",
@@ -884,16 +883,18 @@ function TargetProgressCircle({
           top: `${tipY}%`,
           transform: "translate(-50%, -50%)",
           zIndex: 2,
-          padding: "3px 5px",
+          padding: "4px 6px",
           borderRadius: "999px",
           background: "rgba(5, 10, 15, 0.98)",
           border: `1px solid ${color}99`,
           boxShadow: `0 2px 10px rgba(0,0,0,0.42), 0 0 8px ${color}44`,
           color,
-          fontFamily: "'Jura', sans-serif",
-          fontSize: "8px",
-          fontWeight: 700,
+          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontSize: "10px",
+          fontWeight: 900,
           fontVariantNumeric: "tabular-nums",
+          letterSpacing: "0.01em",
+          textShadow: `0 0 8px ${color}66`,
           lineHeight: 1,
           whiteSpace: "nowrap",
           pointerEvents: "none",
