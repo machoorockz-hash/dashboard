@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Target, Shield, Clock } from "lucide-react";
+import { TrendingUp, Clock } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CoinIcon } from "../components/CoinIcon";
 import { PriceChart } from "../components/PriceChart";
@@ -613,6 +613,153 @@ interface LastTrade {
   time: number; // unix ms
 }
 
+function TargetProgressCircle({
+  label,
+  targetValue,
+  progress,
+  color,
+}: {
+  label: string;
+  targetValue: string;
+  progress: number;
+  color: string;
+}) {
+  const targetProgress = Number.isFinite(progress)
+    ? Math.max(0, Math.min(100, progress * 100))
+    : 0;
+  const [displayProgress, setDisplayProgress] = useState(targetProgress);
+  const previousProgressRef = useRef(targetProgress);
+  const animationFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const start = previousProgressRef.current;
+    const end = targetProgress;
+    previousProgressRef.current = end;
+
+    if (Math.abs(end - start) < 0.05) {
+      setDisplayProgress(end);
+      return;
+    }
+
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const t = Math.min((now - startTime) / 650, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayProgress(start + (end - start) * eased);
+
+      if (t < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayProgress(end);
+        animationFrameRef.current = null;
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [targetProgress]);
+
+  const sweepDegrees = displayProgress * 3.6;
+  const tipAngle = (displayProgress * 3.6 - 90) * (Math.PI / 180);
+  const tipX = 50 + Math.cos(tipAngle) * 48;
+  const tipY = 50 + Math.sin(tipAngle) * 48;
+
+  return (
+    <div
+      role="img"
+      aria-label={`${label}: target ${targetValue}, progress ${displayProgress.toFixed(1)}%`}
+      style={{
+        width: "80px",
+        height: "80px",
+        flex: "0 0 80px",
+        position: "relative",
+        overflow: "visible",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "50%",
+          background: `conic-gradient(from 0deg, ${color} 0deg ${sweepDegrees}deg, rgba(255,255,255,0.13) ${sweepDegrees}deg 360deg)`,
+          filter: `drop-shadow(0 0 3px ${color}66)`,
+          WebkitMask: "radial-gradient(circle, transparent 0 86%, #000 89% 100%)",
+          mask: "radial-gradient(circle, transparent 0 86%, #000 89% 100%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'Jura', sans-serif",
+          textAlign: "center",
+          lineHeight: 1,
+          color,
+          userSelect: "none",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "10px",
+            fontWeight: 700,
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {targetValue}
+        </span>
+        <span
+          style={{
+            marginTop: "3px",
+            fontSize: "5.5px",
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {label}
+        </span>
+      </div>
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: `${tipX}%`,
+          top: `${tipY}%`,
+          transform: "translate(-50%, -50%)",
+          zIndex: 2,
+          padding: "2px 3px",
+          borderRadius: "999px",
+          background: "rgba(5, 10, 15, 0.96)",
+          border: `1px solid ${color}99`,
+          boxShadow: `0 0 4px ${color}55`,
+          color,
+          fontFamily: "'Jura', sans-serif",
+          fontSize: "6px",
+          fontWeight: 700,
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1,
+          whiteSpace: "nowrap",
+          pointerEvents: "none",
+        }}
+      >
+        {displayProgress.toFixed(1)}%
+      </div>
+    </div>
+  );
+}
+
 interface DcaData {
   symbol?: string;
   side?: string;
@@ -945,8 +1092,6 @@ export default function Dashboard() {
   const pnlUsd = activeTrade?.pnl_usd ?? 0;
   const targetPct = activeTrade?.target_pct ?? 0;
   const stopPct = activeTrade?.stop_pct ?? 0;
-  const distToTpPct = activeTrade?.dist_to_tp_pct ?? 0;
-  const distToSlPct = activeTrade?.dist_to_sl_pct ?? 0;
   const tpProgress = activeTrade?.tp_progress ?? 0;
   const slProgress = activeTrade?.sl_progress ?? 0;
 
@@ -1353,17 +1498,31 @@ export default function Dashboard() {
               </div>
 
               <div className="relative mt-5">
-                {showDca && (
-                  <div className="relative mt-3 border-t border-border/60 pt-3">
-                    <DcaWheel
-                      step={dcaStep}
-                      total={dcaTotal}
-                      skippedSteps={dcaSkipped}
+                <div className="relative mt-3 border-t border-border/60 pt-3 pb-3">
+                  <div className="flex items-center justify-between">
+                    {showDca ? (
+                      <DcaWheel
+                        step={dcaStep}
+                        total={dcaTotal}
+                        skippedSteps={dcaSkipped}
+                      />
+                    ) : (
+                      <div aria-hidden="true" style={{ width: "80px", height: "80px", flex: "0 0 80px" }} />
+                    )}
+                    <TargetProgressCircle
+                      label="TAKE PROFIT"
+                      targetValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
+                      progress={tpProgress}
+                      color="#10b981"
                     />
-
-
+                    <TargetProgressCircle
+                      label="STOP LOSS"
+                      targetValue={slPrice ? `-${Math.abs(stopPct).toFixed(2)}%` : "—"}
+                      progress={slProgress}
+                      color="#ef4444"
+                    />
                   </div>
-                )}
+                </div>
 
                 <div className="relative -mx-4 mt-3 border-t border-border/60 pt-3">
                   <PriceChart
@@ -1383,22 +1542,7 @@ export default function Dashboard() {
               </div>
 
               <div className="relative mt-4 w-full border-t border-border/60 pt-4">
-                <div className="grid sm:grid-cols-2 gap-x-8">
-                  <div className="min-w-0">
-                    <ProgressTrack icon={<Target className="h-3.5 w-3.5" />} label="TAKE PROFIT"
-                      fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={tpPrice ? `TP $${fmtPrice(tpPrice)}` : "—"}
-                      pct={tpProgress} rightValue={tpPrice ? `${targetPct >= 0 ? "+" : ""}${targetPct.toFixed(2)}%` : "—"}
-                      hint={tpPrice && cur ? `${distToTpPct >= 0 ? "+" : ""}${distToTpPct.toFixed(2)}% to TP` : ""} color="bull" />
-                  </div>
-                  <div className="min-w-0 pt-4 sm:pt-0">
-                    <ProgressTrack icon={<Shield className="h-3.5 w-3.5" />} label="Stop loss"
-                      fromLabel={`Entry $${fmtPrice(entry)}`} toLabel={slPrice ? `SL $${fmtPrice(slPrice)}` : "—"}
-                      pct={slProgress} rightValue={slPrice ? `${stopPct.toFixed(2)}%` : "—"}
-                      hint={slPrice && cur ? `${distToSlPct.toFixed(2)}% buffer` : ""} color="bear" />
-                  </div>
-                </div>
-
-                <div className="relative mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="relative grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                   <Cell label="Entry (avg)" value={`$${fmtPrice(entry)}`} />
                   <Cell label="Qty" value={`${fmt(orderQty, 4)} ${orderBase}`} />
                   <Cell label="Take Profit" value={tpPrice ? `$${fmtPrice(tpPrice)}` : "—"} accent />
@@ -1519,7 +1663,7 @@ function Cell({ label, value, accent, danger }: { label: string; value: string; 
   );
 }
 
-function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint, color }: {
+export function ProgressTrack({ icon, label, fromLabel, toLabel, pct, rightValue, hint, color }: {
   icon: React.ReactNode; label: string; fromLabel: string; toLabel: string;
   pct: number; rightValue: string; hint?: string; color: "bull" | "bear";
 }) {
