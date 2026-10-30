@@ -14,7 +14,7 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 // Spectrum palette for the wallet allocation bar & coin accent colours
 const SPECTRUM_COLORS = [
-  "#ef4444", "#DFFF00", "#f59e0b", "#22c55e",
+  "#ef4444", "#f97316", "#f59e0b", "#22c55e",
   "#10b981", "#14b8a6", "#06b6d4", "#3b82f6",
   "#8b5cf6", "#ec4899",
 ];
@@ -1229,7 +1229,7 @@ export default function Dashboard() {
       if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`, color: "#10b981" });
       if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`, color: "#ef4444" });
       if (dcaNextStep != null && dcaNextTriggerPrice != null && dcaNextTriggerPrice > 0) {
-        out.push({ price: dcaNextTriggerPrice, label: `DCA TRIGGER STEP ${dcaNextStep} ${fmtPrice(dcaNextTriggerPrice)}`, color: "#DFFF00" });
+        out.push({ price: dcaNextTriggerPrice, label: `DCA TRIGGER STEP ${dcaNextStep} ${fmtPrice(dcaNextTriggerPrice)}`, color: "#f97316" });
       }
     }
     return out;
