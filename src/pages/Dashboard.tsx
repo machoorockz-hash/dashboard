@@ -462,23 +462,23 @@ function DcaWheel({
     const isSkipped = skippedSteps?.includes(stepNumber) ?? false;
     const isTriggered = stepNumber < safeStep && !isSkipped;
     const color = isSkipped
-      ? "#71333b"
+      ? "#5c3540"
       : isActive
         ? "#78f6d0"
         : isTriggered
-          ? "#176149"
+          ? "#1b7058"
           : index % 2 === 0
-            ? "#10513b"
-            : "#0d4a36";
+            ? "#103f34"
+            : "#0d382e";
 
     gradientStops.push(`${color} ${segmentStart}deg ${segmentEnd}deg`);
     gradientStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
     activeGlowStops.push(
-      `${isActive ? "rgba(120, 246, 208, 0.9)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+      `${isActive ? "rgba(120, 246, 208, 0.72)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     activeGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
     triggeredGlowStops.push(
-      `${isTriggered ? "rgba(120, 246, 208, 0.75)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+      `${isTriggered ? "rgba(120, 246, 208, 0.52)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     triggeredGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
   }
@@ -490,14 +490,14 @@ function DcaWheel({
 
         @keyframes dca-wheel-glow {
           0%, 100% {
-            opacity: 0.68;
+            opacity: 0.78;
           }
           50% {
-            opacity: 1;
+            opacity: 0.96;
           }
         }
         .dca-wheel-glow {
-          animation: dca-wheel-glow 2.2s ease-in-out infinite;
+          animation: dca-wheel-glow 3.2s ease-in-out infinite;
         }
         @media (prefers-reduced-motion: reduce) {
           .dca-wheel-glow {
@@ -554,7 +554,7 @@ function DcaWheel({
               zIndex: 1,
               borderRadius: "50%",
               background: `conic-gradient(${triggeredGlowStops.join(", ")})`,
-              filter: "blur(1.8px) drop-shadow(0 0 1.8px rgba(91, 255, 207, 0.32))",
+              filter: "blur(1.2px) drop-shadow(0 0 2px rgba(91, 255, 207, 0.22))",
               mixBlendMode: "screen",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
@@ -571,7 +571,7 @@ function DcaWheel({
               zIndex: 2,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(1.8px) drop-shadow(0 0 2.7px rgba(91, 255, 207, 0.4))",
+              filter: "blur(1.2px) drop-shadow(0 0 3px rgba(91, 255, 207, 0.3))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -584,16 +584,41 @@ function DcaWheel({
             inset: 0,
             zIndex: 0,
             borderRadius: "50%",
-            background: `conic-gradient(${gradientStops.join(", ")})`,
+            background: `radial-gradient(circle at 32% 20%, rgba(225,255,248,0.22), transparent 46%), conic-gradient(${gradientStops.join(", ")})`,
             WebkitMask: "radial-gradient(circle, transparent 0 54%, #000 55% 100%)",
             mask: "radial-gradient(circle, transparent 0 54%, #000 55% 100%)",
+            filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.28))",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: "15%",
+            zIndex: 3,
+            borderRadius: "50%",
+            border: "1px solid rgba(188,255,239,0.2)",
+            background: "radial-gradient(circle at 32% 24%, rgba(190,255,239,0.13), transparent 42%), linear-gradient(145deg, rgba(17,40,37,0.98), rgba(6,12,15,0.99) 70%)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.11), inset 0 -8px 18px rgba(0,0,0,0.42), 0 5px 18px rgba(0,0,0,0.34)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 4,
+            borderRadius: "50%",
+            border: "1px solid rgba(196,255,244,0.2)",
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.26), 0 0 12px rgba(120,246,208,0.08)",
+            pointerEvents: "none",
           }}
         />
         <div
           aria-hidden="true"
           style={{
             position: "relative",
-            zIndex: 3,
+            zIndex: 5,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -613,7 +638,7 @@ function DcaWheel({
               letterSpacing: "0.12em",
             }}
           >
-            STEP
+            DCA
           </span>
           <span
             style={{
@@ -626,17 +651,6 @@ function DcaWheel({
             }}
           >
             {safeStep}
-          </span>
-          <span
-            style={{
-              marginTop: "3px",
-              fontSize: "6.5px",
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              opacity: 0.72,
-            }}
-          >
-            OF {safeTotal}
           </span>
         </div>
         </div>
@@ -812,6 +826,17 @@ function TargetProgressCircle({
           userSelect: "none",
         }}
       >
+        <span
+          style={{
+            marginBottom: "5px",
+            fontSize: "9px",
+            fontWeight: 900,
+            letterSpacing: "0.16em",
+            opacity: 0.78,
+          }}
+        >
+          {label === "STOP LOSS" ? "SL" : "TP"}
+        </span>
         <span
           style={{
             fontSize: "14px",
