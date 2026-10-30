@@ -518,21 +518,12 @@ function DcaWheel({
           gap: "5px",
           padding: "1px 8px",
           borderRadius: "16px",
-          border: "1px solid rgba(120, 246, 208, 0.18)",
-          background: "linear-gradient(145deg, rgba(23, 55, 49, 0.62), rgba(12, 17, 22, 0.94) 58%, rgba(8, 11, 15, 0.98))",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.055), 0 12px 28px -24px rgba(0,0,0,0.9)",
+          border: "none",
+          background: "transparent",
+          boxShadow: "none",
           overflow: "hidden",
         }}
       >
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: "0 14% auto",
-            height: "1px",
-            background: "linear-gradient(90deg, transparent, rgba(120,246,208,0.6), transparent)",
-          }}
-        />
         <div
           aria-label={`DCA step ${safeStep} of ${safeTotal}`}
           role="img"
@@ -740,21 +731,12 @@ function TargetProgressCircle({
         gap: "5px",
         padding: "1px 8px",
         borderRadius: "16px",
-        border: `1px solid color-mix(in oklab, ${color} 22%, rgba(255,255,255,0.07))`,
-        background: `linear-gradient(145deg, color-mix(in oklab, ${color} 9%, rgba(17,22,28,0.96)), rgba(11,15,20,0.96) 62%, rgba(8,11,15,0.98))`,
-        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.055), 0 12px 28px -24px ${color}66`,
+        border: "none",
+        background: "transparent",
+        boxShadow: "none",
         overflow: "hidden",
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: "0 14% auto",
-          height: "1px",
-          background: `linear-gradient(90deg, transparent, ${color}99, transparent)`,
-        }}
-      />
       <div
         role="img"
         aria-label={`${label}: target ${targetValue}, progress ${displayProgress.toFixed(1)}%`}
@@ -843,9 +825,11 @@ function TargetProgressCircle({
           style={{
             fontSize: "14px",
             fontWeight: 900,
+            fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
             letterSpacing: "-0.025em",
+            WebkitTextStroke: "0.45px currentColor",
             textShadow: `0 0 14px ${color}40`,
           }}
         >
