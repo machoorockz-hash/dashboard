@@ -827,7 +827,7 @@ function TargetProgressCircle({
           r={ringRadius}
           fill="none"
           stroke="rgba(255,255,255,0.16)"
-          strokeWidth="5"
+          strokeWidth="8"
         />
         <circle
           cx="40"
@@ -835,7 +835,7 @@ function TargetProgressCircle({
           r={ringRadius}
           fill="none"
           stroke={color}
-          strokeWidth="5"
+          strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={`${ringCircumference} ${ringCircumference}`}
           strokeDashoffset={ringDashOffset}
@@ -874,18 +874,6 @@ function TargetProgressCircle({
           }}
         >
           {targetValue}
-        </span>
-        <span
-          style={{
-            marginTop: "4px",
-            fontSize: "6.5px",
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            whiteSpace: "nowrap",
-            opacity: 0.76,
-          }}
-        >
-          {label === "STOP LOSS" ? "RISK LIMIT" : "PRICE TARGET"}
         </span>
       </div>
       <div
