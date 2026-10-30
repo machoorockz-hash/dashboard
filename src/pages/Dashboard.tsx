@@ -1229,7 +1229,7 @@ export default function Dashboard() {
       if (tpPrice > 0) out.push({ price: tpPrice, label: `TP ${fmtPrice(tpPrice)}`, color: "#10b981" });
       if (slPrice > 0) out.push({ price: slPrice, label: `SL ${fmtPrice(slPrice)}`, color: "#ef4444" });
       if (dcaNextStep != null && dcaNextTriggerPrice != null && dcaNextTriggerPrice > 0) {
-        out.push({ price: dcaNextTriggerPrice, label: `DCA TRIGGER STEP ${dcaNextStep} ${fmtPrice(dcaNextTriggerPrice)}`, color: "#f97316" });
+        out.push({ price: dcaNextTriggerPrice, label: `DCA TRIGGER STEP ${dcaNextStep} ${fmtPrice(dcaNextTriggerPrice)}`, color: "#DFFF00" });
       }
     }
     return out;
