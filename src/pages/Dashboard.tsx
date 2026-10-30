@@ -1603,8 +1603,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="relative mt-5">
-                <div className="relative mt-3 border-t border-border/60 pt-3 pb-3">
+              <div className="relative mt-2">
+                <div className="relative mt-1 border-t border-border/60 pt-1 pb-1">
                   <div className="grid grid-cols-3 items-stretch gap-2 sm:gap-3">
                     {showDca ? (
                       <DcaWheel
@@ -1630,7 +1630,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="relative -mx-4 mt-3 border-t border-border/60 pt-3">
+                <div className="relative -mx-4 mt-1 border-t border-border/60 pt-1">
                   <PriceChart
                     symbol={orderSymbol ?? primary.symbol}
                     interval="1m"
