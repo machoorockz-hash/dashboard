@@ -825,7 +825,7 @@ function TargetProgressCircle({
           style={{
             fontSize: "14px",
             fontWeight: 800,
-            fontFamily: "'Jura', sans-serif",
+            fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
             letterSpacing: "-0.025em",
