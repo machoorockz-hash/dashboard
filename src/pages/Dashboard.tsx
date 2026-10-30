@@ -509,14 +509,14 @@ function DcaWheel({
         style={{
           flex: "1 1 0",
           minWidth: 0,
-          minHeight: "132px",
+          minHeight: "106px",
           position: "relative",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           gap: "5px",
-          padding: "10px 8px",
+          padding: "1px 8px",
           borderRadius: "16px",
           border: "1px solid rgba(120, 246, 208, 0.18)",
           background: "linear-gradient(145deg, rgba(23, 55, 49, 0.62), rgba(12, 17, 22, 0.94) 58%, rgba(8, 11, 15, 0.98))",
@@ -534,48 +534,10 @@ function DcaWheel({
           }}
         />
         <div
-          style={{
-            position: "absolute",
-            top: "12px",
-            left: "10px",
-            right: "10px",
-            zIndex: 4,
-            width: "auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            gap: "5px",
-            color: "rgba(218, 235, 231, 0.78)",
-            fontFamily: "inherit",
-            fontSize: "9px",
-            fontWeight: 800,
-            letterSpacing: "0.11em",
-            lineHeight: 1,
-            textTransform: "uppercase",
-          }}
-        >
-          <span>DCA PLAN</span>
-          <span
-            style={{
-              padding: "4px 6px",
-              borderRadius: "999px",
-              border: "1px solid rgba(120,246,208,0.18)",
-              background: "rgba(120,246,208,0.08)",
-              color: "rgba(151, 248, 220, 0.9)",
-              fontSize: "8px",
-              fontVariantNumeric: "tabular-nums",
-              letterSpacing: "0.04em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {safeStep}/{safeTotal}
-          </span>
-        </div>
-        <div
           aria-label={`DCA step ${safeStep} of ${safeTotal}`}
           role="img"
           style={{
-            width: "clamp(72px, 8vw, 88px)",
+            width: "clamp(83px, 9.2vw, 101px)",
             aspectRatio: "1 / 1",
             position: "relative",
             display: "grid",
@@ -665,6 +627,17 @@ function DcaWheel({
           >
             {safeStep}
           </span>
+          <span
+            style={{
+              marginTop: "3px",
+              fontSize: "6.5px",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              opacity: 0.72,
+            }}
+          >
+            OF {safeTotal}
+          </span>
         </div>
         </div>
       </div>
@@ -744,14 +717,14 @@ function TargetProgressCircle({
       style={{
         flex: "1 1 0",
         minWidth: 0,
-        minHeight: "132px",
+        minHeight: "106px",
         position: "relative",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         gap: "5px",
-        padding: "10px 8px",
+        padding: "1px 8px",
         borderRadius: "16px",
         border: `1px solid color-mix(in oklab, ${color} 22%, rgba(255,255,255,0.07))`,
         background: `linear-gradient(145deg, color-mix(in oklab, ${color} 9%, rgba(17,22,28,0.96)), rgba(11,15,20,0.96) 62%, rgba(8,11,15,0.98))`,
@@ -769,34 +742,11 @@ function TargetProgressCircle({
         }}
       />
       <div
-        style={{
-          position: "absolute",
-          top: "12px",
-          left: "10px",
-          right: "10px",
-          zIndex: 4,
-          width: "auto",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "5px",
-          color: "rgba(226, 231, 237, 0.82)",
-          fontFamily: "inherit",
-          fontSize: "9px",
-          fontWeight: 800,
-          letterSpacing: "0.105em",
-          lineHeight: 1,
-          textTransform: "uppercase",
-        }}
-      >
-        <span style={{ whiteSpace: "nowrap" }}>{label}</span>
-      </div>
-      <div
         role="img"
         aria-label={`${label}: target ${targetValue}, progress ${displayProgress.toFixed(1)}%`}
         style={{
-          width: "clamp(72px, 8vw, 88px)",
-          height: "clamp(72px, 8vw, 88px)",
+          width: "clamp(83px, 9.2vw, 101px)",
+          height: "clamp(83px, 9.2vw, 101px)",
           flex: "0 0 auto",
           position: "relative",
           overflow: "visible",
