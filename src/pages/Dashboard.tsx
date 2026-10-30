@@ -478,7 +478,7 @@ function DcaWheel({
     );
     activeGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
     triggeredGlowStops.push(
-      `${isTriggered ? "rgba(91, 230, 187, 0.55)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
+      `${isTriggered ? "rgba(120, 246, 208, 0.75)" : "transparent"} ${segmentStart}deg ${segmentEnd}deg`,
     );
     triggeredGlowStops.push(`transparent ${segmentEnd}deg ${Math.min(360, end + gapAngle / 2)}deg`);
   }
@@ -507,7 +507,7 @@ function DcaWheel({
         aria-label={`DCA step ${safeStep} of ${safeTotal}`}
         role="img"
         style={{
-          width: "120px",
+          width: "60px",
           aspectRatio: "1 / 1",
           margin: "8px auto 4px",
           position: "relative",
@@ -517,14 +517,14 @@ function DcaWheel({
       >
         {safeStep > 1 && (
           <div
+            className="dca-wheel-glow"
             aria-hidden="true"
             style={{
               position: "absolute",
               inset: 0,
               borderRadius: "50%",
               background: `conic-gradient(${triggeredGlowStops.join(", ")})`,
-              filter: "blur(2px)",
-              opacity: 0.65,
+              filter: "blur(1.3px) drop-shadow(0 0 1.5px rgba(91, 255, 207, 0.32))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -539,7 +539,7 @@ function DcaWheel({
               inset: 0,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(3px) drop-shadow(0 0 4px rgba(91, 255, 207, 0.4))",
+              filter: "blur(1.5px) drop-shadow(0 0 2px rgba(91, 255, 207, 0.4))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -572,7 +572,7 @@ function DcaWheel({
         >
           <span
             style={{
-              fontSize: "12px",
+              fontSize: "6px",
               fontWeight: 300,
               letterSpacing: "0.045em",
             }}
@@ -581,8 +581,8 @@ function DcaWheel({
           </span>
           <span
             style={{
-              marginTop: "3px",
-              fontSize: "22px",
+              marginTop: "1.5px",
+              fontSize: "11px",
               fontWeight: 300,
               fontVariantNumeric: "tabular-nums",
             }}
