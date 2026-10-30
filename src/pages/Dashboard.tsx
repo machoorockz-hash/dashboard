@@ -466,7 +466,7 @@ function DcaWheel({
       : isActive || stepNumber === 6
         ? "#dfff00"
         : isTriggered
-          ? "#7d8f01"
+          ? "#556100"
           : index % 2 === 0
             ? "#103f34"
             : "#0d382e";
@@ -562,7 +562,7 @@ function DcaWheel({
               zIndex: 2,
               borderRadius: "50%",
               background: `conic-gradient(${activeGlowStops.join(", ")})`,
-              filter: "blur(1.2px) drop-shadow(0 0 3px rgba(223, 255, 0, 0.3))",
+              filter: "blur(1.2px) drop-shadow(0 0 4px rgba(223, 255, 0, 0.4))",
               WebkitMask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
               mask: "radial-gradient(circle, transparent 0 52%, #000 56% 100%)",
             }}
@@ -638,7 +638,10 @@ function DcaWheel({
               fontWeight: 700,
               fontVariantNumeric: "tabular-nums",
               letterSpacing: "-0.04em",
-              textShadow: "0 0 14px rgba(223,255,0,0.24)",
+              textShadow: safeStep > 0
+                ? "0 0 5px rgba(223,255,0,0.5), 0 0 14px rgba(223,255,0,0.3)"
+                : "none",
+              transition: "text-shadow 0.25s ease",
             }}
           >
             {safeStep}
